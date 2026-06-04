@@ -20,24 +20,46 @@
 }
 
 .online-layout {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 256px;
+  align-items: stretch;
   gap: 24px;
   padding: 0 24px;
   height: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  flex-wrap: wrap;
+}
+
+.profile-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  max-width: 190px;
+  height: 100%;
+}
+
+.profile-spacer {
+  flex: 1 1 auto;
 }
 
 .board-column {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 1 1 0;
-  max-width: calc(100% - 280px);
-  min-width: 320px;
+  width: 100%;
+  min-width: 0;
   align-items: center;
+}
+
+.board-column .board-section {
+  width: 100%;
+}
+
+.board-column .board-outer {
+  justify-content: center;
 }
 
 .right-panel {
@@ -45,7 +67,7 @@
   flex-direction: column;
   gap: 12px;
   width: 256px;
-  min-width: 256px;
+  min-width: 0;
   flex-shrink: 0;
 }
 
@@ -604,7 +626,7 @@
     <div class="online-main">
       <div class="online-layout">
 
-        <div class="board-column">
+        <div class="profile-column">
 
           <!-- Opponent (top) -->
           <div class="player-card" id="opp-card">
@@ -617,16 +639,7 @@
             <div class="player-clock" id="opp-clock">--:--</div>
           </div>
 
-          <!-- Board -->
-          <div class="board-section">
-            <div class="board-outer">
-              <div class="coords-col" id="coords-left"></div>
-              <div>
-                <div class="chess-board" id="chess-board"></div>
-                <div class="coords-row" id="coords-bottom"></div>
-              </div>
-            </div>
-          </div>
+          <div class="profile-spacer"></div>
 
           <!-- Me (bottom) -->
           <div class="player-card" id="my-card">
@@ -637,6 +650,19 @@
             </div>
             <div class="clock-dot" id="my-dot"></div>
             <div class="player-clock" id="my-clock">--:--</div>
+          </div>
+        </div>
+
+        <div class="board-column">
+          <!-- Board -->
+          <div class="board-section">
+            <div class="board-outer">
+              <div class="coords-col" id="coords-left"></div>
+              <div>
+                <div class="chess-board" id="chess-board"></div>
+                <div class="coords-row" id="coords-bottom"></div>
+              </div>
+            </div>
           </div>
         </div>
 
