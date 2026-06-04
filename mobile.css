@@ -93,6 +93,19 @@
     align-items: flex-start !important;
   }
 
+  .main {
+    height: auto !important;
+    min-height: auto !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+  }
+
+  .hero {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
   .bot-layout,
   .online-layout {
     flex-direction: column !important;
