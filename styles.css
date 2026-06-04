@@ -1876,3 +1876,202 @@ html[data-background-mode="light"] .board-choice {
     border-color: rgba(0, 0, 0, 0.1);
     background: rgba(0, 0, 0, 0.02);
 }
+/* ════════════════════════════════════════
+   RESPONSIVE — MOBILE & TABLET
+   ════════════════════════════════════════ */
+
+/* ── Tablet (≤900px) ── */
+@media (max-width: 900px) {
+  .topbar { padding: 0 12px; }
+
+  .nav .search { min-width: 140px; }
+
+  .nav { gap: 16px; }
+
+  .register, .login { padding: 0 12px; font-size: 13px; }
+}
+
+/* ── Mobile (≤640px) ── */
+@media (max-width: 640px) {
+
+  /* Topbar */
+  .topbar {
+    height: 56px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .logo-icon { width: 48px; height: 48px; }
+
+  /* ซ่อน nav links และ search บนมือถือ */
+  .nav a, .nav .search { display: none; }
+
+  .nav { gap: 8px; }
+
+  .right { gap: 8px; }
+
+  .register { display: none; } /* ซ่อน register เหลือแค่ login */
+
+  .login {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .topbar-icon-btn { width: 32px; height: 32px; }
+
+  /* Hamburger menu icon สำหรับ nav */
+  .nav::before {
+    content: '☰';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  /* Auth Modal */
+  .auth-modal {
+    width: 95vw !important;
+    padding: 24px 20px !important;
+    border-radius: 20px !important;
+  }
+
+  /* Play page side menu */
+  .play-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding: 12px !important;
+  }
+
+  .side-menu { width: 100%; max-width: 400px; }
+
+  .menu-card { padding: 12px 14px; }
+
+  /* Time/Setup modal */
+  .time-modal {
+    width: 95vw !important;
+    padding: 24px 18px !important;
+    border-radius: 20px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .diff-options { grid-template-columns: repeat(2, 1fr) !important; }
+
+  .time-options { grid-template-columns: repeat(3, 1fr) !important; }
+
+  .time-option { padding: 14px 8px !important; }
+
+  .time-option-label { font-size: 1.1rem !important; }
+
+  /* Profile page */
+  .profile-layout {
+    flex-direction: column !important;
+    padding: 12px !important;
+  }
+}
+
+/* ════════════════════════════════════════
+   MOBILE GAME BOARD (play-bot / play / play-online)
+   ════════════════════════════════════════ */
+@media (max-width: 700px) {
+
+  body.play-body { overflow-y: auto !important; height: auto !important; }
+
+  /* Bot game layout — stack vertically */
+  .bot-main {
+    height: auto !important;
+    padding: 12px 0 24px !important;
+    align-items: flex-start !important;
+  }
+
+  .bot-layout {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 0 12px !important;
+    width: 100%;
+  }
+
+  /* Clock panel — horizontal on mobile */
+  .clock-panel {
+    flex-direction: row !important;
+    height: auto !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .clock-card {
+    flex: 1 !important;
+    padding: 10px 8px !important;
+    min-width: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .clock-time { font-size: 1.4rem !important; letter-spacing: 1px !important; }
+
+  .clock-name { font-size: 11px !important; }
+
+  .clock-label { font-size: 9px !important; }
+
+  /* Board */
+  .board-section { width: 100% !important; }
+
+  .board-outer { gap: 6px !important; }
+
+  /* Info panel — horizontal row on mobile */
+  .info-panel {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    height: auto !important;
+    width: 100% !important;
+    gap: 8px !important;
+    justify-content: stretch !important;
+  }
+
+  .status-card { flex: 1 1 45% !important; min-width: 120px !important; }
+
+  .captured-card { flex: 1 1 100% !important; }
+
+  .action-buttons {
+    flex-direction: row !important;
+    flex: 1 1 100% !important;
+    gap: 6px !important;
+  }
+
+  .btn-action {
+    flex: 1 !important;
+    padding: 9px 6px !important;
+    font-size: 12px !important;
+    justify-content: center !important;
+    gap: 4px !important;
+  }
+
+  /* Play page board display */
+  .play-main { height: auto !important; padding: 16px 0 !important; }
+
+  /* Board display on play.html — hide on very small screens */
+  .board-section { display: none !important; }
+  .play-layout { grid-template-columns: 1fr !important; }
+
+  /* Gameover modal */
+  .gameover-modal {
+    width: 90vw !important;
+    padding: 28px 20px !important;
+    border-radius: 20px !important;
+  }
+
+  .gameover-actions { flex-direction: column !important; }
+}
+
+/* ── Very small (≤380px) ── */
+@media (max-width: 380px) {
+  .clock-time { font-size: 1.1rem !important; }
+  .btn-action span { display: none; } /* ซ่อน emoji เหลือแค่ตัวหนังสือ */
+  .time-option-emoji { font-size: 1.2rem !important; }
+}

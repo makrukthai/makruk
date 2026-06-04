@@ -639,7 +639,7 @@ function calcCellSize() {
   const availableHeight = window.innerHeight - topbarH - 60;
   const availableWidth = window.innerWidth > 900 ? window.innerWidth - 420 : window.innerWidth - 80;
   const cell = Math.floor(Math.min(availableHeight, availableWidth) / 8);
-  return Math.max(36, Math.min(cell, 90));
+  return Math.max(32, Math.min(cell, 90));
 }
 
 function applyCell(size) {
