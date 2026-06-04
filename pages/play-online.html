@@ -21,12 +21,28 @@
 
 .online-layout {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 24px;
   padding: 0 24px;
   height: 100%;
   max-width: 1100px;
   margin: 0 auto;
+}
+
+.board-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  align-items: center;
+}
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 256px;
+  flex-shrink: 0;
 }
 
 /* ── Board ── */
@@ -584,19 +600,7 @@
     <div class="online-main">
       <div class="online-layout">
 
-        <!-- Board -->
-        <div class="board-section">
-          <div class="board-outer">
-            <div class="coords-col" id="coords-left"></div>
-            <div>
-              <div class="chess-board" id="chess-board"></div>
-              <div class="coords-row" id="coords-bottom"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Panel -->
-        <div class="right-panel">
+        <div class="board-column">
 
           <!-- Opponent (top) -->
           <div class="player-card" id="opp-card">
@@ -609,6 +613,31 @@
             <div class="player-clock" id="opp-clock">--:--</div>
           </div>
 
+          <!-- Board -->
+          <div class="board-section">
+            <div class="board-outer">
+              <div class="coords-col" id="coords-left"></div>
+              <div>
+                <div class="chess-board" id="chess-board"></div>
+                <div class="coords-row" id="coords-bottom"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Me (bottom) -->
+          <div class="player-card" id="my-card">
+            <div class="player-avatar" id="my-avatar">👤</div>
+            <div class="player-info">
+              <div class="player-name" id="my-name">คุณ</div>
+              <div class="player-rank" id="my-rank"></div>
+            </div>
+            <div class="clock-dot" id="my-dot"></div>
+            <div class="player-clock" id="my-clock">--:--</div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
           <div class="captures-row" id="cap-opp"></div>
 
           <div class="move-badge" id="move-badge">รอเริ่มเกม</div>
@@ -629,17 +658,6 @@
           </div>
 
           <div class="captures-row" id="cap-me"></div>
-
-          <!-- Me (bottom) -->
-          <div class="player-card" id="my-card">
-            <div class="player-avatar" id="my-avatar">👤</div>
-            <div class="player-info">
-              <div class="player-name" id="my-name">คุณ</div>
-              <div class="player-rank" id="my-rank"></div>
-            </div>
-            <div class="clock-dot" id="my-dot"></div>
-            <div class="player-clock" id="my-clock">--:--</div>
-          </div>
 
           <!-- Actions -->
           <div class="action-row" style="flex-direction:column; gap:6px;">
