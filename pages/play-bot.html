@@ -616,6 +616,7 @@ const colorNames = { w:'ขาว', b:'ดำ' };
 let boardState, turn, selected, legalForSelected, lastMove, flipped, gameOver;
 let capturedByWhite, capturedByBlack;
 let botThinkingTimer = null;
+let botThinking = false; // true while bot is in delay (clock paused)
 
 // Clock state
 let timeMinutes = 10;
@@ -866,6 +867,7 @@ function startClock() {
       updateClockDisplay('w');
       if (timeWhite <= 0) { timeWhite = 0; updateClockDisplay('w'); endGame('time-b'); return; }
     } else {
+      if (botThinking) return; // หยุดนาฬิกาดำระหว่างบอทกำลัง delay
       timeBlack--;
       updateClockDisplay('b');
       if (timeBlack <= 0) { timeBlack = 0; updateClockDisplay('b'); endGame('time-w'); return; }
@@ -1074,10 +1076,11 @@ function executeMove(move) {
 
 function scheduleBot() {
   if (botThinkingTimer) clearTimeout(botThinkingTimer);
-  // Delay varies by difficulty (harder = thinks "longer" visually)
+  botThinking = true; // หยุดนาฬิกาดำ
   const delay = { 1: 300, 2: 500, 3: 700, 4: 900 }[botDepth] || 500;
   botThinkingTimer = setTimeout(() => {
-    if (gameOver || turn !== 'b') return;
+    if (gameOver || turn !== 'b') { botThinking = false; return; }
+    botThinking = false; // เริ่มนับเวลาบอทจริงๆ ตอนเดิน
     const move = getBotMove(boardState);
     if (move) executeMove(move);
     botThinkingTimer = null;
@@ -1115,7 +1118,7 @@ function endGame(reason) {
 function initGame() {
   boardState = cloneBoard(initialBoard);
   turn = 'w'; selected = null; legalForSelected = []; lastMove = null;
-  flipped = false; gameOver = false;
+  flipped = false; gameOver = false; botThinking = false;
   capturedByWhite = []; capturedByBlack = [];
   renderCapturedList('captured-by-white', capturedByWhite);
   renderCapturedList('captured-by-black', capturedByBlack);
