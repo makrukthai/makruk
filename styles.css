@@ -1921,18 +1921,7 @@ html[data-background-mode="light"] .board-choice {
 
   .topbar-icon-btn { width: 32px; height: 32px; }
 
-  /* Hamburger menu icon สำหรับ nav */
-  .nav::before {
-    content: '☰';
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    color: var(--muted);
-    font-size: 18px;
-    cursor: pointer;
-  }
+  /* Hamburger จะถูกสร้างโดย auth.js */
 
   /* Auth Modal */
   .auth-modal {

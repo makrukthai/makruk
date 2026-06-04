@@ -145,10 +145,196 @@ function saveCurrentUser(user) {
   }
 }
 
+function createMobileNav() {
+  if (document.getElementById("hamburger-btn")) return;
+
+  const nav = document.querySelector(".topbar .nav");
+  if (!nav) return;
+
+  // สร้างปุ่ม hamburger
+  const btn = document.createElement("button");
+  btn.id = "hamburger-btn";
+  btn.type = "button";
+  btn.setAttribute("aria-label", "เมนู");
+  btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+    <rect y="3" width="20" height="2" rx="1" fill="currentColor"/>
+    <rect y="9" width="20" height="2" rx="1" fill="currentColor"/>
+    <rect y="15" width="20" height="2" rx="1" fill="currentColor"/>
+  </svg>`;
+  btn.style.cssText = `
+    display: none;
+    width: 36px; height: 36px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 0;
+    flex-shrink: 0;
+  `;
+
+  // สร้าง drawer overlay
+  const drawer = document.createElement("div");
+  drawer.id = "mobile-nav-drawer";
+  drawer.style.cssText = `
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+  `;
+
+  // backdrop
+  const backdrop = document.createElement("div");
+  backdrop.style.cssText = `
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+  `;
+
+  // panel
+  const panel = document.createElement("div");
+  panel.style.cssText = `
+    position: absolute;
+    top: 0; left: 0;
+    width: 260px;
+    height: 100%;
+    background: var(--bg, #1a1a1a);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
+    overflow-y: auto;
+  `;
+
+  // header ใน panel
+  const panelHeader = document.createElement("div");
+  panelHeader.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    height: 56px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  `;
+
+  const panelTitle = document.createElement("span");
+  panelTitle.textContent = "เมนู";
+  panelTitle.style.cssText = `font-weight: 700; color: var(--text); font-size: 16px;`;
+
+  const closeBtn = document.createElement("button");
+  closeBtn.innerHTML = "✕";
+  closeBtn.style.cssText = `
+    background: none; border: none;
+    color: var(--muted); font-size: 16px;
+    cursor: pointer; padding: 4px 8px;
+    border-radius: 6px;
+  `;
+
+  panelHeader.appendChild(panelTitle);
+  panelHeader.appendChild(closeBtn);
+
+  // nav links
+  const navLinks = document.createElement("nav");
+  navLinks.style.cssText = `display: flex; flex-direction: column; padding: 12px 0; flex: 1;`;
+
+  const links = [
+    { href: "play.html",       label: "♟ เล่น" },
+    { href: "tournament.html", label: "🏆 ทัวร์นาเมนต์" },
+    { href: "learn.html",      label: "📖 เรียนรู้" },
+    { href: "watch.html",      label: "👁 ดูเกม" },
+    { href: "community.html",  label: "💬 ชุมชน" },
+  ];
+
+  links.forEach(({ href, label }) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = label;
+    a.style.cssText = `
+      padding: 14px 20px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    `;
+    a.addEventListener("mouseenter", () => a.style.background = "rgba(255,255,255,0.05)");
+    a.addEventListener("mouseleave", () => a.style.background = "transparent");
+    navLinks.appendChild(a);
+  });
+
+  // search ใน drawer
+  const searchWrap = document.createElement("div");
+  searchWrap.style.cssText = `padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.07);`;
+  const searchInput = document.createElement("input");
+  searchInput.placeholder = "ค้นหาผู้เล่น...";
+  searchInput.style.cssText = `
+    width: 100%; height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    font-size: 14px;
+    box-sizing: border-box;
+  `;
+  searchWrap.appendChild(searchInput);
+
+  panel.appendChild(panelHeader);
+  panel.appendChild(navLinks);
+  panel.appendChild(searchWrap);
+  drawer.appendChild(backdrop);
+  drawer.appendChild(panel);
+  document.body.appendChild(drawer);
+
+  // insert hamburger ก่อน nav
+  nav.parentNode.insertBefore(btn, nav);
+
+  // show/hide ตาม screen size
+  function checkSize() {
+    if (window.innerWidth <= 640) {
+      btn.style.display = "flex";
+    } else {
+      btn.style.display = "none";
+      closeDrawer();
+    }
+  }
+
+  function openDrawer() {
+    drawer.style.display = "block";
+    requestAnimationFrame(() => { panel.style.transform = "translateX(0)"; });
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeDrawer() {
+    panel.style.transform = "translateX(-100%)";
+    setTimeout(() => {
+      if (panel.style.transform === "translateX(-100%)") {
+        drawer.style.display = "none";
+        document.body.style.overflow = "";
+      }
+    }, 300);
+  }
+
+  btn.addEventListener("click", openDrawer);
+  closeBtn.addEventListener("click", closeDrawer);
+  backdrop.addEventListener("click", closeDrawer);
+
+  window.addEventListener("resize", checkSize);
+  checkSize();
+}
+
 function initAuth() {
   initializeTheme();
   createAuthModal();
   createProfileModal();
+  createMobileNav();
   setProfileSubmitHandler(handleProfileForm);
   updateAuthUI();
   attachTopbarButtons();
