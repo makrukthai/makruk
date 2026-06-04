@@ -50,8 +50,15 @@ html[data-background-mode="light"] {
 
 /* ── Layout Reset & Fullscreen Base ── */
 html, body{
-    height:100%;
-    overflow:hidden;
+    min-height:100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* หน้าที่ไม่ต้องการ scroll ให้ใส่ class .play-body เพื่อ lock เอง */
+body.play-body {
+    height: 100%;
+    overflow: hidden;
 }
 
 /* ── Body Base Style ── */
