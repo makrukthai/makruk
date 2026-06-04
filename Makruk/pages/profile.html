@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile - RUKTHAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../styles-friend-enhanced.css">
+<script type="module" src="../auth.js"></script>
+<style>
+  /* ── Profile Page Overrides ── */
+  .profile-main {
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+    padding: 48px 32px 60px;
+    display: block;
+  }
+
+  .profile-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    grid-template-rows: auto auto;
+    gap: 24px;
+  }
+
+  /* ── LEFT PANEL: Avatar Card ── */
+  .profile-card {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    background: var(--bg2);
+    border: 1px solid rgba(128,128,128,0.18);
+    border-radius: 24px;
+    padding: 36px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    color: var(--text);
+  }
+
+  /* decorative glow behind avatar */
+  .profile-card::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(128,128,128,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  html[data-background-mode="light"] .profile-card {
+    background: linear-gradient(160deg, #f5f5f5 0%, #ebebeb 100%);
+    border-color: rgba(0,0,0,0.12);
+    color: #1a1a1a;
+  }
+
+  html[data-background-mode="light"] .profile-card::before {
+    background: radial-gradient(circle, rgba(100,100,100,0.15) 0%, transparent 70%);
+  }
+
+  html[data-background-mode="light"] .username-input {
+    background: #ffffff;
+    border-color: rgba(0,0,0,0.12);
+    color: #1a1a1a;
+  }
+
+  html[data-background-mode="light"] .username-action-btn {
+    background: rgba(128,128,128,0.12);
+    color: #1a1a1a;
+    border-color: rgba(100,100,100,0.35);
+  }
+
+  html[data-background-mode="light"] .profile-email,
+  html[data-background-mode="light"] .quick-stat-label,
+  html[data-background-mode="light"] .section-title,
+  html[data-background-mode="light"] .profile-name {
+    color: #1a1a1a;
+  }
+
+  html[data-background-mode="light"] .quick-stat-value {
+    color: #1a1a1a;
+  }
+
+  .avatar-wrap {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin-bottom: 20px;
+  }
+
+  .avatar-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: conic-gradient(#888,#bbb,#666,#888);
+    animation: ringRotate 6s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes ringRotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .avatar-inner {
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 1;
+    background: var(--bg);
+  }
+
+  #profile-avatar-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  #upload-avatar-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--bg), var(--bg2));
+    border: 2px solid var(--bg);
+    color: #1a1a1a;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s,;
+  }
+
+  #upload-avatar-btn:hover {
+    transform: scale(1.12);
+  }
+
+  .profile-name-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  .profile-name {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+
+  #edit-username-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 4px;
+    transition: color 0.2s;
+  }
+
+  #edit-username-btn:hover { color: var(--text); }
+
+  .username-edit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .username-input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(128,128,128,0.35);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+
+  .username-action-btn {
+    border: 1px solid rgba(128,128,128,0.45);
+    border-radius: 14px;
+    background: rgba(128,128,128,0.08);
+    color: var(--text);
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .username-action-btn.cancel {
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    border-color: rgba(255,255,255,0.16);
+  }
+
+  html[data-background-mode="light"] .username-action-btn.cancel {
+    color: #4a4a4a;
+    border-color: rgba(0,0,0,0.12);
+  }
+
+  html[data-background-mode="light"] #edit-username-btn {
+    color: rgba(0,0,0,0.65);
+  }
+
+  .hidden { display: none !important; }
+
+  .profile-email {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 28px;
+  }
+
+  /* rank badge */
+  .rank-badge {
+    background: rgba(128,128,128,0.1);
+    border: 1px solid rgba(128,128,128,0.25);
+    border-radius: 100px;
+    padding: 6px 20px;
+    font-size: 0.82rem;
+    color: var(--text);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  html[data-background-mode="light"] .rank-badge {
+    background: rgba(128,128,128,0.12);
+    border-color: rgba(100,100,100,0.2);
+    color: var(--text);
+  }
+
+  .profile-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(128,128,128,0.25), transparent);
+    margin-bottom: 24px;
+  }
+
+  html[data-background-mode="light"] .profile-divider {
+    background: linear-gradient(90deg, transparent, rgba(100,100,100,0.25), transparent);
+  }
+
+  .quick-stats {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .quick-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+
+  .quick-stat-label { color: var(--muted); }
+  .quick-stat-value { color: var(--text); font-weight: 600; }
+
+  /* ── RIGHT TOP: ELO Grid ── */
+  .elo-section {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .section-title {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+
+    html[data-background-mode="light"] #edit-username-btn {
+    color: rgba(0,0,0,0.65);
+    }
+    html[data-background-mode="light"] .section-title {
+      color: rgba(0,0,0,0.65);
+    }
+
+  .elo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .elo-card {
+    background: var(--bg2);
+    border: 1px solid var(--bg);
+    border-radius: 18px;
+    padding: 22px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: default;
+  }
+
+    html[data-background-mode="light"] .elo-card {
+    background: linear-gradient(140deg, #f0f0f0 0%, #e4e4e4 100%);
+    border-color: rgba(0,0,0,0.12);
+  }
+  
+  .elo-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--bg2);
+  }
+
+  html[data-background-mode="light"] .elo-card:hover {
+    border-color: var(--bg);
+  }
+
+  .elo-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent,var(--bg2), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .elo-card:hover::before { opacity: 1; }
+
+  .elo-icon {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .elo-mode {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+
+  .elo-value {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+/* Light Mode - ELO Mode */
+html[data-background-mode="light"] .elo-mode {
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+    color: #1a1a1a;
+}
+
+
+  .elo-trend {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 100px;
+  }
+
+  .trend-up   { background: rgba(74,222,128,0.12); color: #4ade80; }
+  .trend-down { background: rgba(239,68,68,0.12);  color: #ef4444; }
+  .trend-flat { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+
+  /* ── RIGHT BOTTOM: History ── */
+  .history-section {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .history-panel {
+    background: var(--bg2);
+    border: 1px solid var(--bg);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  html[data-background-mode="light"] .history-panel {
+    background: linear-gradient(160deg, #f5f5f5 0%, #ededed 100%);
+    border-color: rgba(0,0,0,0.12);
+  }
+
+  .history-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .history-header h3 {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+
+  .history-count {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    padding: 12px 24px;
+    text-align: left;
+    font-size: 0.78rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(128,128,128,0.45);
+    font-weight: 500;
+    background: rgba(255,255,255,0.02);
+  }
+
+  html[data-background-mode="light"] thead th {
+    color: rgba(0,0,0,0.65);
+    background: rgba(0,0,0,0.02);
+  }
+
+  thead th:not(:first-child) { text-align: center; }
+
+  tbody tr {
+    border-top: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+
+  html[data-background-mode="light"] tbody tr {
+    border-top-color: rgba(0,0,0,0.06);
+  }
+
+  html[data-background-mode="light"] tbody tr:hover {
+    background: rgba(0,0,0,0.04);
+  }
+
+  html[data-background-mode="light"] tbody td {
+    color: #1a1a1a;
+  }
+
+  html[data-background-mode="light"] .player-sep,
+  html[data-background-mode="light"] .player-opp,
+  html[data-background-mode="light"] .date-text {
+    color: #4a4a4a;
+  }
+
+  tbody tr:hover { background: rgba(128,128,128,0.04); }
+
+  tbody td {
+    padding: 14px 24px;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+
+  tbody td:not(:first-child) { text-align: center; }
+
+  .player-vs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .player-me  { color: var(--text); font-weight: 600; }
+  .player-sep { color: var(--muted); font-size: 0.75rem; }
+  .player-opp { color: var(--text); }
+
+  .result-pill {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 100px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .result-win  { background: rgba(74,222,128,0.13); color: #4ade80; }
+  .result-lose { background: rgba(239,68,68,0.13);  color: #ef4444; }
+  .result-draw { background: rgba(251,191,36,0.13);  color: #fbbf24; }
+
+  .moves-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .date-text { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .profile-card    { animation: fadeUp 0.4s ease both; }
+  .elo-section     { animation: fadeUp 0.4s 0.1s ease both; }
+  .history-section { animation: fadeUp 0.4s 0.2s ease both; }
+</style>
+</head>
+<body class="profile-body">
+
+<!-- TOP BAR (same as other pages) -->
+<header class="topbar">
+  <div class="left">
+    <a href="home.html" class="logo">
+      <div class="logo-icon">
+        <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+        <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+      </div>
+    </a>
+    <nav class="nav">
+      <a href="home.html">หน้าแรก</a>
+      <a href="play.html">เล่น</a>
+      <a href="learn.html">เรียนรู้</a>
+      <a href="watch.html">ดูเกม</a>
+      <a href="community.html">ชุมชน</a>
+      <input class="search" placeholder="ค้นหาผู้เล่น...">
+    </nav>
+  </div>
+  <div class="right">
+    <button class="register">ลงทะเบียน</button>
+    <button class="login">เข้าสู่ระบบ</button>
+  </div>
+</header>
+
+<!-- PROFILE MAIN -->
+<main class="profile-main">
+  <div class="profile-wrapper">
+
+    <!-- ── LEFT: Avatar / Info Card ── -->
+    <div class="profile-card">
+      <div class="avatar-wrap">
+        <div class="avatar-ring"></div>
+        <div class="avatar-inner">
+          <img id="profile-avatar-preview" src="/Images/LOGO.png" alt="avatar">
+        </div>
+        <button id="upload-avatar-btn" title="เปลี่ยนรูปโปรไฟล์">＋</button>
+        <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
+      </div>
+
+      <div class="profile-name-row">
+        <span class="profile-name" id="profile-username">นักรบนิรนาม</span>
+        <button id="edit-username-btn" title="แก้ไขชื่อ">✎</button>
+      </div>
+      <div id="username-edit-box" class="username-edit hidden">
+        <input id="username-input" class="username-input" type="text" placeholder="ชื่อผู้ใช้ใหม่" aria-label="ชื่อผู้ใช้ใหม่">
+        <button type="button" id="username-save-btn" class="username-action-btn">ยืนยัน</button>
+        <button type="button" id="username-cancel-btn" class="username-action-btn cancel">ยกเลิก</button>
+      </div>
+
+      <div class="rank-badge">⚔ นักรบผู้ฝึกหัด</div>
+
+      <div class="profile-divider"></div>
+
+      <div class="quick-stats">
+        <div class="quick-stat-row">
+          <span class="quick-stat-label">เกมทั้งหมด</span>
+          <span class="quick-stat-value">3</span>
+        </div>
+        <div class="quick-stat-row">
+          <span class="quick-stat-label">ชนะ</span>
+          <span class="quick-stat-value" style="color:#4ade80;">1</span>
+        </div>
+        <div class="quick-stat-row">
+          <span class="quick-stat-label">แพ้</span>
+          <span class="quick-stat-value" style="color:#ef4444;">1</span>
+        </div>
+        <div class="quick-stat-row">
+          <span class="quick-stat-label">เสมอ</span>
+          <span class="quick-stat-value" style="color:#fbbf24;">1</span>
+        </div>
+        <div class="quick-stat-row">
+          <span class="quick-stat-label">อัตราชนะ</span>
+          <span class="quick-stat-value">33%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT TOP: ELO Cards ── -->
+    <div class="elo-section">
+      <p class="section-title">คะแนน ELO</p>
+      <div class="elo-grid">
+        <div class="elo-card">
+          <span class="elo-icon">⚡</span>
+          <div class="elo-mode">เกมส์ไว (Bullet)</div>
+          <div class="elo-value" id="elo-bullet">—</div>
+          <span class="elo-trend trend-up">↑ +12</span>
+        </div>
+        <div class="elo-card">
+          <span class="elo-icon">♟</span>
+          <div class="elo-mode">เกมส์ปกติ (Rapid)</div>
+          <div class="elo-value" id="elo-rapid">—</div>
+          <span class="elo-trend trend-up">↑ +24</span>
+        </div>
+        <div class="elo-card">
+          <span class="elo-icon">🔥</span>
+          <div class="elo-mode">เกมส์ยาว (Blitz)</div>
+          <div class="elo-value" id="elo-blitz">—</div>
+          <span class="elo-trend trend-down">↓ -8</span>
+        </div>
+        <div class="elo-card">
+          <span class="elo-icon">📅</span>
+          <div class="elo-mode">เกมส์รายวัน (Daily)</div>
+          <div class="elo-value" id="elo-daily">—</div>
+          <span class="elo-trend trend-flat">— 0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT BOTTOM: History Table ── -->
+    <div class="history-section">
+      <div class="history-panel">
+        <div class="history-header">
+          <h3>ประวัติการเล่น</h3>
+          <span class="history-count">3 เกมล่าสุด</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ผู้เล่น</th>
+              <th>ผล</th>
+              <th>จำนวนตา</th>
+              <th>วันที่</th>
+            </tr>
+          </thead>
+          <tbody id="game-history-table">
+            <tr>
+              <td>
+                <div class="player-vs">
+                  <span class="player-me">mick2004</span>
+                  <span class="player-sep">VS</span>
+                  <span class="player-opp">ผู้เล่น A</span>
+                </div>
+              </td>
+              <td><span class="result-pill result-win">1 – 0</span></td>
+              <td>
+                <div class="moves-bar">
+                  <span class="moves-num">34</span>
+                  <div class="moves-vis"><div class="moves-fill" style="width:68%"></div></div>
+                </div>
+              </td>
+              <td><span class="date-text">01/06/2569</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="player-vs">
+                  <span class="player-me">mick2004</span>
+                  <span class="player-sep">VS</span>
+                  <span class="player-opp">ผู้เล่น B</span>
+                </div>
+              </td>
+              <td><span class="result-pill result-lose">0 – 1</span></td>
+              <td>
+                <div class="moves-bar">
+                  <span class="moves-num">28</span>
+                  <div class="moves-vis"><div class="moves-fill" style="width:56%"></div></div>
+                </div>
+              </td>
+              <td><span class="date-text">31/05/2569</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="player-vs">
+                  <span class="player-me">mick2004</span>
+                  <span class="player-sep">VS</span>
+                  <span class="player-opp">ผู้เล่น C</span>
+                </div>
+              </td>
+              <td><span class="result-pill result-draw">½ – ½</span></td>
+              <td>
+                <div class="moves-bar">
+                  <span class="moves-num">42</span>
+                  <div class="moves-vis"><div class="moves-fill" style="width:84%"></div></div>
+                </div>
+              </td>
+              <td><span class="date-text">30/05/2569</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /.profile-wrapper -->
+</main>
+
+<script>
+function loadUsers(){try{return JSON.parse(localStorage.getItem('rukthai_users'))||[];}catch(e){return [];}}
+function saveUsers(u){localStorage.setItem('rukthai_users', JSON.stringify(u));}
+function loadCurrent(){try{return JSON.parse(localStorage.getItem('rukthai_current_user'))||null;}catch(e){return null;}}
+function saveCurrent(u){if(u)localStorage.setItem('rukthai_current_user', JSON.stringify(u));else localStorage.removeItem('rukthai_current_user');}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const current = loadCurrent();
+  if (!current) return;
+
+  document.getElementById('profile-username').textContent = current.name || 'ผู้เล่น';
+  const preview = document.getElementById('profile-avatar-preview');
+  preview.src = current.avatar || '../LOGO.png';
+
+  const stats = current.stats || { bullet: 0, rapid: 0, blitz: 0, daily: 0 };
+  document.getElementById('elo-bullet').textContent = stats.bullet || 0;
+  document.getElementById('elo-rapid').textContent  = stats.rapid  || 0;
+  document.getElementById('elo-blitz').textContent  = stats.blitz  || 0;
+  document.getElementById('elo-daily').textContent  = stats.daily  || 0;
+
+  document.getElementById('upload-avatar-btn').addEventListener('click', () => {
+    document.getElementById('avatar-file-input').click();
+  });
+
+  document.getElementById('avatar-file-input').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      preview.src = r.result;
+      current.avatar = r.result;
+      saveCurrent(current);
+      const users = loadUsers();
+      const idx = users.findIndex(u => u.email === current.email);
+      if (idx !== -1) { users[idx] = current; saveUsers(users); }
+    };
+    r.readAsDataURL(f);
+  });
+
+  const editButton = document.getElementById('edit-username-btn');
+  const editBox = document.getElementById('username-edit-box');
+  const editInput = document.getElementById('username-input');
+  const saveButton = document.getElementById('username-save-btn');
+  const cancelButton = document.getElementById('username-cancel-btn');
+
+  editButton.addEventListener('click', () => {
+    editInput.value = current.name || '';
+    editBox.classList.remove('hidden');
+    editInput.focus();
+  });
+
+  saveButton.addEventListener('click', () => {
+    const newName = editInput.value.trim();
+    if (!newName || newName === current.name) {
+      editBox.classList.add('hidden');
+      return;
+    }
+    current.name = newName;
+    saveCurrent(current);
+    const users = loadUsers();
+    const idx = users.findIndex(u => u.email === current.email);
+    if (idx !== -1) { users[idx] = current; saveUsers(users); }
+    document.getElementById('profile-username').textContent = newName;
+    editBox.classList.add('hidden');
+  });
+
+  cancelButton.addEventListener('click', () => {
+    editBox.classList.add('hidden');
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUKTHAI - เล่นออนไลน์</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../styles-friend-enhanced.css">
+<script type="module" src="../auth.js"></script>
+<style>
+.play-body { overflow: hidden; }
+
+.online-main {
+  height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.online-layout {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  height: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Board ── */
+.board-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.board-outer {
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+
+.coords-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.coords-row {
+  display: flex;
+  justify-content: space-around;
+  margin-left: 22px;
+  margin-top: 4px;
+}
+
+.coord {
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 500;
+  text-align: center;
+  line-height: 1;
+  width: 14px;
+}
+
+.chess-board {
+  display: grid;
+  grid-template-columns: repeat(8, var(--cell));
+  grid-template-rows: repeat(8, var(--cell));
+  gap: 2px;
+}
+
+.chess-cell {
+  width: var(--cell);
+  height: var(--cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: filter 0.1s;
+  border-radius: 0;
+  position: relative;
+  border: none;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.chess-cell:focus, .chess-cell:active { outline: none; box-shadow: none; }
+.chess-cell.light { background: #c56c30; }
+.chess-cell.dark  { background: #c56c30; }
+.chess-cell.legal::after {
+  content: '';
+  position: absolute;
+  width: 30%;
+  height: 30%;
+  background: rgba(131,131,131,0.77);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.chess-cell.capture { outline: 3px solid rgba(239,100,68,0.7); outline-offset: -2px; }
+.chess-cell.last-move { background: rgba(207,126,21,0.79) !important; }
+.chess-cell.in-check  { background: rgba(220,38,38,0.5) !important; }
+.chess-cell.selected  { background: rgba(168,168,168,0.45) !important; }
+.chess-cell.not-my-turn { cursor: default; }
+
+.chess-cell .piece-img {
+  width: calc(var(--cell) * 0.82);
+  height: calc(var(--cell) * 0.82);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* ── Right Panel ── */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 256px;
+  flex-shrink: 0;
+  height: calc(var(--cell) * 8 + 80px);
+}
+
+/* Player card */
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  transition: border-color 0.3s;
+  flex-shrink: 0;
+}
+
+.player-card.active-turn {
+  border-color: rgba(150,150,150,0.5);
+}
+
+.player-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: rgba(128,128,128,0.15);
+  border: 1px solid rgba(128,128,128,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.player-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.player-info { flex: 1; min-width: 0; }
+
+.player-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-rank {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.player-clock {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  flex-shrink: 0;
+  transition: color 0.3s;
+}
+
+.player-clock.low-time { color: #ef4444 !important; }
+
+.clock-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.active-turn .clock-dot { background: #888; }
+.player-card.low-time-card .clock-dot { background: #ef4444 !important; }
+
+/* Captures */
+.captures-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 2px 12px;
+  min-height: 24px;
+  flex-shrink: 0;
+}
+.captures-row img { width: 19px; height: 19px; object-fit: contain; }
+
+/* Status */
+.status-bar {
+  padding: 8px 12px;
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Move badge */
+.move-badge {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Chat */
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.chat-title {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 8px 12px 0;
+  flex-shrink: 0;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+}
+
+.chat-messages::-webkit-scrollbar { width: 3px; }
+.chat-messages::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); border-radius: 2px; }
+
+.chat-msg { font-size: 12px; line-height: 1.5; }
+.chat-msg .chat-sender { font-weight: 700; color: var(--text); }
+.chat-msg .chat-text { color: var(--muted); }
+.chat-msg.mine .chat-sender { color: #8a8a8a; }
+.chat-msg.system { color: var(--muted); font-style: italic; font-size: 11px; }
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+  padding: 7px 9px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 12px;
+  color: var(--text);
+  font-family: 'Noto Sans Thai', sans-serif;
+  outline: none;
+}
+
+.chat-input::placeholder { color: var(--muted); }
+.chat-input:focus { border-color: rgba(128,128,128,0.35); }
+.chat-input:disabled { opacity: 0.4; }
+
+.chat-send {
+  background: rgba(128,128,128,0.15);
+  border: 1px solid rgba(128,128,128,0.2);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+.chat-send:hover { background: rgba(128,128,128,0.25); }
+.chat-send:disabled { opacity: 0.4; cursor: default; }
+
+/* Action row */
+.action-row {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.btn-action:hover { background: rgba(128,128,128,0.08); border-color: rgba(128,128,128,0.25); color: var(--text); }
+.btn-action.danger:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: #ef6464; }
+.btn-action:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
+/* Connection indicator */
+.conn-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  margin-right: 5px;
+  transition: background 0.4s;
+}
+.conn-dot.online { background: #22c55e; }
+
+/* ══ Matchmaking Overlay ══ */
+.mm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9000;
+}
+.mm-overlay.hidden { display: none; }
+
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.mm-card {
+  width: min(500px, 92vw);
+  background: var(--bg2);
+  border: 1px solid rgba(128,128,128,0.18);
+  border-radius: 28px;
+  padding: 40px 36px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  position: relative;
+  animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1);
+  text-align: center;
+}
+.mm-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(128,128,128,0.55), transparent);
+  border-radius: 28px 28px 0 0;
+}
+
+.mm-step.hidden { display: none !important; }
+
+.mm-icon  { font-size: 2.8rem; margin-bottom: 12px; }
+.mm-title { font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.mm-sub   { font-size: 0.9rem; color: var(--muted); margin-bottom: 28px; }
+
+/* Login warning */
+.mm-login-warn {
+  background: rgba(251,146,60,0.1);
+  border: 1px solid rgba(251,146,60,0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #fb923c;
+  margin-bottom: 20px;
+}
+
+.time-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.time-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 16px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Noto Sans Thai', sans-serif;
+  color: var(--text);
+}
+.time-option:hover { background: rgba(128,128,128,0.1); border-color: rgba(128,128,128,0.35); transform: translateY(-2px); }
+.time-option.selected {
+  background: linear-gradient(135deg,rgba(128,128,128,0.22),rgba(128,128,128,0.08));
+  border-color: rgba(128,128,128,0.5);
+  box-shadow: 0 0 0 2px rgba(128,128,128,0.15);
+}
+.time-option-emoji { font-size: 1.6rem; }
+.time-option-label { font-size: 1.25rem; font-weight: 700; }
+.time-option-desc  { font-size: 0.72rem; color: var(--muted); }
+
+.mm-actions { display: flex; gap: 12px; }
+
+.btn-cancel-mm {
+  flex: 1; padding: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px; color: var(--muted);
+  cursor: pointer; font-family: 'Noto Sans Thai', sans-serif; font-size: 0.9rem;
+  transition: all 0.2s;
+}
+.btn-cancel-mm:hover { background: rgba(255,255,255,0.09); color: var(--text); }
+
+.btn-find {
+  flex: 2; padding: 12px;
+  background: linear-gradient(135deg,#555,#888);
+  border: none; border-radius: 14px;
+  color: #fff; font-weight: 700; cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif; font-size: 0.9rem;
+  transition: all 0.2s;
+  box-shadow: 0 6px 20px rgba(128,128,128,0.25);
+}
+.btn-find:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(128,128,128,0.35); }
+.btn-find:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Searching step */
+#mm-searching { flex-direction: column; align-items: center; }
+
+.mm-spinner {
+  width: 54px; height: 54px;
+  border: 4px solid rgba(128,128,128,0.15);
+  border-top-color: #888;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 18px;
+}
+
+.mm-searching-title { font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.mm-searching-sub   { font-size: 0.88rem; color: var(--muted); margin-bottom: 4px; }
+.mm-wait-timer {
+  font-size: 1.1rem; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums; font-family: 'Courier New', monospace;
+  margin-bottom: 20px; animation: pulse 2s ease-in-out infinite;
+}
+
+.btn-cancel-search {
+  padding: 10px 28px;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 12px; color: #ef6464;
+  cursor: pointer; font-family: 'Noto Sans Thai', sans-serif; font-size: 0.9rem;
+  transition: all 0.2s;
+}
+.btn-cancel-search:hover { background: rgba(239,68,68,0.18); }
+
+/* ══ Game Over ══ */
+.gameover-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9000;
+  animation: fadeIn 0.3s ease;
+}
+.gameover-overlay.hidden { display: none; }
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.85) translateY(20px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+
+.gameover-modal {
+  width: min(420px, 90vw);
+  background: var(--bg2);
+  border: 1px solid rgba(128,128,128,0.22);
+  border-radius: 28px;
+  padding: 38px 34px;
+  text-align: center;
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  position: relative;
+}
+.gameover-modal::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,transparent,rgba(128,128,128,0.55),transparent);
+  border-radius: 28px 28px 0 0;
+}
+.gameover-emoji { font-size: 3.2rem; margin-bottom: 10px; }
+.gameover-title { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.gameover-sub   { font-size: 0.9rem; color: var(--muted); margin-bottom: 26px; }
+.gameover-actions { display: flex; gap: 12px; }
+
+.btn-rematch {
+  flex: 1; padding: 12px;
+  background: linear-gradient(135deg,#555,#888);
+  border: none; border-radius: 14px;
+  color: #fff; font-weight: 700; cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif; font-size: 0.9rem;
+  transition: all 0.2s;
+}
+.btn-rematch:hover { transform: translateY(-2px); }
+
+.btn-menu-go {
+  flex: 1; padding: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px; color: var(--text); cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif; font-size: 0.9rem;
+  transition: all 0.2s;
+}
+.btn-menu-go:hover { background: rgba(255,255,255,0.09); }
+
+/* Disconnection notice */
+.dc-notice {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-size: 13px; color: #ef6464;
+  z-index: 8000;
+  animation: fadeIn 0.3s ease;
+}
+.dc-notice.hidden { display: none; }
+</style>
+</head>
+<body class="play-body">
+<header class="topbar">
+  <div class="left">
+    <a href="home.html" class="logo">
+      <div class="logo-icon">
+        <img class="logo-dark"  src="/Images/DarkLOGO.png"  alt="RUKTHAI logo dark">
+        <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+      </div>
+    </a>
+    <nav class="nav">
+            <a href="play.html">เล่น</a>
+            <a href="tournament.html">ทัวร์นาเมนต์</a>
+            <a href="learn.html">เรียนรู้</a>
+            <a href="watch.html">ดูเกม</a>
+            <a href="community.html">ชุมชน</a>
+      <input class="search" placeholder="ค้นหาผู้เล่น...">
+    </nav>
+  </div>
+  <div class="right">
+    <button class="register">ลงทะเบียน</button>
+    <button class="login">เข้าสู่ระบบ</button>
+  </div>
+</header>
+
+<main class="main">
+  <section class="hero">
+    <div class="online-main">
+      <div class="online-layout">
+
+        <!-- Board -->
+        <div class="board-section">
+          <div class="board-outer">
+            <div class="coords-col" id="coords-left"></div>
+            <div>
+              <div class="chess-board" id="chess-board"></div>
+              <div class="coords-row" id="coords-bottom"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+
+          <!-- Opponent (top) -->
+          <div class="player-card" id="opp-card">
+            <div class="player-avatar" id="opp-avatar">👤</div>
+            <div class="player-info">
+              <div class="player-name" id="opp-name">รอคู่ต่อสู้…</div>
+              <div class="player-rank" id="opp-rank"></div>
+            </div>
+            <div class="clock-dot" id="opp-dot"></div>
+            <div class="player-clock" id="opp-clock">--:--</div>
+          </div>
+
+          <div class="captures-row" id="cap-opp"></div>
+
+          <div class="move-badge" id="move-badge">รอเริ่มเกม</div>
+          <div class="status-bar" id="game-status">รอผู้เล่น…</div>
+
+          <!-- Chat -->
+          <div class="chat-panel">
+            <div class="chat-title">
+              <span class="conn-dot" id="conn-dot"></span>แชท
+            </div>
+            <div class="chat-messages" id="chat-messages">
+              <div class="chat-msg system">— ยินดีต้อนรับสู่ RUKTHAI Online —</div>
+            </div>
+            <div class="chat-input-row">
+              <input class="chat-input" id="chat-input" placeholder="พิมพ์ข้อความ…" maxlength="120" disabled>
+              <button class="chat-send" id="chat-send-btn" disabled>➤</button>
+            </div>
+          </div>
+
+          <div class="captures-row" id="cap-me"></div>
+
+          <!-- Me (bottom) -->
+          <div class="player-card" id="my-card">
+            <div class="player-avatar" id="my-avatar">👤</div>
+            <div class="player-info">
+              <div class="player-name" id="my-name">คุณ</div>
+              <div class="player-rank" id="my-rank"></div>
+            </div>
+            <div class="clock-dot" id="my-dot"></div>
+            <div class="player-clock" id="my-clock">--:--</div>
+          </div>
+
+          <!-- Actions -->
+          <div class="action-row" style="flex-direction:column; gap:6px;">
+            <button class="btn-action danger" id="btn-resign" disabled>🏳 ยอมแพ้</button>
+            <button class="btn-action" id="btn-draw" disabled>🤝 ขอเสมอ</button>
+            <button class="btn-action" id="btn-sakdikradan" style="display:none">📋 ขอนับศักดิ์กระดาน</button>
+            <button class="btn-action" id="btn-cancel-sakdikradan" style="display:none">❌ ยกเลิกนับศักดิ์กระดาน</button>
+            <button class="btn-action" id="btn-back">← กลับ</button>
+          </div>
+          <div id="special-rules-info" style="display:none; font-size:12px; color:var(--muted); padding:8px 12px; background:rgba(255,200,0,0.08); border:1px solid rgba(255,200,0,0.2); border-radius:10px; line-height:1.5; margin-top:4px;"></div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Disconnection notice -->
+<div class="dc-notice hidden" id="dc-notice">⚠ คู่ต่อสู้ขาดการเชื่อมต่อ…</div>
+
+<!-- Matchmaking Overlay -->
+<div class="mm-overlay" id="mm-overlay">
+  <div class="mm-card">
+
+    <!-- Step 1: choose time -->
+    <div id="mm-select" class="mm-step">
+      <div class="mm-icon">⚡</div>
+      <div class="mm-title">เล่นออนไลน์</div>
+      <div class="mm-sub">เลือกเวลาต่อฝ่าย แล้วค้นหาคู่ต่อสู้จริง</div>
+
+      <div id="mm-login-warn" class="mm-login-warn hidden">
+        ⚠ กรุณาเข้าสู่ระบบก่อนเล่นออนไลน์
+      </div>
+
+      <div class="time-options">
+        <button class="time-option" data-minutes="5">
+          <span class="time-option-emoji">⚡</span>
+          <span class="time-option-label">5 นาที</span>
+          <span class="time-option-desc">Blitz</span>
+        </button>
+        <button class="time-option" data-minutes="10">
+          <span class="time-option-emoji">⏱</span>
+          <span class="time-option-label">10 นาที</span>
+          <span class="time-option-desc">Rapid</span>
+        </button>
+        <button class="time-option" data-minutes="30">
+          <span class="time-option-emoji">🏛</span>
+          <span class="time-option-label">30 นาที</span>
+          <span class="time-option-desc">Classical</span>
+        </button>
+      </div>
+
+      <div class="mm-actions">
+        <button class="btn-cancel-mm" id="btn-cancel-mm">ยกเลิก</button>
+        <button class="btn-find" id="btn-find" disabled>🔍 หาผู้เล่น</button>
+      </div>
+    </div>
+
+    <!-- Step 2: searching -->
+    <div id="mm-searching" class="mm-step hidden" style="display:flex">
+      <div class="mm-spinner"></div>
+      <div class="mm-searching-title">กำลังค้นหาคู่ต่อสู้…</div>
+      <div class="mm-searching-sub" id="mm-time-label">10 นาที · Ranked</div>
+      <div class="mm-wait-timer" id="mm-wait-timer">0:00</div>
+      <button class="btn-cancel-search" id="btn-cancel-search">ยกเลิกการค้นหา</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="gameover-overlay hidden" id="gameover-overlay">
+  <div class="gameover-modal">
+    <div class="gameover-emoji" id="go-emoji">🏆</div>
+    <div class="gameover-title" id="go-title">คุณชนะ!</div>
+    <div class="gameover-sub"   id="go-sub">รุกจน</div>
+    <div class="gameover-actions">
+      <button class="btn-rematch"  id="btn-rematch">🔄 เล่นอีกรอบ</button>
+      <button class="btn-menu-go" id="btn-to-menu">เมนูหลัก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase Realtime Database -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getDatabase, ref, set, get, update, push, onValue, off,
+  onDisconnect, serverTimestamp, remove, runTransaction, child
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── Firebase config (same project) ──────────────────────
+const app = initializeApp({
+  apiKey:            "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain:        "rukthai-b4971.firebaseapp.com",
+  databaseURL:       "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "rukthai-b4971",
+  storageBucket:     "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId:             "1:140554271105:web:00530dbfb7b8c4aed1d080"
+}, "online-game");
+
+const db = getDatabase(app);
+
+function showMatchmakingMessage(message) {
+  const warn = document.getElementById('mm-login-warn');
+  if (!warn) return;
+  warn.textContent = `⚠ ${message}`;
+  warn.classList.remove('hidden');
+}
+
+function sanitizeQueueKey(value) {
+  if (!value || typeof value !== 'string') return 'unknown';
+  return value.replace(/[.#$\[\]]/g, '_');
+}
+
+// ════════════════════════════════════════════════
+//   BOARD CONSTANTS
+// ════════════════════════════════════════════════
+const INITIAL_BOARD = [
+  ['Rb','Nb','Bb','Qb','Kb','Bb','Nb','Rb'],
+  [null,null,null,null,null,null,null,null],
+  ['Pb','Pb','Pb','Pb','Pb','Pb','Pb','Pb'],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  ['Pw','Pw','Pw','Pw','Pw','Pw','Pw','Pw'],
+  [null,null,null,null,null,null,null,null],
+  ['Rw','Nw','Bw','Kw','Qw','Bw','Nw','Rw'],
+];
+
+// ════════════════════════════════════════════════
+//   STATE
+// ════════════════════════════════════════════════
+let myUid = null, myName = 'คุณ', myAvatar = '';
+let oppName = '', oppAvatar = '';
+let gameId = null, queueRef = null;
+let myColor = 'w';         // 'w' | 'b'  — set after match found
+let flipped = false;       // true when playing as black
+
+let boardState = cloneBoard(INITIAL_BOARD);
+let turn = 'w';
+let selected = null, legalForSelected = [];
+let lastMove = null;
+let gameOver = false;
+let capturedByW = [], capturedByB = [];
+let moveCount = 0;
+
+let selectedMinutes = null;
+let timeW = 600, timeB = 600;
+let clockInterval = null;
+
+let gameRef = null, gameListener = null;
+
+// ════════════════════════════════════════════════
+//   HELPERS
+// ════════════════════════════════════════════════
+function cloneBoard(b) { return b.map(r => [...r]); }
+function colorOf(p)    { return p ? p.slice(-1) : null; }
+function typeOf(p)     { return p ? p.slice(0,-1) : null; }
+function opposite(c)   { return c === 'w' ? 'b' : 'w'; }
+function uid6()        { return Math.random().toString(36).slice(2,8); }
+
+function fmt(secs) {
+  const s = Math.max(0, Math.floor(secs));
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+// ════════════════════════════════════════════════
+//   MAKRUK RULES
+// ════════════════════════════════════════════════
+function promoteIfNeeded(piece, toRow) {
+  if (typeOf(piece) === 'P') {
+    if (colorOf(piece) === 'w' && toRow <= 2) return 'Qw';
+    if (colorOf(piece) === 'b' && toRow >= 5) return 'Qb';
+  }
+  return piece;
+}
+
+function getRawMoves(board, row, col) {
+  const piece = board[row][col];
+  if (!piece) return [];
+  const t = typeOf(piece), c = colorOf(piece);
+  const moves = [];
+  const add = (r, c2) => {
+    if (r<0||r>7||c2<0||c2>7) return;
+    const tgt = board[r][c2];
+    if (!tgt || colorOf(tgt) !== c) moves.push({from:{row,col},to:{row:r,col:c2}});
+  };
+  const slide = (dr, dc) => {
+    let r=row+dr, c2=col+dc;
+    while (r>=0&&r<8&&c2>=0&&c2<8) {
+      const tgt=board[r][c2];
+      if (tgt) { if (colorOf(tgt)!==c) moves.push({from:{row,col},to:{row:r,col:c2}}); break; }
+      moves.push({from:{row,col},to:{row:r,col:c2}});
+      r+=dr; c2+=dc;
+    }
+  };
+  if (t==='P') {
+    const dir = c==='w' ? -1 : 1;
+    const nr = row+dir;
+    if (nr>=0&&nr<8&&!board[nr][col]) moves.push({from:{row,col},to:{row:nr,col}});
+    [[nr,col-1],[nr,col+1]].forEach(([r,c2])=>{
+      if (r>=0&&r<8&&c2>=0&&c2<8&&board[r][c2]&&colorOf(board[r][c2])!==c)
+        moves.push({from:{row,col},to:{row:r,col:c2}});
+    });
+  } else if (t==='Q') {
+    [[-1,-1],[-1,1],[1,-1],[1,1],[0,-1],[0,1]].forEach(([dr,dc])=>add(row+dr,col+dc));
+  } else if (t==='K') {
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) if(dr||dc) add(row+dr,col+dc);
+  } else if (t==='N') {
+    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>add(row+dr,col+dc));
+  } else if (t==='B') {
+    const fwd = c==='w' ? -1 : 1;
+    // หน้า 3 ช่อง + หลัง 2 ช่อง (step เดียวเท่านั้น)
+    [[fwd,0],[fwd,-1],[fwd,1],[-fwd,-1],[-fwd,1]].forEach(([dr,dc])=>add(row+dr,col+dc));
+  } else if (t==='R') {
+    [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dr,dc])=>slide(dr,dc));
+  }
+  return moves;
+}
+
+function findKing(board, color) {
+  for (let r=0;r<8;r++) for (let c=0;c<8;c++)
+    if (board[r][c]==='K'+color) return {row:r,col:c};
+  return null;
+}
+
+function isInCheck(board, color) {
+  const king = findKing(board, color);
+  if (!king) return false;
+  for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+    if (colorOf(board[r][c])===opposite(color)) {
+      if (getRawMoves(board,r,c).some(m=>m.to.row===king.row&&m.to.col===king.col)) return true;
+    }
+  }
+  return false;
+}
+
+function getLegalMoves(board, row, col) {
+  const piece = board[row][col];
+  if (!piece) return [];
+  const color = colorOf(piece);
+  return getRawMoves(board,row,col).filter(move => {
+    const nb = cloneBoard(board);
+    nb[move.to.row][move.to.col] = promoteIfNeeded(nb[move.from.row][move.from.col], move.to.row);
+    nb[move.from.row][move.from.col] = null;
+    return !isInCheck(nb, color);
+  });
+}
+
+function getAllLegalMoves(board, color) {
+  const moves = [];
+  for (let r=0;r<8;r++) for (let c=0;c<8;c++)
+    if (colorOf(board[r][c])===color) moves.push(...getLegalMoves(board,r,c));
+  return moves;
+}
+
+// ════════════════════════════════════════════════
+//   LAYOUT
+// ════════════════════════════════════════════════
+function calcCell() {
+  const ah = window.innerHeight - 64 - 48;
+  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 40;
+  return Math.max(34, Math.min(Math.floor(Math.min(ah,aw)/8), 90));
+}
+
+function applyCell(size) {
+  document.documentElement.style.setProperty('--cell', `${size}px`);
+  const l = document.getElementById('coords-left');
+  const b = document.getElementById('coords-bottom');
+  if (l) l.style.height = `${size*8}px`;
+  if (b) b.style.width  = `${size*8+20}px`;
+}
+
+function setupCoords() {
+  const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ซ'];
+  const rows = [8,7,6,5,4,3,2,1];
+  const l = document.getElementById('coords-left');
+  const b = document.getElementById('coords-bottom');
+  l.replaceChildren(); b.replaceChildren();
+  const vr = flipped ? [...rows].reverse() : rows;
+  const vc = flipped ? [...cols].reverse() : cols;
+  vr.forEach(v=>{ const e=document.createElement('span'); e.className='coord'; e.textContent=v; l.appendChild(e); });
+  vc.forEach(v=>{ const e=document.createElement('span'); e.className='coord'; e.textContent=v; b.appendChild(e); });
+}
+
+// ════════════════════════════════════════════════
+//   RENDER
+// ════════════════════════════════════════════════
+function renderBoard() {
+  const el = document.getElementById('chess-board');
+  el.replaceChildren();
+  const rowOrder = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
+  const colOrder = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
+
+  rowOrder.forEach(row => {
+    colOrder.forEach(col => {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = `chess-cell ${(row+col)%2===0?'light':'dark'}`;
+
+      if (lastMove && (
+        (lastMove.from.row===row&&lastMove.from.col===col) ||
+        (lastMove.to.row===row  &&lastMove.to.col===col)
+      )) cell.classList.add('last-move');
+
+      if (selected && selected.row===row && selected.col===col)
+        cell.classList.add('selected');
+
+      const isLegal = legalForSelected.some(m=>m.to.row===row&&m.to.col===col);
+      if (isLegal) cell.classList.add(boardState[row][col] ? 'capture' : 'legal');
+
+      const inCheck = isInCheck(boardState, turn);
+      if (inCheck) {
+        const king = findKing(boardState, turn);
+        if (king && king.row===row && king.col===col) cell.classList.add('in-check');
+      }
+
+      const piece = boardState[row][col];
+      if (piece) {
+        const img = document.createElement('img');
+        img.className = 'piece-img';
+        img.src = `../Pieces/${piece}.png`;
+        img.alt = piece;
+        cell.appendChild(img);
+      }
+
+      if (turn !== myColor || gameOver) cell.classList.add('not-my-turn');
+      cell.addEventListener('click', () => handleCellClick(row, col));
+      el.appendChild(cell);
+    });
+  });
+}
+
+function renderCaptures() {
+  const renderList = (id, list) => {
+    const el = document.getElementById(id);
+    el.replaceChildren();
+    list.forEach(p => {
+      const img = document.createElement('img');
+      img.src = `../Pieces/${p}.png`; img.alt = p;
+      el.appendChild(img);
+    });
+  };
+  // "cap-opp" shows pieces the opponent captured (i.e. my pieces lost)
+  // "cap-me"  shows pieces I captured
+  if (myColor === 'w') {
+    renderList('cap-opp', capturedByB);  // black captured white pieces
+    renderList('cap-me',  capturedByW);  // white captured black pieces
+  } else {
+    renderList('cap-opp', capturedByW);
+    renderList('cap-me',  capturedByB);
+  }
+}
+
+function updateClocks() {
+  document.getElementById('my-clock').textContent  = fmt(myColor==='w' ? timeW : timeB);
+  document.getElementById('opp-clock').textContent = fmt(myColor==='w' ? timeB : timeW);
+
+  const myTime  = myColor==='w' ? timeW : timeB;
+  const oppTime = myColor==='w' ? timeB : timeW;
+
+  document.getElementById('my-clock').classList.toggle('low-time', myTime < 30);
+  document.getElementById('opp-clock').classList.toggle('low-time', oppTime < 30);
+
+  const myCard  = document.getElementById('my-card');
+  const oppCard = document.getElementById('opp-card');
+  myCard.classList.toggle('active-turn',  turn === myColor);
+  oppCard.classList.toggle('active-turn', turn !== myColor);
+  myCard.classList.toggle('low-time-card',  myTime < 30);
+  oppCard.classList.toggle('low-time-card', oppTime < 30);
+  document.getElementById('my-dot').parentElement.classList.toggle('active-turn', turn===myColor);
+}
+
+function updateStatus() {
+  const el = document.getElementById('game-status');
+  if (gameOver) return;
+  const check = isInCheck(boardState, turn);
+  if (turn === myColor) {
+    el.textContent = check ? '⚠ ขุนถูกรุก! ระวังด้วย' : '• ตาของคุณ';
+  } else {
+    el.textContent = 'รอคู่ต่อสู้เดิน…';
+  }
+}
+
+function updateMoveBadge() {
+  document.getElementById('move-badge').textContent =
+    moveCount === 0 ? 'ตาที่ 1' : `ตาที่ ${Math.ceil(moveCount/2)}`;
+}
+
+// ════════════════════════════════════════════════
+//   CLOCK
+// ════════════════════════════════════════════════
+function startClock() {
+  stopClock();
+  clockInterval = setInterval(() => {
+    if (gameOver) { stopClock(); return; }
+    if (turn === 'w') { timeW = Math.max(0, timeW-1); if (!timeW) { endGame('timeout', 'b'); return; } }
+    else              { timeB = Math.max(0, timeB-1); if (!timeB) { endGame('timeout', 'w'); return; } }
+    updateClocks();
+  }, 1000);
+}
+
+function stopClock() {
+  if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+}
+
+// ════════════════════════════════════════════════
+//   GAME LOGIC (local + Firebase sync)
+// ════════════════════════════════════════════════
+function handleCellClick(row, col) {
+  if (gameOver || turn !== myColor) return;
+  const piece = boardState[row][col];
+
+  if (selected) {
+    const move = legalForSelected.find(m=>m.to.row===row&&m.to.col===col);
+    if (move) { doMove(move); return; }
+  }
+
+  if (piece && colorOf(piece)===myColor) {
+    selected = {row,col};
+    legalForSelected = getLegalMoves(boardState,row,col);
+  } else {
+    selected = null; legalForSelected = [];
+  }
+  renderBoard();
+}
+
+function doMove(move) {
+  const piece   = boardState[move.from.row][move.from.col];
+  const captured= boardState[move.to.row][move.to.col];
+  const promoted= promoteIfNeeded(piece, move.to.row);
+  const movingColor = colorOf(piece);
+
+  boardState[move.to.row][move.to.col]   = promoted;
+  boardState[move.from.row][move.from.col] = null;
+
+  if (captured) {
+    if (movingColor==='w') capturedByW.push(captured);
+    else                   capturedByB.push(captured);
+  }
+
+  lastMove = move; selected = null; legalForSelected = [];
+  moveCount++;
+
+  // ── ศักดิ์กระดาน: นับตาของฝ่ายหนี ──
+  if (sakdiKradanActive && movingColor === sakdiKradanFleeColor) {
+    sakdiKradanCount++;
+    if (sakdiKradanCount >= 64) {
+      // ฝ่ายไล่มีสิทธิ์เดิน 1 ตาสุดท้าย — แต่จะตรวจในตา opponent
+      turn = opposite(turn);
+      renderBoard(); renderCaptures(); updateClocks(); updateMoveBadge();
+      pushMoveToFirebase(move, promoted, captured, null);
+      // ตรวจว่าหลังตาไล่ครั้งสุดท้าย (จะถูกจัดการโดย Firebase listener ฝั่งไล่)
+      // สำหรับฝ่ายหนี: รอดูผล ถ้าไม่ถูก checkmate = draw
+      // ส่ง signal sakdikradan-end ผ่าน Firebase
+      pushSakdiKradanEnd();
+      updateSpecialRulesUI();
+      return;
+    }
+    updateSpecialRulesUI();
+  }
+
+  // ── ศักดิ์หมาก: นับตาหลังฝ่ายหนีเดิน ──
+  if (sakdiMakActive && movingColor === sakdiMakFleeColor) {
+    if (sakdiMakCount >= sakdiMakLimit) {
+      turn = opposite(turn);
+      renderBoard(); renderCaptures(); updateClocks();
+      pushMoveToFirebase(move, promoted, captured, 'draw-sakdimak');
+      endGame('draw-sakdimak', null);
+      return;
+    }
+    sakdiMakCount++;
+    updateSpecialRulesUI();
+  }
+
+  turn = opposite(turn);
+
+  // ── บันทึก position ──
+  positionHistory.push(boardToKey(boardState, turn));
+
+  renderBoard();
+  renderCaptures();
+  updateClocks();
+  updateMoveBadge();
+
+  // ── ตรวจรุกล้อ 3 ครั้ง ──
+  if (checkThreefoldRepetition()) {
+    pushMoveToFirebase(move, promoted, captured, 'draw-threefold');
+    endGame('draw-threefold', null);
+    return;
+  }
+
+  // ── ตรวจศักดิ์หมาก ──
+  if (!sakdiMakActive && !sakdiKradanActive) {
+    checkAndStartSakdiMak();
+    if (gameOver) return;
+  }
+
+  // Check game-over
+  const lm = getAllLegalMoves(boardState, turn);
+  const check = isInCheck(boardState, turn);
+  let endReason = null;
+  if (lm.length === 0) endReason = check ? 'checkmate' : 'stalemate';
+
+  // Push move to Firebase
+  pushMoveToFirebase(move, promoted, captured, endReason);
+
+  if (endReason) {
+    endGame(endReason, endReason==='checkmate' ? opposite(turn) : null);
+  } else {
+    updateStatus();
+    updateSpecialRulesUI();
+  }
+}
+
+async function pushSakdiKradanEnd() {
+  if (!gameRef) return;
+  try { await update(gameRef, { sakdiKradanEnd: true }); } catch(e) {}
+}
+
+// ── Serialize / deserialize board for Firebase ──
+function boardToFB(board) {
+  return board.map(row => row.map(c => c || '')).map(r => r.join(','));
+}
+function fbToBoard(fb) {
+  return fb.map(r => r.split(',').map(c => c || null));
+}
+
+async function pushMoveToFirebase(move, promoted, captured, endReason) {
+  if (!gameRef) return;
+  const moveData = {
+    from: move.from, to: move.to,
+    promoted, captured: captured||'',
+    board: boardToFB(boardState),
+    turn,
+    timeW, timeB,
+    moveCount,
+    by: myUid,
+    ts: serverTimestamp()
+  };
+  if (endReason) moveData.endReason = endReason;
+  try {
+    await update(gameRef, { lastMove: moveData });
+  } catch(e) { console.error('Firebase push error:', e); }
+}
+
+// ════════════════════════════════════════════════
+//   FIREBASE GAME LISTENER
+// ════════════════════════════════════════════════
+function listenToGame(gid) {
+  gameRef = ref(db, `games/${gid}`);
+  // onDisconnect: mark player as disconnected
+  onDisconnect(ref(db, `games/${gid}/conn_${myColor}`)).set(false);
+
+  gameListener = onValue(gameRef, snap => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+
+    // Opponent disconnection
+    const oppColor = opposite(myColor);
+    if (data[`conn_${oppColor}`] === false) {
+      document.getElementById('dc-notice').classList.remove('hidden');
+    } else {
+      document.getElementById('dc-notice').classList.add('hidden');
+    }
+
+    // Chat messages (always process chat updates)
+    if (data.chat) {
+      const msgs = Object.values(data.chat).sort((a,b)=>a.ts-b.ts);
+      const container = document.getElementById('chat-messages');
+      const existing = container.querySelectorAll('.chat-msg:not(.system)').length;
+      if (msgs.length > existing) {
+        msgs.slice(existing).forEach(m => {
+          if (m.uid === myUid) return; // already shown locally
+          addChatMsg(m.name, m.text, false, false);
+        });
+      }
+    }
+
+    // ── Sync draw offer (ตรวจก่อน return เสมอ) ──
+    if (data.drawOffer && data.drawOffer !== myColor && !gameOver) {
+      handleDrawOffer(data.drawOffer);
+      if (gameRef) update(gameRef, { drawOffer: null }).catch(()=>{});
+    }
+
+    // ── Sync sakdiKradan (ตรวจก่อน return เสมอ) ──
+    if (data.sakdiKradan && !sakdiKradanActive) {
+      sakdiKradanActive = true;
+      sakdiKradanFleeColor = data.sakdiKradan.flee;
+      sakdiKradanCount = data.sakdiKradan.count || 0;
+      updateSpecialRulesUI();
+    } else if (!data.sakdiKradan && sakdiKradanActive && sakdiKradanFleeColor !== myColor) {
+      sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
+      updateSpecialRulesUI();
+    }
+
+    // ── ตรวจ endReason จาก lastMove ที่ไม่มี board (resign / draw-offer ที่ส่งโดยตรง) ──
+    const lm = data.lastMove;
+    if (!lm) return;
+
+    // ถ้าเป็น event ของเราเอง และมี endReason → ฝ่ายตรงข้ามส่ง resign/draw มา
+    if (lm.by === myUid) return;
+
+    // resign หรือ draw จากฝ่ายตรงข้าม (ไม่มี board)
+    if (lm.endReason && !lm.board) {
+      if (lm.endReason === 'resign') {
+        // คู่ต่อสู้ยอมแพ้ → เราชนะ
+        endGame('resign', myColor);
+      } else if (lm.endReason === 'draw-offer') {
+        endGame('draw-offer', null);
+      } else if (lm.endReason === 'draw-threefold') {
+        endGame('draw-threefold', null);
+      } else if (lm.endReason === 'draw-sakdimak') {
+        endGame('draw-sakdimak', null);
+      }
+      return;
+    }
+
+    // Apply opponent move ปกติ
+    if (!lm.board) return;
+    boardState = fbToBoard(lm.board);
+    turn       = lm.turn;
+    timeW      = lm.timeW;
+    timeB      = lm.timeB;
+    moveCount  = lm.moveCount;
+    lastMove   = { from: lm.from, to: lm.to };
+    capturedByW = []; capturedByB = [];
+
+    selected = null; legalForSelected = [];
+
+    renderBoard();
+    updateClocks();
+    updateMoveBadge();
+    renderCaptures();
+
+    if (lm.endReason) {
+      const winner = lm.endReason==='checkmate' ? opposite(lm.turn) : null;
+      endGame(lm.endReason, winner);
+    } else {
+      positionHistory.push(boardToKey(boardState, turn));
+      if (!sakdiMakActive && !sakdiKradanActive) checkAndStartSakdiMak();
+      updateStatus();
+      startClock();
+      updateSpecialRulesUI();
+    }
+
+    // (draw offer & sakdiKradan sync moved to top of listener)
+    if (false) { // placeholder to avoid orphan brace
+      sakdiKradanActive = true;
+      sakdiKradanFleeColor = data.sakdiKradan?.flee;
+      sakdiKradanCount = data.sakdiKradan?.count || 0;
+      updateSpecialRulesUI();
+    } else if (!data.sakdiKradan && sakdiKradanActive && sakdiKradanFleeColor !== myColor) {
+      // Opponent cancelled
+      sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
+      updateSpecialRulesUI();
+    }
+  });
+}
+
+// ════════════════════════════════════════════════
+//   GAME END
+// ════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+//   SPECIAL RULES: รุกล้อ 3 ครั้ง, ศักดิ์กระดาน, ศักดิ์หมาก
+// ════════════════════════════════════════════════
+
+let positionHistory = [];
+
+function boardToKey(board, turn) {
+  return turn + '|' + board.map(row => row.map(c => c || '.').join('')).join('/');
+}
+
+function checkThreefoldRepetition() {
+  const key = boardToKey(boardState, turn);
+  return positionHistory.filter(k => k === key).length >= 3;
+}
+
+let sakdiKradanActive = false;
+let sakdiKradanCount = 0;
+let sakdiKradanFleeColor = null;
+
+let sakdiMakActive = false;
+let sakdiMakCount = 0;
+let sakdiMakLimit = 0;
+let sakdiMakFleeColor = null;
+
+// pendingDraw: ส่งข้อเสนอขอเสมอผ่าน Firebase
+let drawOfferPending = false; // เราส่งข้อเสนอออกไปแล้ว
+
+function hasPawns(board) {
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (p && typeOf(p) === 'P') return true;
+    }
+  return false;
+}
+
+function getSakdiMakLimit(chasePieces) {
+  const types = chasePieces.map(p => typeOf(p));
+  const rCount = types.filter(t => t === 'R').length;
+  const bCount = types.filter(t => t === 'B').length;
+  const nCount = types.filter(t => t === 'N').length;
+  if (rCount >= 2) return 8;
+  if (rCount === 1) return 16;
+  if (bCount >= 2) return 22;
+  if (nCount >= 2) return 32;
+  if (bCount === 1) return 44;
+  return 64;
+}
+
+function checkAndStartSakdiMak() {
+  if (hasPawns(boardState)) {
+    if (sakdiMakActive) { sakdiMakActive = false; sakdiMakCount = 0; sakdiMakLimit = 0; sakdiMakFleeColor = null; }
+    return;
+  }
+  let whitePieces = [], blackPieces = [];
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++) {
+      const p = boardState[r][c];
+      if (!p) continue;
+      if (colorOf(p) === 'w') whitePieces.push(p);
+      else blackPieces.push(p);
+    }
+  const whiteKingOnly = whitePieces.length === 1 && typeOf(whitePieces[0]) === 'K';
+  const blackKingOnly = blackPieces.length === 1 && typeOf(blackPieces[0]) === 'K';
+  if (!whiteKingOnly && !blackKingOnly) { if (sakdiMakActive) sakdiMakActive = false; return; }
+
+  if (!sakdiMakActive) {
+    sakdiMakActive = true;
+    sakdiMakFleeColor = whiteKingOnly ? 'w' : 'b';
+    const chaseColor = opposite(sakdiMakFleeColor);
+    const chasePieces = (chaseColor === 'w' ? whitePieces : blackPieces).filter(p => typeOf(p) !== 'K');
+    const totalPieces = whitePieces.length + blackPieces.length;
+    sakdiMakLimit = getSakdiMakLimit(chasePieces);
+    sakdiMakCount = totalPieces + 1;
+    if (sakdiMakCount > sakdiMakLimit) {
+      endGame('draw-sakdimak-instant', null);
+      return;
+    }
+    updateSpecialRulesUI();
+  }
+}
+
+function updateSpecialRulesUI() {
+  const btnSK = document.getElementById('btn-sakdikradan');
+  const btnCancelSK = document.getElementById('btn-cancel-sakdikradan');
+  const infoEl = document.getElementById('special-rules-info');
+  const canRequestSK = !sakdiKradanActive && !sakdiMakActive && !gameOver;
+  if (btnSK) btnSK.style.display = canRequestSK ? '' : 'none';
+  if (btnCancelSK) btnCancelSK.style.display = (sakdiKradanActive && sakdiKradanFleeColor === myColor) ? '' : 'none';
+  if (infoEl) {
+    if (sakdiMakActive) {
+      const chaseColor = opposite(sakdiMakFleeColor);
+      const chaseText = chaseColor === 'w' ? 'ขาว' : 'ดำ';
+      infoEl.textContent = `ศักดิ์หมาก: ฝ่าย${chaseText}ต้องรุกจนใน ${sakdiMakLimit} ตา (ตาปัจจุบัน: ${sakdiMakCount})`;
+      infoEl.style.display = '';
+    } else if (sakdiKradanActive) {
+      const fleeText = sakdiKradanFleeColor === 'w' ? 'ขาว' : 'ดำ';
+      infoEl.textContent = `ศักดิ์กระดาน: ฝ่าย${fleeText}หนี — ตาที่ ${sakdiKradanCount}/64`;
+      infoEl.style.display = '';
+    } else {
+      infoEl.style.display = 'none';
+    }
+  }
+}
+
+function endGame(reason, winner) {
+  stopClock();
+  gameOver = true;
+
+  const emoji = document.getElementById('go-emoji');
+  const title = document.getElementById('go-title');
+  const sub   = document.getElementById('go-sub');
+
+  if (reason === 'checkmate') {
+    if (winner === myColor) {
+      emoji.textContent='🏆'; title.textContent='คุณชนะ!'; sub.textContent='รุกจนสำเร็จ';
+    } else {
+      emoji.textContent='😔'; title.textContent='แพ้'; sub.textContent='ขุนของคุณถูกรุกจน';
+    }
+  } else if (reason === 'stalemate') {
+    emoji.textContent='🤝'; title.textContent='เสมอ!'; sub.textContent='อับ — ไม่มีการเดินที่ถูกกฎ';
+  } else if (reason === 'timeout') {
+    if (winner === myColor) {
+      emoji.textContent='🏆'; title.textContent='คุณชนะ!'; sub.textContent='คู่ต่อสู้หมดเวลา';
+    } else {
+      emoji.textContent='⏰'; title.textContent='แพ้'; sub.textContent='คุณหมดเวลา';
+    }
+  } else if (reason === 'resign') {
+    if (winner === myColor) {
+      emoji.textContent='🏆'; title.textContent='คุณชนะ!'; sub.textContent='คู่ต่อสู้ยอมแพ้';
+    } else {
+      emoji.textContent='🏳'; title.textContent='ยอมแพ้'; sub.textContent='คุณยอมแพ้ในเกมนี้';
+    }
+  } else if (reason === 'draw-offer') {
+    emoji.textContent='🤝'; title.textContent='เสมอ!'; sub.textContent='ตกลงเสมอกัน';
+  } else if (reason === 'draw-threefold') {
+    emoji.textContent='🔁'; title.textContent='เสมอ!'; sub.textContent='รุกล้อซ้ำ 3 ครั้ง';
+  } else if (reason === 'draw-sakdikradan') {
+    emoji.textContent='📋'; title.textContent='เสมอ!'; sub.textContent='นับศักดิ์กระดานครบ 64 ตา';
+  } else if (reason === 'draw-sakdimak' || reason === 'draw-sakdimak-instant') {
+    emoji.textContent='♟'; title.textContent='เสมอ!'; sub.textContent='นับศักดิ์หมากครบกำหนด';
+  }
+
+  document.getElementById('gameover-overlay').classList.remove('hidden');
+  document.getElementById('btn-resign').disabled = true;
+  const drawBtn = document.getElementById('btn-draw');
+  if (drawBtn) drawBtn.disabled = true;
+  updateSpecialRulesUI();
+}
+
+// ════════════════════════════════════════════════
+//   MATCHMAKING (Firebase queue)
+// ════════════════════════════════════════════════
+let mmWaitSecs = 0, mmTimer = null;
+
+function showStep(id) {
+  document.getElementById('mm-select').classList.add('hidden');
+  document.getElementById('mm-searching').classList.add('hidden');
+  document.getElementById(id).classList.remove('hidden');
+}
+
+async function enterQueue() {
+  const slotRef  = ref(db, `queue/${selectedMinutes}/slot`);
+  const waitRef  = ref(db, `queue/${selectedMinutes}/waiting`);
+  let didMatch = false;
+  let slotSnapshot = null;
+
+  try {
+    // ── atomic transaction บน slot node ──────────────────────
+    const result = await runTransaction(slotRef, (current) => {
+      if (!current) {
+        // ว่าง → เราเป็น WHITE เข้า slot
+        return { uid: myUid, name: myName, avatar: myAvatar, ts: Date.now() };
+      }
+      if (current.uid === myUid) return current; // เราอยู่แล้ว
+      // มีคนรอ → เราเป็น BLACK ลบ slot
+      didMatch = true;
+      slotSnapshot = current;
+      return null;
+    });
+
+    if (!result.committed) return;
+  } catch (e) {
+    console.error('Matchmaking transaction error:', e);
+    showMatchmakingMessage('ไม่สามารถค้นหาคู่ต่อสู้ได้ โปรดลองอีกครั้ง');
+    return;
+  }
+
+  if (didMatch && slotSnapshot) {
+    // ─── BLACK: เราเป็นคนที่สอง ───────────────────────────
+    myColor = 'b';
+    flipped = true;
+
+    // ดึงข้อมูลคนรอจาก waiting node
+    const wSnap = await get(waitRef);
+    const wData = wSnap.exists() ? wSnap.val() : {};
+    oppName   = wData.name   || slotSnapshot.name   || 'คู่ต่อสู้';
+    oppAvatar = wData.avatar || slotSnapshot.avatar || '';
+    const oppUid      = wData.uid      || slotSnapshot.uid || '';
+    const oppQueueKey = wData.queueKey || '';
+
+    // สร้าง game room
+    const newGameRef = push(ref(db, 'games'));
+    gameId = newGameRef.key;
+
+    await set(newGameRef, {
+      w: { uid: oppUid, name: oppName, avatar: oppAvatar },
+      b: { uid: myUid,  name: myName,  avatar: myAvatar  },
+      minutes: selectedMinutes,
+      turn: 'w',
+      board: boardToFB(INITIAL_BOARD),
+      timeW: selectedMinutes * 60,
+      timeB: selectedMinutes * 60,
+      moveCount: 0,
+      startedAt: serverTimestamp(),
+      conn_w: true,
+      conn_b: true,
+    });
+
+    await remove(waitRef);
+
+    // แจ้ง WHITE ผ่าน notif node
+    if (oppQueueKey) {
+      await set(ref(db, `queue/${selectedMinutes}/notif_${sanitizeQueueKey(oppQueueKey)}`), {
+        gameId, oppName: myName, oppAvatar: myAvatar,
+      });
+    }
+
+    stopSearch();
+    startGame(gameId);
+
+  } else {
+    // ─── WHITE: คนแรก รอใน queue ───────────────────────────
+    myColor = 'w';
+    flipped = false;
+    const myKey = `${sanitizeQueueKey(myUid)}_${Date.now()}`;
+
+    await set(waitRef, {
+      uid: myUid, name: myName, avatar: myAvatar,
+      queueKey: myKey, ts: Date.now()
+    });
+    onDisconnect(waitRef).remove();
+    onDisconnect(slotRef).remove();
+
+    // ฟัง notif node
+    const notifRef = ref(db, `queue/${selectedMinutes}/notif_${myKey}`);
+    onValue(notifRef, async snap2 => {
+      if (!snap2.exists()) return;
+      const d = snap2.val();
+      oppName   = d.oppName   || 'คู่ต่อสู้';
+      oppAvatar = d.oppAvatar || '';
+      gameId    = d.gameId;
+      off(notifRef);
+      await remove(notifRef);
+      stopSearch();
+      startGame(gameId);
+    });
+
+    // เก็บ cleanup สำหรับตอน cancel
+    window._mmCleanup = async () => {
+      off(ref(db, `queue/${selectedMinutes}/notif_${myKey}`));
+      await remove(waitRef);
+      await remove(slotRef);
+    };
+  }
+}
+
+function startSearch() {
+  mmWaitSecs = 0;
+  updateWaitTimer();
+  mmTimer = setInterval(() => {
+    mmWaitSecs++;
+    updateWaitTimer();
+  }, 1000);
+  enterQueue();
+}
+
+function stopSearch() {
+  if (mmTimer) { clearInterval(mmTimer); mmTimer = null; }
+  if (queueRef) { remove(queueRef); queueRef = null; }
+  if (window._mmCleanup) { window._mmCleanup(); window._mmCleanup = null; }
+}
+
+function updateWaitTimer() {
+  document.getElementById('mm-wait-timer').textContent = fmt(mmWaitSecs);
+}
+
+// ════════════════════════════════════════════════
+//   START GAME
+// ════════════════════════════════════════════════
+async function startGame(gid) {
+  // Hide matchmaking overlay
+  document.getElementById('mm-overlay').classList.add('hidden');
+
+  // Load game data once to get player info
+  const snap = await get(ref(db, `games/${gid}`));
+  if (!snap.exists()) return;
+  const data = snap.val();
+
+  const wPlayer = data.w || {};
+  const bPlayer = data.b || {};
+
+  // Set opponent info
+  if (myColor === 'w') {
+    oppName   = bPlayer.name   || 'คู่ต่อสู้';
+    oppAvatar = bPlayer.avatar || '';
+  } else {
+    oppName   = wPlayer.name   || 'คู่ต่อสู้';
+    oppAvatar = wPlayer.avatar || '';
+  }
+
+  // Update UI — opponent card at TOP, my card at BOTTOM
+  document.getElementById('opp-name').textContent   = oppName;
+  document.getElementById('opp-rank').textContent   = myColor==='w' ? '⬛ ดำ' : '⬜ ขาว';
+  document.getElementById('my-name').textContent    = myName;
+  document.getElementById('my-rank').textContent    = myColor==='w' ? '⬜ ขาว' : '⬛ ดำ';
+
+  if (oppAvatar) {
+    document.getElementById('opp-avatar').innerHTML = `<img src="${oppAvatar}" alt="">`;
+  } else {
+    document.getElementById('opp-avatar').textContent = oppName[0]?.toUpperCase() || '?';
+  }
+  if (myAvatar) {
+    document.getElementById('my-avatar').innerHTML = `<img src="${myAvatar}" alt="">`;
+  } else {
+    document.getElementById('my-avatar').textContent = myName[0]?.toUpperCase() || '?';
+  }
+
+  // Mark my connection alive
+  await update(ref(db, `games/${gid}`), { [`conn_${myColor}`]: true });
+
+  // Init board state
+  boardState = cloneBoard(INITIAL_BOARD);
+  turn = 'w'; selected = null; legalForSelected = []; lastMove = null;
+  gameOver = false; capturedByW = []; capturedByB = []; moveCount = 0;
+  timeW = data.minutes * 60; timeB = data.minutes * 60;
+  selectedMinutes = data.minutes;
+
+  // Enable chat & resign & draw
+  document.getElementById('chat-input').disabled = false;
+  document.getElementById('chat-send-btn').disabled = false;
+  document.getElementById('btn-resign').disabled = false;
+  document.getElementById('btn-draw').disabled = false;
+  document.getElementById('conn-dot').classList.add('online');
+  // Reset special rules for new game
+  positionHistory = [];
+  sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
+  sakdiMakActive = false; sakdiMakCount = 0; sakdiMakLimit = 0; sakdiMakFleeColor = null;
+  drawOfferPending = false;
+  updateSpecialRulesUI();
+
+  // Board orientation — black plays from bottom (flipped)
+  flipped = (myColor === 'b');
+
+  applyCell(calcCell());
+  setupCoords();
+  renderBoard();
+  renderCaptures();
+  updateClocks();
+  updateStatus();
+  updateMoveBadge();
+  startClock();
+
+  // Add system chat
+  addChatMsg(null, `จับคู่สำเร็จ! คุณเล่นหมาก${myColor==='w'?'ขาว':'ดำ'}`, true);
+  addChatMsg(null, `เวลา ${data.minutes} นาที · Ranked`, true);
+
+  // Start listening for opponent moves & chat
+  listenToGame(gid);
+}
+
+// ════════════════════════════════════════════════
+//   CHAT
+// ════════════════════════════════════════════════
+function addChatMsg(sender, text, isSystem=false, isMine=false) {
+  const el = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg' + (isSystem?' system':'') + (isMine?' mine':'');
+  if (isSystem) div.textContent = text;
+  else div.innerHTML = `<span class="chat-sender">${sender||'?'}:</span> <span class="chat-text">${text}</span>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || !gameRef) return;
+  input.value = '';
+  addChatMsg(myName, text, false, true);
+  try {
+    const chatRef = push(ref(db, `games/${gameId}/chat`));
+    await set(chatRef, { uid: myUid, name: myName, text, ts: Date.now() });
+  } catch(e) {}
+}
+
+document.getElementById('chat-send-btn').addEventListener('click', sendChat);
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendChat();
+});
+
+// ════════════════════════════════════════════════
+//   MATCHMAKING UI EVENTS
+// ════════════════════════════════════════════════
+document.querySelectorAll('.time-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.time-option').forEach(o=>o.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedMinutes = parseInt(btn.dataset.minutes);
+    const canFind = !!myUid;
+    document.getElementById('btn-find').disabled = !canFind;
+    if (!canFind) document.getElementById('mm-login-warn').classList.remove('hidden');
+  });
+});
+
+document.getElementById('btn-cancel-mm').addEventListener('click', () => {
+  window.location.href = 'play.html';
+});
+
+document.getElementById('btn-find').addEventListener('click', () => {
+  if (!selectedMinutes || !myUid) return;
+  const labels = {5:'5 นาที · Blitz', 10:'10 นาที · Rapid', 30:'30 นาที · Classical'};
+  document.getElementById('mm-time-label').textContent = labels[selectedMinutes] + ' · Ranked';
+  showStep('mm-searching');
+  startSearch();
+});
+
+document.getElementById('btn-cancel-search').addEventListener('click', () => {
+  stopSearch();
+  window.location.href = 'play.html';
+});
+
+// ════════════════════════════════════════════════
+//   RESIGN
+// ════════════════════════════════════════════════
+document.getElementById('btn-resign').addEventListener('click', async () => {
+  if (gameOver) return;
+  if (!confirm('ยืนยันการยอมแพ้?')) return;
+  // แสดงผลให้ฝ่ายขอก่อนทันที
+  endGame('resign', opposite(myColor));
+  // แล้วค่อย push ให้คู่ต่อสู้รู้
+  if (gameRef) {
+    await update(gameRef, {
+      lastMove: { by: myUid, ts: serverTimestamp(), endReason: 'resign', turn: myColor }
+    });
+  }
+});
+
+// ════════════════════════════════════════════════
+//   ขอเสมอ (Draw Offer via Firebase)
+// ════════════════════════════════════════════════
+document.getElementById('btn-draw').addEventListener('click', async () => {
+  if (gameOver) return;
+  if (drawOfferPending) {
+    alert('รอการตอบรับจากคู่ต่อสู้อยู่...');
+    return;
+  }
+  if (!confirm('ขอเสมอ? คู่ต่อสู้ต้องยืนยัน')) return;
+  drawOfferPending = true;
+  if (gameRef) {
+    await update(gameRef, { drawOffer: myColor });
+  }
+});
+
+// ════════════════════════════════════════════════
+//   ขอนับศักดิ์กระดาน
+// ════════════════════════════════════════════════
+document.getElementById('btn-sakdikradan').addEventListener('click', async () => {
+  if (gameOver || sakdiKradanActive || sakdiMakActive) return;
+  if (!confirm('ขอใช้สิทธิ์นับศักดิ์กระดาน? คุณจะเป็นฝ่ายหนี')) return;
+  sakdiKradanActive = true;
+  sakdiKradanCount = 0;
+  sakdiKradanFleeColor = myColor;
+  if (gameRef) await update(gameRef, { sakdiKradan: { flee: myColor, count: 0 } });
+  updateSpecialRulesUI();
+});
+
+document.getElementById('btn-cancel-sakdikradan').addEventListener('click', async () => {
+  if (!sakdiKradanActive || sakdiKradanFleeColor !== myColor) return;
+  if (!confirm('ยกเลิกการนับศักดิ์กระดาน?')) return;
+  sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
+  if (gameRef) await update(gameRef, { sakdiKradan: null });
+  updateSpecialRulesUI();
+});
+
+// ── Handle draw offer from opponent (Firebase listener) ──
+function handleDrawOffer(offerColor) {
+  if (!offerColor || offerColor === myColor) return;
+  if (gameOver) return;
+  const accept = confirm('คู่ต่อสู้ขอเสมอ — ยอมรับ?');
+  if (accept) {
+    // แสดงผลให้ฝ่ายรับก่อนทันที
+    endGame('draw-offer', null);
+    // แล้วค่อย push ให้ฝ่ายขอรู้
+    if (gameRef) {
+      update(gameRef, {
+        lastMove: { by: myUid, ts: serverTimestamp(), endReason: 'draw-offer', turn: myColor }
+      });
+    }
+  } else {
+    drawOfferPending = false;
+    if (gameRef) update(gameRef, { drawOffer: null });
+  }
+}
+
+// ════════════════════════════════════════════════
+//   REMATCH / MENU
+// ════════════════════════════════════════════════
+document.getElementById('btn-rematch').addEventListener('click', () => {
+  document.getElementById('gameover-overlay').classList.add('hidden');
+  document.getElementById('mm-overlay').classList.remove('hidden');
+  showStep('mm-select');
+  // Reset everything
+  boardState = cloneBoard(INITIAL_BOARD);
+  turn='w'; gameOver=false; capturedByW=[]; capturedByB=[]; moveCount=0;
+  lastMove=null; selected=null; legalForSelected=[];
+  gameRef=null; gameId=null;
+  if (gameListener) { off(ref(db,`games/${gameId}`)); gameListener=null; }
+  renderBoard();
+});
+
+document.getElementById('btn-to-menu').addEventListener('click', () => {
+  stopClock(); window.location.href = 'play.html';
+});
+
+document.getElementById('btn-back').addEventListener('click', () => {
+  stopClock(); stopSearch();
+  window.location.href = 'play.html';
+});
+
+// ════════════════════════════════════════════════
+//   RESIZE
+// ════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  applyCell(calcCell()); setupCoords(); renderBoard();
+});
+
+// ════════════════════════════════════════════════
+//   INIT — read current user from localStorage
+// ════════════════════════════════════════════════
+function loadMe() {
+  try {
+    const raw = localStorage.getItem('rukthai_current_user');
+    if (!raw) return;
+    const u = JSON.parse(raw);
+    myUid    = u.id    || u.email || null;
+    myName   = u.name  || 'ผู้เล่น';
+    myAvatar = u.avatar|| '';
+    document.getElementById('my-name').textContent = myName;
+    if (myAvatar)
+      document.getElementById('my-avatar').innerHTML = `<img src="${myAvatar}" alt="">`;
+    else
+      document.getElementById('my-avatar').textContent = myName[0]?.toUpperCase()||'?';
+  } catch {}
+}
+
+loadMe();
+applyCell(calcCell());
+setupCoords();
+renderBoard();
+// Show matchmaking overlay on load
+document.getElementById('mm-overlay').classList.remove('hidden');
+showStep('mm-select');
+if (!myUid) document.getElementById('mm-login-warn').classList.remove('hidden');
+</script>
+</body>
+</html>
