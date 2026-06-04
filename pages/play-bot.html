@@ -416,6 +416,58 @@ html[data-background-mode="light"] .coord {
   0%, 80%, 100% { opacity: 0; }
   40% { opacity: 1; }
 }
+
+/* Difficulty selector */
+.difficulty-card {
+  padding: 12px 14px;
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+}
+
+.difficulty-title {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.difficulty-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-diff {
+  flex: 1;
+  padding: 7px 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn-diff:hover {
+  background: rgba(128,128,128,0.12);
+  color: var(--text);
+}
+
+.btn-diff.active {
+  border-color: rgba(128,128,128,0.5);
+  background: rgba(128,128,128,0.15);
+  color: var(--text);
+}
+
+.btn-diff.easy.active   { border-color: rgba(74,222,128,0.6); background: rgba(74,222,128,0.1); color: #4ade80; }
+.btn-diff.medium.active { border-color: rgba(251,191,36,0.6); background: rgba(251,191,36,0.1); color: #fbbf24; }
+.btn-diff.hard.active   { border-color: rgba(239,68,68,0.6);  background: rgba(239,68,68,0.1);  color: #ef4444; }
+.btn-diff.expert.active { border-color: rgba(168,85,247,0.6); background: rgba(168,85,247,0.1); color: #a855f7; }
 </style>
 </head>
 <body class="play-body">
@@ -684,16 +736,32 @@ function canLand(board, fr, fc, tr, tc) {
 // ════════════════════════════════════════
 const PIECE_VALUE = { K:10000, Q:3, B:5, N:6, R:9, P:1 };
 
+// Position bonus tables (encourage center control & good piece placement)
+const CENTER_BONUS = [
+  [0,0,0,0,0,0,0,0],
+  [0,1,1,1,1,1,1,0],
+  [0,1,2,2,2,2,1,0],
+  [0,1,2,3,3,2,1,0],
+  [0,1,2,3,3,2,1,0],
+  [0,1,2,2,2,2,1,0],
+  [0,1,1,1,1,1,1,0],
+  [0,0,0,0,0,0,0,0],
+];
+
+let botDepth = 2; // จะถูก override จาก URL param ตอน initGame
+
 function evaluateBoard(board) {
   let score = 0;
   for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
     const p = board[r][c];
     if (!p) continue;
     const val = PIECE_VALUE[typeOf(p)] || 0;
-    score += colorOf(p)==='b' ? val : -val;
+    const pos = CENTER_BONUS[r][c] * 0.08;
+    const total = val + pos;
+    score += colorOf(p)==='b' ? total : -total;
   }
   // mobility bonus
-  const botMoves = getAllLegalMoves(board,'b').length;
+  const botMoves   = getAllLegalMoves(board,'b').length;
   const humanMoves = getAllLegalMoves(board,'w').length;
   score += (botMoves - humanMoves) * 0.05;
   return score;
@@ -709,6 +777,13 @@ function minimax(board, depth, alpha, beta, maximizing) {
     }
     return evaluateBoard(board);
   }
+
+  // Move ordering: captures first
+  moves.sort((a,b) => {
+    const ca = board[a.to.row][a.to.col] ? (PIECE_VALUE[typeOf(board[a.to.row][a.to.col])]||0) : 0;
+    const cb = board[b.to.row][b.to.col] ? (PIECE_VALUE[typeOf(board[b.to.row][b.to.col])]||0) : 0;
+    return cb - ca;
+  });
 
   if (maximizing) {
     let best = -Infinity;
@@ -735,11 +810,19 @@ function getBotMove(board) {
   const moves = getAllLegalMoves(board, 'b');
   if (moves.length === 0) return null;
 
-  // Shuffle at root only — for variety without slowing down tree search
-  moves.sort(() => Math.random() - 0.5);
+  // Easy: add randomness (pick from top 5 moves randomly)
+  if (botDepth === 1) {
+    moves.sort(() => Math.random() - 0.5);
+    // just pick captures or random
+    const captures = moves.filter(m => board[m.to.row][m.to.col]);
+    return captures.length > 0 && Math.random() > 0.3
+      ? captures[Math.floor(Math.random() * captures.length)]
+      : moves[0];
+  }
 
-  // Sort: captures first (move ordering improves alpha-beta pruning significantly)
-  moves.sort((a, b) => {
+  // Medium/Hard/Expert: use minimax
+  moves.sort(() => Math.random() - 0.5); // shuffle for variety
+  moves.sort((a,b) => {
     const ca = board[a.to.row][a.to.col] ? 1 : 0;
     const cb = board[b.to.row][b.to.col] ? 1 : 0;
     return cb - ca;
@@ -747,10 +830,9 @@ function getBotMove(board) {
 
   let bestVal = -Infinity;
   let bestMove = moves[0];
-  const depth = 2; // depth 2 is fast (<50ms) and still plays well
 
   for (const move of moves) {
-    const val = minimax(applyMoveToClone(board, move), depth-1, -Infinity, Infinity, false);
+    const val = minimax(applyMoveToClone(board, move), botDepth-1, -Infinity, Infinity, false);
     if (val > bestVal) { bestVal = val; bestMove = move; }
   }
   return bestMove;
@@ -759,30 +841,40 @@ function getBotMove(board) {
 // ════════════════════════════════════════
 //   CLOCK
 // ════════════════════════════════════════
+// ════════════════════════════════════════
+//   CLOCK  (timestamp-based — accurate)
+// ════════════════════════════════════════
+let clockLastTick = null; // timestamp ของ tick ล่าสุด
+
 function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const s = Math.max(0, Math.floor(seconds));
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 }
 
 function startClock() {
   stopClock();
+  clockLastTick = Date.now();
   clockInterval = setInterval(() => {
     if (gameOver) return;
+    const now = Date.now();
+    const elapsed = (now - clockLastTick) / 1000;
+    clockLastTick = now;
+
     if (turn === 'w') {
-      timeWhite--;
-      updateClockDisplay('w');
+      timeWhite -= elapsed;
       if (timeWhite <= 0) { timeWhite = 0; updateClockDisplay('w'); endGame('time-b'); return; }
     } else {
-      timeBlack--;
-      updateClockDisplay('b');
+      timeBlack -= elapsed;
       if (timeBlack <= 0) { timeBlack = 0; updateClockDisplay('b'); endGame('time-w'); return; }
     }
-  }, 1000);
+    updateClockDisplay('w');
+    updateClockDisplay('b');
+  }, 200); // อัปเดตทุก 200ms เพื่อให้ smooth
 }
 
 function stopClock() {
   if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+  clockLastTick = null;
 }
 
 function updateClockDisplay(color) {
@@ -909,7 +1001,8 @@ function renderStatusText() {
   }
 
   if (turn==='b') {
-    statusEl.innerHTML = `กำลังคิด<span class="thinking-dot">.</span><span class="thinking-dot">.</span><span class="thinking-dot">.</span>`;
+    const levelName = { 1:'ง่าย', 2:'กลาง', 3:'ยาก', 4:'เซียน' }[botDepth] || '';
+    statusEl.innerHTML = `บอท(${levelName}) กำลังคิด<span class="thinking-dot">.</span><span class="thinking-dot">.</span><span class="thinking-dot">.</span>`;
   } else {
     statusEl.textContent = check ? 'ขุนถูกรุก! ระวังด้วย' : 'ตาขาวเดิน';
   }
@@ -981,13 +1074,13 @@ function executeMove(move) {
 
 function scheduleBot() {
   if (botThinkingTimer) clearTimeout(botThinkingTimer);
-  // Small delay so UI updates first
+  const delay = { 1: 300, 2: 500, 3: 700, 4: 900 }[botDepth] || 500;
   botThinkingTimer = setTimeout(() => {
     if (gameOver || turn !== 'b') return;
     const move = getBotMove(boardState);
     if (move) executeMove(move);
     botThinkingTimer = null;
-  }, 400 + Math.random() * 300);
+  }, delay + Math.random() * 200);
 }
 
 function endGame(reason) {
@@ -1026,9 +1119,9 @@ function initGame() {
   renderCapturedList('captured-by-white', capturedByWhite);
   renderCapturedList('captured-by-black', capturedByBlack);
 
-  // Read time from URL param
   const params = new URLSearchParams(window.location.search);
   const minutes = parseInt(params.get('time')) || 10;
+  botDepth = parseInt(params.get('depth')) || 2;
   timeMinutes = minutes;
   timeWhite = minutes * 60;
   timeBlack = minutes * 60;
