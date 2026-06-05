@@ -1107,20 +1107,41 @@ function renderBoard() {
 }
 
 function renderCaptures() {
+  // ลำดับการเรียง: เบี้ย(P) -> เม็ด(Q) -> โคน(B) -> ม้า(N) -> เรือ(R)
+  const pieceOrder = { 'P': 1, 'Q': 2, 'B': 3, 'N': 4, 'R': 5 };
+
   const renderList = (id, list) => {
     const el = document.getElementById(id);
     el.replaceChildren();
-    list.forEach(p => {
+
+    // 1. นำรายการหมากมาเรียงลำดับใหม่
+    const sortedList = list.slice().sort((a, b) => {
+      return (pieceOrder[a[0]] || 99) - (pieceOrder[b[0]] || 99);
+    });
+
+    let lastType = null;
+
+    sortedList.forEach(p => {
+      const currentType = p[0];
       const img = document.createElement('img');
-      img.src = `../Pieces/${p}.png`; img.alt = p;
+      img.src = `../Pieces/${p}.png`; 
+      img.alt = p;
+      
+      // 2. ถ้าหมากเป็นประเภทเดียวกับตัวก่อนหน้า ให้ขยับซ้ายมาซ้อนทับกัน (เหมือนในรูปภาพ)
+      if (currentType === lastType) {
+        img.style.marginLeft = '-15px'; // ปรับตัวเลขตรงนี้ได้ ถ้าอยากให้ซ้อนกันมากหรือน้อยลง
+      }
+      
       el.appendChild(img);
+      lastType = currentType; // จำค่าหมากตัวล่าสุดไว้เช็คกับตัวถัดไป
     });
   };
-  // "cap-opp" shows pieces the opponent captured (i.e. my pieces lost)
-  // "cap-me"  shows pieces I captured
+
+  // "cap-opp" คือหมากที่คู่ต่อสู้กินเราไป
+  // "cap-me"  คือหมากที่เรากินคู่ต่อสู้มา
   if (myColor === 'w') {
-    renderList('cap-opp', capturedByB);  // black captured white pieces
-    renderList('cap-me',  capturedByW);  // white captured black pieces
+    renderList('cap-opp', capturedByB);  
+    renderList('cap-me',  capturedByW);  
   } else {
     renderList('cap-opp', capturedByW);
     renderList('cap-me',  capturedByB);
