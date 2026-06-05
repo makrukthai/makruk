@@ -417,6 +417,13 @@ html[data-background-mode="light"] .player-clock {
   margin-bottom: 8px;
   animation: fadeIn 0.2s ease;
 }
+
+.draw-toast.danger-toast {
+  background: rgba(239, 68, 68, 0.15); /* พื้นหลังสีแดงโปร่งใส */
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef6464;
+}
+
 .draw-toast.waiting {
   background: rgba(128, 128, 128, 0.15);
   border-color: rgba(128, 128, 128, 0.3);
@@ -820,6 +827,12 @@ html[data-background-mode="light"] .player-clock {
           </div>
           <div id="draw-waiting" class="draw-toast waiting hidden">
             <span>รอคู่ต่อสู้ตอบรับขอเสมอ...</span>
+          </div>
+
+          <div id="resign-toast" class="draw-toast danger-toast hidden">
+            <span>ยืนยันการยอมแพ้?</span>
+            <button id="btn-resign-confirm" class="btn-action danger">ยืนยัน</button>
+            <button id="btn-resign-cancel" class="btn-action">ยกเลิก</button>
           </div>
 
           <div class="action-row" style="flex-direction:row; gap:6px;">
@@ -1277,7 +1290,7 @@ function doMove(move) {
 
   lastMove = move; selected = null; legalForSelected = [];
   moveCount++;
-  
+
   if (opponentDrawOffer) {
     if (gameRef) update(gameRef, { drawOffer: null });
     opponentDrawOffer = false;
@@ -1951,14 +1964,28 @@ document.getElementById('btn-cancel-search').addEventListener('click', () => {
 });
 
 // ════════════════════════════════════════════════
-//   RESIGN
+//   RESIGN (ยอมแพ้) - แบบ Notification
 // ════════════════════════════════════════════════
-document.getElementById('btn-resign').addEventListener('click', async () => {
+// เมื่อกดปุ่ม 'ยอมแพ้' ด้านล่าง ให้แสดง Toast ยืนยัน
+document.getElementById('btn-resign').addEventListener('click', () => {
   if (gameOver) return;
-  if (!confirm('ยืนยันการยอมแพ้?')) return;
-  // แสดงผลให้ฝ่ายขอก่อนทันที
+  document.getElementById('resign-toast').classList.remove('hidden');
+});
+
+// เมื่อกด 'ยกเลิก' ให้ซ่อนแถบแจ้งเตือน
+document.getElementById('btn-resign-cancel').addEventListener('click', () => {
+  document.getElementById('resign-toast').classList.add('hidden');
+});
+
+// เมื่อกด 'ยืนยัน' การยอมแพ้
+document.getElementById('btn-resign-confirm').addEventListener('click', async () => {
+  document.getElementById('resign-toast').classList.add('hidden'); // ซ่อนแถบ
+  if (gameOver) return;
+  
+  // แสดงผลว่าเราแพ้ให้ฝั่งเราเห็นทันที
   endGame('resign', opposite(myColor));
-  // แล้วค่อย push ให้คู่ต่อสู้รู้
+  
+  // ส่งข้อมูลไปบอกคู่ต่อสู้บน Firebase
   if (gameRef) {
     await update(gameRef, {
       lastMove: { by: myUid, ts: serverTimestamp(), endReason: 'resign', turn: myColor }
