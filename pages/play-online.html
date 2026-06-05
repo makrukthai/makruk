@@ -21,39 +21,37 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 0;
 }
 
 .online-layout {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr) 256px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) 256px;
+  align-items: start;
   gap: 20px;
   width: 100%;
   max-width: 1300px;
   min-height: 0;
 }
 
-.profile-column {
+.profile-layout {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
   gap: 20px;
   width: 100%;
-  min-width: 190px;
-  max-width: 190px;
-  height: auto;
+  max-width: 760px;
+  margin: 0 auto;
 }
 
-.profile-spacer {
-  flex: 0 1 auto;
-}
+
 
 .board-column {
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  max-width: min(760px, calc(100vw - 340px));
   min-width: 0;
   align-items: center;
   justify-content: center;
@@ -62,10 +60,12 @@
 
 .board-column .board-section {
   width: 100%;
+  max-width: 100%;
 }
 
 .board-column .board-outer {
   justify-content: center;
+  max-width: 100%;
 }
 
 .right-panel {
@@ -174,34 +174,36 @@
   height: calc(var(--cell) * 8 + 80px);
 }
 
-/* Player card */
+/* Player row — no outer border, profile left / clock right */
 .player-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg2);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 14px;
-  transition: border-color 0.3s;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
   flex-shrink: 0;
   min-width: 0;
+  width: 87%;
 }
 
+/* Remove any legacy active-turn border */
 .player-card.active-turn {
-  border-color: rgba(150,150,150,0.5);
+  border-color: transparent;
 }
 
 .player-avatar {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   background: rgba(128,128,128,0.15);
   border: 1px solid rgba(128,128,128,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 16px;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -225,21 +227,47 @@
   margin-top: 2px;
 }
 
+/* Clock box — bordered, theme-aware */
+.player-clock-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .player-clock {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   color: var(--text);
   font-family: 'Courier New', monospace;
   flex-shrink: 0;
   transition: color 0.3s;
+  background: var(--bg2);
+  border: 1px solid rgba(128,128,128,0.18);
+  border-radius: 8px;
+  padding: 6px 14px;
+  min-width: 76px;
+  text-align: center;
 }
 
-.player-clock.low-time { color: #ef4444 !important; }
+html[data-background-mode="light"] .player-clock {
+  background: var(--bg2);
+  border-color: rgba(0,0,0,0.15);
+}
+
+.player-card.active-turn .player-clock {
+  border-color: rgba(160,160,160,0.45);
+}
+
+.player-clock.low-time {
+  color: #ef4444 !important;
+  border-color: rgba(239,68,68,0.4) !important;
+}
 
 .clock-dot {
-  width: 7px; height: 7px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: transparent;
   flex-shrink: 0;
@@ -247,6 +275,7 @@
 }
 .active-turn .clock-dot { background: #888; }
 .player-card.low-time-card .clock-dot { background: #ef4444 !important; }
+.player-card.low-time-card .player-clock { color: #ef4444 !important; border-color: rgba(239,68,68,0.4) !important; }
 
 /* Captures */
 .captures-row {
@@ -299,7 +328,7 @@
   border-radius: 14px;
   overflow: hidden;
   min-height: 200px;
-  max-height: 300px;
+  max-height: 700px;
 }
 
 .chat-title {
@@ -375,6 +404,7 @@
   flex-wrap: wrap;
 }
 
+/* โค้ดสำหรับตั้งค่าปุ่มปกติ */
 .btn-action {
   flex: 1 1 auto;
   min-width: 0;
@@ -386,6 +416,7 @@
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
+
   color: var(--muted);
   cursor: pointer;
   font-family: 'Noto Sans Thai', sans-serif;
@@ -393,6 +424,7 @@
   transition: all 0.2s;
 }
 
+/* 🎨 แก้ไขพื้นหลังและกรอบ */
 .btn-action:hover { background: rgba(128,128,128,0.08); border-color: rgba(128,128,128,0.25); color: var(--text); }
 .btn-action.danger:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: #ef6464; }
 .btn-action:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
@@ -624,20 +656,16 @@
     gap: 16px;
   }
   
-  .profile-column, .right-panel {
+  .profile-layout, .right-panel {
     grid-column: 1;
     max-width: 100%;
     min-width: 0;
   }
   
-  .profile-column {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  
-  .profile-spacer {
-    display: none;
+  .profile-layout {
+    width: 100%;
+    max-width: 100%;
+    gap: 16px;
   }
   
   .right-panel {
@@ -651,8 +679,8 @@
     grid-template-columns: 1fr;
   }
   
-  .profile-column {
-    grid-template-columns: 1fr;
+  .profile-layout {
+    width: 100%;
   }
   
   .right-panel {
@@ -692,7 +720,7 @@
     <div class="online-main">
       <div class="online-layout">
 
-        <div class="profile-column">
+        <div class="profile-layout">
 
           <!-- Opponent (top) -->
           <div class="player-card" id="opp-card">
@@ -701,11 +729,24 @@
               <div class="player-name" id="opp-name">รอคู่ต่อสู้…</div>
               <div class="player-rank" id="opp-rank"></div>
             </div>
-            <div class="clock-dot" id="opp-dot"></div>
-            <div class="player-clock" id="opp-clock">--:--</div>
+            <div class="player-clock-wrap">
+              <div class="clock-dot" id="opp-dot"></div>
+              <div class="player-clock" id="opp-clock">--:--</div>
+            </div>
           </div>
 
-          <div class="profile-spacer"></div>
+          <div class="board-column">
+            <!-- Board -->
+            <div class="board-section">
+              <div class="board-outer">
+                <div class="coords-col" id="coords-left"></div>
+                <div>
+                  <div class="chess-board" id="chess-board"></div>
+                  <div class="coords-row" id="coords-bottom"></div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Me (bottom) -->
           <div class="player-card" id="my-card">
@@ -714,20 +755,9 @@
               <div class="player-name" id="my-name">คุณ</div>
               <div class="player-rank" id="my-rank"></div>
             </div>
-            <div class="clock-dot" id="my-dot"></div>
-            <div class="player-clock" id="my-clock">--:--</div>
-          </div>
-        </div>
-
-        <div class="board-column">
-          <!-- Board -->
-          <div class="board-section">
-            <div class="board-outer">
-              <div class="coords-col" id="coords-left"></div>
-              <div>
-                <div class="chess-board" id="chess-board"></div>
-                <div class="coords-row" id="coords-bottom"></div>
-              </div>
+            <div class="player-clock-wrap">
+              <div class="clock-dot" id="my-dot"></div>
+              <div class="player-clock" id="my-clock">--:--</div>
             </div>
           </div>
         </div>
@@ -756,12 +786,9 @@
           <div class="captures-row" id="cap-me"></div>
 
           <!-- Actions -->
-          <div class="action-row" style="flex-direction:column; gap:6px;">
+<div class="action-row" style="flex-direction:row; gap:6px;">
             <button class="btn-action danger" id="btn-resign" disabled>🏳 ยอมแพ้</button>
             <button class="btn-action" id="btn-draw" disabled>🤝 ขอเสมอ</button>
-            <button class="btn-action" id="btn-sakdikradan" style="display:none">📋 ขอนับศักดิ์กระดาน</button>
-            <button class="btn-action" id="btn-cancel-sakdikradan" style="display:none">❌ ยกเลิกนับศักดิ์กระดาน</button>
-            <button class="btn-action" id="btn-back">← กลับ</button>
           </div>
           <div id="special-rules-info" style="display:none; font-size:12px; color:var(--muted); padding:8px 12px; background:rgba(255,200,0,0.08); border:1px solid rgba(255,200,0,0.2); border-radius:10px; line-height:1.5; margin-top:4px;"></div>
 
@@ -1014,10 +1041,12 @@ function getAllLegalMoves(board, color) {
 // ════════════════════════════════════════════════
 //   LAYOUT
 // ════════════════════════════════════════════════
+//ขนาดของกระดานเซลล์จะถูกปรับอัตโนมัติตามขนาดหน้าจอและองค์ประกอบอื่นๆ เพื่อให้กระดานพอดีและใช้งานได้สะดวกบนอุปกรณ์ทุกขนาด
 function calcCell() {
-  const ah = window.innerHeight - 64 - 48;
+  const overallMargin = 64 + 0 + 200; // header + page padding + player cards
+  const ah = window.innerHeight - overallMargin;
   const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 40;
-  return Math.max(34, Math.min(Math.floor(Math.min(ah,aw)/8), 90));
+  return Math.max(34, Math.min(Math.floor(Math.min(ah,aw)/8), 80));
 }
 
 function applyCell(size) {
@@ -1125,7 +1154,7 @@ function updateClocks() {
   oppCard.classList.toggle('active-turn', turn !== myColor);
   myCard.classList.toggle('low-time-card',  myTime < 30);
   oppCard.classList.toggle('low-time-card', oppTime < 30);
-  document.getElementById('my-dot').parentElement.classList.toggle('active-turn', turn===myColor);
+  document.getElementById('my-dot').parentElement.parentElement.classList.toggle('active-turn', turn===myColor);
 }
 
 function updateStatus() {
@@ -1885,7 +1914,7 @@ document.getElementById('btn-draw').addEventListener('click', async () => {
 // ════════════════════════════════════════════════
 //   ขอนับศักดิ์กระดาน
 // ════════════════════════════════════════════════
-document.getElementById('btn-sakdikradan').addEventListener('click', async () => {
+/*document.getElementById('btn-sakdikradan').addEventListener('click', async () => {
   if (gameOver || sakdiKradanActive || sakdiMakActive) return;
   if (!confirm('ขอใช้สิทธิ์นับศักดิ์กระดาน? คุณจะเป็นฝ่ายหนี')) return;
   sakdiKradanActive = true;
@@ -1901,7 +1930,7 @@ document.getElementById('btn-cancel-sakdikradan').addEventListener('click', asyn
   sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
   if (gameRef) await update(gameRef, { sakdiKradan: null });
   updateSpecialRulesUI();
-});
+});*/
 
 // ── Handle draw offer from opponent (Firebase listener) ──
 function handleDrawOffer(offerColor) {
@@ -1941,11 +1970,6 @@ document.getElementById('btn-rematch').addEventListener('click', () => {
 
 document.getElementById('btn-to-menu').addEventListener('click', () => {
   stopClock(); window.location.href = 'play.html';
-});
-
-document.getElementById('btn-back').addEventListener('click', () => {
-  stopClock(); stopSearch();
-  window.location.href = 'play.html';
 });
 
 // ════════════════════════════════════════════════
