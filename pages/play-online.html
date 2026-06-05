@@ -321,7 +321,8 @@ html[data-background-mode="light"] .player-clock {
   text-align: center;
   flex-shrink: 0;
   padding: 4px 8px;
-  background: rgba(255,255,255,0.02);
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 6px;
 }
 
@@ -458,15 +459,28 @@ html[data-background-mode="light"] .player-clock {
   justify-content: center;
   gap: 5px;
   padding: 10px 8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.07);
+  
   border-radius: 10px;
-
   color: var(--muted);
   cursor: pointer;
   font-family: 'Noto Sans Thai', sans-serif;
   font-size: 12px;
   transition: all 0.2s;
+}
+
+/* 📌 ปรับสีเส้นขอบให้เข้มขึ้นเฉพาะตอนเปิด Light Mode */
+html[data-background-mode="light"] .move-badge,
+html[data-background-mode="light"] .status-bar,
+html[data-background-mode="light"] .chat-panel,
+html[data-background-mode="light"] .btn-action {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* ทำให้ตัวหนังสือในปุ่มเข้มขึ้นในโหมดสว่าง */
+html[data-background-mode="light"] .btn-action {
+  color: var(--text);
 }
 
 /* 🎨 แก้ไขพื้นหลังและกรอบ */
