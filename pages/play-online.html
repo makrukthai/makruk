@@ -44,8 +44,6 @@
   margin: 0 auto;
 }
 
-
-
 .board-column {
   display: flex;
   flex-direction: column;
@@ -75,8 +73,8 @@
   width: 256px;
   min-width: 256px;
   flex-shrink: 0;
-  max-height: calc(var(--cell) * 8 + 480px);
   height: auto;
+  min-height: calc(var(--cell) * 8 + 80px);
 }
 
 /* ── Board ── */
@@ -164,16 +162,6 @@
   pointer-events: none;
 }
 
-/* ── Right Panel ── */
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 256px;
-  flex-shrink: 0;
-  height: calc(var(--cell) * 8 + 80px);
-}
-
 /* Player row — no outer border, profile left / clock right */
 .player-card {
   display: flex;
@@ -210,7 +198,10 @@
 
 .player-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-.player-info { flex: 1; min-width: 0; }
+.player-info { 
+  flex: 0 1 auto; 
+  min-width: 0; 
+}
 
 .player-name {
   font-size: 13px;
@@ -233,6 +224,7 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .player-clock {
@@ -281,14 +273,21 @@ html[data-background-mode="light"] .player-clock {
 .captures-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 3px;
-  padding: 6px 12px;
-  min-height: 28px;
-  flex-shrink: 0;
-  background: rgba(255,255,255,0.02);
-  border-radius: 8px;
+  flex: 1;
+  padding: 0 10px;
+  min-height: 18px;
+  background: transparent;
 }
-.captures-row img { width: 19px; height: 19px; object-fit: contain; }
+.captures-row img { 
+  width: 18px; 
+  height: 18px; 
+  object-fit: contain; 
+}
+.captures-row:empty {
+  display: none;
+}
 
 /* Status */
 .status-bar {
@@ -650,7 +649,8 @@ html[data-background-mode="light"] .player-clock {
 }
 .dc-notice.hidden { display: none; }
 
-@media screen and (max-width: 1200px) {
+/* 📌 ปรับจุดยุบหน้าจอเพื่อไม่ให้ช่องแชทหล่นลงข้างล่างบนจอคอม */
+@media screen and (max-width: 800px) {
   .online-layout {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -722,13 +722,15 @@ html[data-background-mode="light"] .player-clock {
 
         <div class="profile-layout">
 
-          <!-- Opponent (top) -->
           <div class="player-card" id="opp-card">
             <div class="player-avatar" id="opp-avatar">👤</div>
             <div class="player-info">
               <div class="player-name" id="opp-name">รอคู่ต่อสู้…</div>
               <div class="player-rank" id="opp-rank"></div>
             </div>
+            
+            <div class="captures-row" id="cap-opp"></div>
+            
             <div class="player-clock-wrap">
               <div class="clock-dot" id="opp-dot"></div>
               <div class="player-clock" id="opp-clock">--:--</div>
@@ -736,7 +738,6 @@ html[data-background-mode="light"] .player-clock {
           </div>
 
           <div class="board-column">
-            <!-- Board -->
             <div class="board-section">
               <div class="board-outer">
                 <div class="coords-col" id="coords-left"></div>
@@ -748,13 +749,15 @@ html[data-background-mode="light"] .player-clock {
             </div>
           </div>
 
-          <!-- Me (bottom) -->
           <div class="player-card" id="my-card">
             <div class="player-avatar" id="my-avatar">👤</div>
             <div class="player-info">
               <div class="player-name" id="my-name">คุณ</div>
               <div class="player-rank" id="my-rank"></div>
             </div>
+            
+            <div class="captures-row" id="cap-me"></div>
+            
             <div class="player-clock-wrap">
               <div class="clock-dot" id="my-dot"></div>
               <div class="player-clock" id="my-clock">--:--</div>
@@ -762,14 +765,10 @@ html[data-background-mode="light"] .player-clock {
           </div>
         </div>
 
-        <!-- Right Panel -->
         <div class="right-panel">
-          <div class="captures-row" id="cap-opp"></div>
-
           <div class="move-badge" id="move-badge">รอเริ่มเกม</div>
           <div class="status-bar" id="game-status">รอผู้เล่น…</div>
 
-          <!-- Chat -->
           <div class="chat-panel">
             <div class="chat-title">
               <span class="conn-dot" id="conn-dot"></span>แชท
@@ -783,10 +782,7 @@ html[data-background-mode="light"] .player-clock {
             </div>
           </div>
 
-          <div class="captures-row" id="cap-me"></div>
-
-          <!-- Actions -->
-<div class="action-row" style="flex-direction:row; gap:6px;">
+          <div class="action-row" style="flex-direction:row; gap:6px;">
             <button class="btn-action danger" id="btn-resign" disabled>🏳 ยอมแพ้</button>
             <button class="btn-action" id="btn-draw" disabled>🤝 ขอเสมอ</button>
           </div>
@@ -798,14 +794,11 @@ html[data-background-mode="light"] .player-clock {
   </section>
 </main>
 
-<!-- Disconnection notice -->
 <div class="dc-notice hidden" id="dc-notice">⚠ คู่ต่อสู้ขาดการเชื่อมต่อ…</div>
 
-<!-- Matchmaking Overlay -->
 <div class="mm-overlay" id="mm-overlay">
   <div class="mm-card">
 
-    <!-- Step 1: choose time -->
     <div id="mm-select" class="mm-step">
       <div class="mm-icon">⚡</div>
       <div class="mm-title">เล่นออนไลน์</div>
@@ -839,7 +832,6 @@ html[data-background-mode="light"] .player-clock {
       </div>
     </div>
 
-    <!-- Step 2: searching -->
     <div id="mm-searching" class="mm-step hidden" style="display:flex">
       <div class="mm-spinner"></div>
       <div class="mm-searching-title">กำลังค้นหาคู่ต่อสู้…</div>
@@ -851,7 +843,6 @@ html[data-background-mode="light"] .player-clock {
   </div>
 </div>
 
-<!-- Game Over Overlay -->
 <div class="gameover-overlay hidden" id="gameover-overlay">
   <div class="gameover-modal">
     <div class="gameover-emoji" id="go-emoji">🏆</div>
@@ -864,7 +855,6 @@ html[data-background-mode="light"] .player-clock {
   </div>
 </div>
 
-<!-- Firebase Realtime Database -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -1041,7 +1031,6 @@ function getAllLegalMoves(board, color) {
 // ════════════════════════════════════════════════
 //   LAYOUT
 // ════════════════════════════════════════════════
-//ขนาดของกระดานเซลล์จะถูกปรับอัตโนมัติตามขนาดหน้าจอและองค์ประกอบอื่นๆ เพื่อให้กระดานพอดีและใช้งานได้สะดวกบนอุปกรณ์ทุกขนาด
 function calcCell() {
   const overallMargin = 64 + 0 + 200; // header + page padding + player cards
   const ah = window.innerHeight - overallMargin;
@@ -1322,7 +1311,9 @@ async function pushMoveToFirebase(move, promoted, captured, endReason) {
     timeW, timeB,
     moveCount,
     by: myUid,
-    ts: serverTimestamp()
+    ts: serverTimestamp(),
+    capturedByW: capturedByW || [],
+    capturedByB: capturedByB || []
   };
   if (endReason) moveData.endReason = endReason;
   try {
@@ -1412,6 +1403,8 @@ function listenToGame(gid) {
     lastMove   = { from: lm.from, to: lm.to };
     capturedByW = []; capturedByB = [];
 
+    capturedByW = lm.capturedByW || [];
+    capturedByB = lm.capturedByB || [];
     selected = null; legalForSelected = [];
 
     renderBoard();
@@ -1912,7 +1905,7 @@ document.getElementById('btn-draw').addEventListener('click', async () => {
 });
 
 // ════════════════════════════════════════════════
-//   ขอนับศักดิ์กระดาน
+//   ขอนับศักดิ์กระดาน (Commented out to prevent errors)
 // ════════════════════════════════════════════════
 /*document.getElementById('btn-sakdikradan').addEventListener('click', async () => {
   if (gameOver || sakdiKradanActive || sakdiMakActive) return;
