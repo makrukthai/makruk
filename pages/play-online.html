@@ -403,6 +403,37 @@ html[data-background-mode="light"] .player-clock {
   flex-wrap: wrap;
 }
 
+.draw-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(251, 146, 60, 0.15); /* พื้นหลังสีส้มโปร่งใส */
+  border: 1px solid rgba(251, 146, 60, 0.3);
+  border-radius: 10px;
+  color: #fb923c;
+  font-size: 12px;
+  margin-bottom: 8px;
+  animation: fadeIn 0.2s ease;
+}
+.draw-toast.waiting {
+  background: rgba(128, 128, 128, 0.15);
+  border-color: rgba(128, 128, 128, 0.3);
+  color: var(--text);
+  justify-content: center;
+}
+.draw-toast.hidden { display: none; }
+.draw-toast span { flex: 1; font-weight: 600; }
+.draw-toast .btn-action { 
+  padding: 4px 8px; 
+  font-size: 11px; 
+  min-width: 0; 
+  flex: 0 0 auto; 
+  color: var(--text); 
+}
+.draw-toast .btn-action.danger { color: #ef6464; }
+
 /* โค้ดสำหรับตั้งค่าปุ่มปกติ */
 .btn-action {
   flex: 1 1 auto;
@@ -780,6 +811,15 @@ html[data-background-mode="light"] .player-clock {
               <input class="chat-input" id="chat-input" placeholder="พิมพ์ข้อความ…" maxlength="120" disabled>
               <button class="chat-send" id="chat-send-btn" disabled>➤</button>
             </div>
+          </div>
+
+          <div id="draw-toast" class="draw-toast hidden">
+            <span>คู่ต่อสู้ขอเสมอ</span>
+            <button id="btn-draw-accept" class="btn-action">ตกลง</button>
+            <button id="btn-draw-reject" class="btn-action danger">ปฏิเสธ</button>
+          </div>
+          <div id="draw-waiting" class="draw-toast waiting hidden">
+            <span>รอคู่ต่อสู้ตอบรับขอเสมอ...</span>
           </div>
 
           <div class="action-row" style="flex-direction:row; gap:6px;">
@@ -1237,6 +1277,12 @@ function doMove(move) {
 
   lastMove = move; selected = null; legalForSelected = [];
   moveCount++;
+  
+  if (opponentDrawOffer) {
+    if (gameRef) update(gameRef, { drawOffer: null });
+    opponentDrawOffer = false;
+    document.getElementById('draw-toast').classList.add('hidden');
+  }
 
   // ── ศักดิ์กระดาน: นับตาของฝ่ายหนี ──
   if (sakdiKradanActive && movingColor === sakdiKradanFleeColor) {
@@ -1376,9 +1422,20 @@ function listenToGame(gid) {
     }
 
     // ── Sync draw offer (ตรวจก่อน return เสมอ) ──
-    if (data.drawOffer && data.drawOffer !== myColor && !gameOver) {
-      handleDrawOffer(data.drawOffer);
-      if (gameRef) update(gameRef, { drawOffer: null }).catch(()=>{});
+    if (data.drawOffer === myColor) {
+      // 1. เราเป็นคนขอ -> แสดงสถานะรอ
+      drawOfferPending = true;
+      document.getElementById('draw-waiting').classList.remove('hidden');
+    } else if (data.drawOffer === opposite(myColor) && !gameOver) {
+      // 2. คู่ต่อสู้ขอมา -> แสดงปุ่มตกลง/ปฏิเสธ
+      opponentDrawOffer = true;
+      document.getElementById('draw-toast').classList.remove('hidden');
+    } else if (!data.drawOffer) {
+      // 3. ไม่มีคำขอ หรือถูกปฏิเสธไปแล้ว -> ซ่อนทั้งหมด
+      drawOfferPending = false;
+      opponentDrawOffer = false;
+      document.getElementById('draw-waiting').classList.add('hidden');
+      document.getElementById('draw-toast').classList.add('hidden');
     }
 
     // ── Sync sakdiKradan (ตรวจก่อน return เสมอ) ──
@@ -1910,19 +1967,32 @@ document.getElementById('btn-resign').addEventListener('click', async () => {
 });
 
 // ════════════════════════════════════════════════
-//   ขอเสมอ (Draw Offer via Firebase)
+//   ขอเสมอ (Draw Offer via Firebase) - แบบ Notification
 // ════════════════════════════════════════════════
+let opponentDrawOffer = false;
+
+// เมื่อเรากดปุ่มขอเสมอ
 document.getElementById('btn-draw').addEventListener('click', async () => {
-  if (gameOver) return;
-  if (drawOfferPending) {
-    alert('รอการตอบรับจากคู่ต่อสู้อยู่...');
-    return;
-  }
-  if (!confirm('ขอเสมอ? คู่ต่อสู้ต้องยืนยัน')) return;
+  if (gameOver || drawOfferPending || opponentDrawOffer) return;
   drawOfferPending = true;
+  if (gameRef) await update(gameRef, { drawOffer: myColor });
+});
+
+// เมื่อเรากด 'ตกลง' รับคำขอเสมอ
+document.getElementById('btn-draw-accept').addEventListener('click', () => {
+  if (gameOver || !opponentDrawOffer) return;
+  endGame('draw-offer', null);
   if (gameRef) {
-    await update(gameRef, { drawOffer: myColor });
+    update(gameRef, {
+      lastMove: { by: myUid, ts: serverTimestamp(), endReason: 'draw-offer', turn: myColor },
+      drawOffer: null // ล้างสถานะคำขอ
+    });
   }
+});
+
+// เมื่อเรากด 'ปฏิเสธ' คำขอเสมอ
+document.getElementById('btn-draw-reject').addEventListener('click', () => {
+  if (gameRef) update(gameRef, { drawOffer: null });
 });
 
 // ════════════════════════════════════════════════
@@ -1945,26 +2015,6 @@ document.getElementById('btn-cancel-sakdikradan').addEventListener('click', asyn
   if (gameRef) await update(gameRef, { sakdiKradan: null });
   updateSpecialRulesUI();
 });*/
-
-// ── Handle draw offer from opponent (Firebase listener) ──
-function handleDrawOffer(offerColor) {
-  if (!offerColor || offerColor === myColor) return;
-  if (gameOver) return;
-  const accept = confirm('คู่ต่อสู้ขอเสมอ — ยอมรับ?');
-  if (accept) {
-    // แสดงผลให้ฝ่ายรับก่อนทันที
-    endGame('draw-offer', null);
-    // แล้วค่อย push ให้ฝ่ายขอรู้
-    if (gameRef) {
-      update(gameRef, {
-        lastMove: { by: myUid, ts: serverTimestamp(), endReason: 'draw-offer', turn: myColor }
-      });
-    }
-  } else {
-    drawOfferPending = false;
-    if (gameRef) update(gameRef, { drawOffer: null });
-  }
-}
 
 // ════════════════════════════════════════════════
 //   REMATCH / MENU
