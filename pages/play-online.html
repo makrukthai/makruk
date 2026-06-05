@@ -10,39 +10,43 @@
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <script type="module" src="../auth.js"></script>
 <style>
-.play-body { overflow-x: hidden; overflow-y: auto; }
+.play-body { 
+  overflow-x: hidden; 
+  overflow-y: auto;
+  background: var(--bg);
+}
 
 .online-main {
-  height: calc(100vh - 64px);
+  min-height: calc(100vh - 64px);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
 }
 
 .online-layout {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr) 256px;
-  align-items: stretch;
-  gap: 24px;
-  padding: 0 24px;
-  height: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 1300px;
+  min-height: 0;
 }
 
 .profile-column {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
   width: 100%;
-  min-width: 0;
+  min-width: 190px;
   max-width: 190px;
-  height: 100%;
+  height: auto;
 }
 
 .profile-spacer {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
 }
 
 .board-column {
@@ -52,6 +56,8 @@
   width: 100%;
   min-width: 0;
   align-items: center;
+  justify-content: center;
+  height: auto;
 }
 
 .board-column .board-section {
@@ -67,8 +73,10 @@
   flex-direction: column;
   gap: 12px;
   width: 256px;
-  min-width: 0;
+  min-width: 256px;
   flex-shrink: 0;
+  max-height: calc(var(--cell) * 8 + 480px);
+  height: auto;
 }
 
 /* ── Board ── */
@@ -77,6 +85,7 @@
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
+  width: 100%;
 }
 
 .board-outer {
@@ -176,6 +185,7 @@
   border-radius: 14px;
   transition: border-color 0.3s;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .player-card.active-turn {
@@ -243,15 +253,17 @@
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
-  padding: 2px 12px;
-  min-height: 24px;
+  padding: 6px 12px;
+  min-height: 28px;
   flex-shrink: 0;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
 }
 .captures-row img { width: 19px; height: 19px; object-fit: contain; }
 
 /* Status */
 .status-bar {
-  padding: 8px 12px;
+  padding: 10px 12px;
   background: var(--bg2);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px;
@@ -260,26 +272,34 @@
   color: var(--text);
   text-align: center;
   flex-shrink: 0;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Move badge */
 .move-badge {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   text-align: center;
   flex-shrink: 0;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
 }
 
 /* Chat */
 .chat-panel {
-  flex: 1;
+  flex: 1 1 200px;
   display: flex;
   flex-direction: column;
   background: var(--bg2);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 14px;
   overflow: hidden;
-  min-height: 0;
+  min-height: 200px;
+  max-height: 300px;
 }
 
 .chat-title {
@@ -352,15 +372,17 @@
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .btn-action {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 8px 6px;
+  padding: 10px 8px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
@@ -595,6 +617,50 @@
   animation: fadeIn 0.3s ease;
 }
 .dc-notice.hidden { display: none; }
+
+@media screen and (max-width: 1200px) {
+  .online-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .profile-column, .right-panel {
+    grid-column: 1;
+    max-width: 100%;
+    min-width: 0;
+  }
+  
+  .profile-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  .profile-spacer {
+    display: none;
+  }
+  
+  .right-panel {
+    max-height: none;
+    min-height: auto;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .online-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-column {
+    grid-template-columns: 1fr;
+  }
+  
+  .right-panel {
+    width: 100%;
+    min-width: 0;
+    max-height: 400px;
+  }
+}
 </style>
 </head>
 <body class="play-body">
