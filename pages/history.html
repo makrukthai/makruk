@@ -15,16 +15,22 @@
   .loading-box { text-align: center; padding: 60px; color: var(--muted, #aaa); font-size: 18px; }
   
   /* Replay Section Layout */
-  .replay-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 30px; margin-top: 20px; }
-  .board-outer { display: flex; flex-direction: column; align-items: center; }
-  .chess-board { display: grid; grid-template-columns: repeat(8, var(--cell, 55px)); grid-template-rows: repeat(8, var(--cell, 55px)); gap: 2px; background: rgba(0,0,0,0.2); padding: 2px; }
-  .chess-cell { width: var(--cell, 55px); height: var(--cell, 55px); display: flex; align-items: center; justify-content: center; border: none; }
+  .replay-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; margin-top: 20px; align-items: start; }
+  .board-outer { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .chess-board { --cell: 70px; display: grid; grid-template-columns: repeat(8, var(--cell)); grid-template-rows: repeat(8, var(--cell)); gap: 2px; background: rgba(0,0,0,0.2); padding: 2px; }
+  .chess-cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; border: none; }
   .chess-cell.light { background: #c56c30; }
   .chess-cell.dark  { background: #c56c30; }
   .chess-cell .piece-img { width: 82%; height: 82%; object-fit: contain; }
   
   /* Controller Panel */
-  .control-panel { background: var(--bg2, #262626); border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; justify-content: space-between; }
+  .control-panel { background: var(--bg2, #262626); 
+    border-radius: 14px; 
+    padding: 20px; 
+    border: 1px solid rgba(255,255,255,0.06); 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: space-between; }
   .control-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 20px; }
   .btn-ctrl { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 16px; transition: 0.2s; }
   .btn-ctrl:hover { background: rgba(255,255,255,0.1); border-color: #f0d8a1; color: #f0d8a1; }
@@ -32,6 +38,23 @@
   .move-counter { text-align: center; font-size: 18px; font-weight: 700; margin: 15px 0; color: #f0d8a1; font-family: monospace; }
   .btn-back-profile { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 14px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; font-size: 13px; font-family: 'Noto Sans Thai', sans-serif; }
   .btn-back-profile:hover { background: rgba(255,255,255,0.05); border-color: #f0d8a1; }
+  /* ตารางบันทึกตาเดิน */
+  .move-list { 
+    height: 300px; overflow-y: auto; background: var(--bg2); 
+    border-radius: 8px; padding: 10px; font-family: monospace; font-size: 14px;
+  }
+  /* เพิ่ม CSS นี้ใน <style> ของ history.html เพื่อจัดตารางให้สวยงาม */
+  .move-list { 
+    height: 300px; overflow-y: auto; background: var(--bg2); 
+    border-radius: 8px; padding: 10px; font-family: 'Noto Sans Thai', sans-serif; font-size: 14px;
+  }
+  .move-row { 
+    display: grid; 
+    grid-template-columns: 40px 1fr 1fr; 
+    border-bottom: 1px solid rgba(128,128,128,0.1); 
+    padding: 8px 0; 
+  }
+  .move-row span { text-align: center; }
 </style>
 </head>
 <body class="history-body">
@@ -58,29 +81,35 @@
   <button class="btn-back-profile" id="btn-back-to-profile">⬅ กลับไปหน้าโปรไฟล์</button>
   <h1 class="page-title" id="replay-title">กระดานบันทึกเกมย้อนหลัง</h1>
 
-
   <div class="replay-layout hidden" id="replay-content-layout">
     <div class="board-outer">
       <div class="chess-board" id="replay-chess-board"></div>
     </div>
     
     <div class="control-panel">
-      <div>
-        <h3 style="margin:0 0 10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">📊 สรุปผลหมาก</h3>
-        <p id="replay-meta-players" style="margin: 6px 0; font-size:14px; line-height:1.6;"></p>
-        <p id="replay-meta-reason" style="margin: 12px 0 6px; font-size:13px; color:#aaa; font-style:italic;"></p>
-      </div>
-      
-      <div>
-        <div class="move-counter" id="move-counter-txt">ตาที่ 0 / 0</div>
-        <div class="control-buttons">
-          <button class="btn-ctrl" id="btn-first" title="ตาแรกสุด">|◀</button>
-          <button class="btn-ctrl" id="btn-prev" title="ถอยกลับ">◀</button>
-          <button class="btn-ctrl" id="btn-next" title="เดินหน้า">▶</button>
-          <button class="btn-ctrl" id="btn-last" title="ตาสุดท้าย">▶|</button>
-        </div>
-      </div>
+  <div style="margin-bottom: 10px;">
+    <h3 style="margin:0 0 10px; border-bottom:1px solid rgba(128,128,128,0.2); padding-bottom:8px;">📊 สรุปผลหมาก</h3>
+    <p id="replay-meta-moves" style="margin: 6px 0; font-size:14px; line-height:1.6;"></p>
+    <p id="replay-meta-players" style="margin: 6px 0; font-size:14px; line-height:1.6;"></p>
+    <p id="replay-meta-reason" style="margin: 12px 0 6px; font-size:13px; color:var(--muted); font-style:italic;"></p>
+  </div>
+
+  <div class="move-list" id="move-list-container" style="flex-grow: 1; overflow-y: auto; margin-bottom: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; padding: 5px;">
+    <div class="move-row" style="display: grid; grid-template-columns: 40px 1fr 1fr; font-weight:bold; padding: 5px; border-bottom: 1px solid rgba(128,128,128,0.3);">
+      <span>ตา</span><span>ขาว</span><span>ดำ</span>
     </div>
+    <div id="move-list-body"></div>
+  </div>
+  
+  <div>
+    <div class="control-buttons">
+      <button class="btn-ctrl" id="btn-first" title="ตาแรกสุด">|◀</button>
+      <button class="btn-ctrl" id="btn-prev" title="ถอยกลับ">◀</button>
+      <button class="btn-ctrl" id="btn-next" title="เดินหน้า">▶</button>
+      <button class="btn-ctrl" id="btn-last" title="ตาสุดท้าย">▶|</button>
+    </div>
+  </div>
+</div>
   </div>
 </div>
 
@@ -132,18 +161,22 @@ async function initReplayPage() {
   const roomId = urlParams.get('room');
 
   if (!roomId) {
-    document.getElementById('loading-box').textContent = "❌ ไม่พบรหัสห้องเกมที่ระบุสำหรับเปิดรีเพลย์";
+    const loadingBox = document.getElementById('loading-box');
+    if (loadingBox) loadingBox.textContent = "❌ ไม่พบรหัสห้องเกมที่ระบุสำหรับเปิดรีเพลย์";
     return;
   }
 
   try {
     const snapshot = await get(ref(db, `game_history/${roomId}`));
     if (!snapshot.exists()) {
-      document.getElementById('loading-box').textContent = "❌ ไม่พบประวัติบันทึกตาเดินของห้องเกมนี้ในฐานข้อมูลกลาง";
+      const loadingBox = document.getElementById('loading-box');
+      if (loadingBox) loadingBox.textContent = "❌ ไม่พบประวัติบันทึกตาเดินของห้องเกมนี้ในฐานข้อมูลกลาง";
       return;
     }
 
     const gameData = snapshot.val();
+    const movesCount = gameData.moves ? Object.keys(gameData.moves).length : 0;
+    document.getElementById('replay-meta-moves').textContent = `จำนวนตาเดินทั้งหมด: ${movesCount} ตา`;
     
     // ตั้งค่าเริ่มต้น: ตาที่ 0 คือตำแหน่งหมากตั้งต้นของกระดาน
     loadedMoves = [];
@@ -177,15 +210,66 @@ async function initReplayPage() {
     document.getElementById('replay-meta-reason').textContent = `รูปแบบการจบเกม: ${reasonLabels[gameData.finalReason] || gameData.finalReason || 'จบแมตช์ปกติ'}`;
 
     // ซ่อนข้อความดาวน์โหลด เปิดส่วนกระดานควบคุม
-    document.getElementById('loading-box').classList.add('hidden');
+    const loadingBox = document.getElementById('loading-box');
+    if (loadingBox) loadingBox.classList.add('hidden');
     document.getElementById('replay-content-layout').classList.remove('hidden');
 
     currentMovePointer = 0;
     renderReplayBoard();
+    updateMoveList();
 
   } catch(err) {
     console.error(err);
-    document.getElementById('loading-box').textContent = "❌ เกิดข้อผิดพลาดทางเทคนิคในการประมวลผลกระดานรีเพลย์";
+    const loadingBox = document.getElementById('loading-box');
+    if (loadingBox) loadingBox.textContent = "❌ เกิดข้อผิดพลาดทางเทคนิคในการประมวลผลกระดานรีเพลย์";
+  }
+}
+
+// ฟังก์ชันแปลงชื่อหมาก
+function getPieceName(p) {
+  const names = {'K':'ข','Q':'ม็','B':'ค','N':'ม','R':'ร','P':'บ'};
+  return p ? names[p[0]] : '';
+}
+
+// ฟังก์ชันแปลงตำแหน่ง (0-7 เป็น ก-ข)
+function getPosName(r, c) {
+  const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ญ'];
+  const rows = ['8','7','6','5','4','3','2','1']; // ปรับตามการเรียงแถวของคุณ
+  return cols[c] + rows[r];
+}
+
+function formatMoveDesc(move) {
+  if (!move) return '-';
+  if (typeof move.desc === 'string' && move.desc.trim().length > 0) {
+    return move.desc;
+  }
+
+  if (!move.from || !move.to) return '-';
+
+  const board = move.board ? fbToBoard(move.board) : null;
+  const piece = board?.[move.to.row]?.[move.to.col] || null;
+  const pieceName = getPieceName(piece);
+  return `${pieceName},${getPosName(move.from.row, move.from.col)}-${getPosName(move.to.row, move.to.col)}`;
+}
+
+// ฟังก์ชันอัปเดตตารางบันทึก
+function updateMoveList() {
+  const body = document.getElementById('move-list-body');
+  body.innerHTML = "";
+  
+  // จัดกลุ่มข้อมูลตาเดินเป็นคู่ (ขาว-ดำ)
+  for (let i = 1; i < loadedMoves.length; i += 2) {
+    const row = document.createElement('div');
+    row.className = 'move-row';
+    const whiteMove = loadedMoves[i];
+    const blackMove = loadedMoves[i+1];
+    
+    row.innerHTML = `
+      <span>${Math.ceil(i/2)}.</span>
+      <span>${formatMoveDesc(whiteMove)}</span>
+      <span>${formatMoveDesc(blackMove)}</span>
+    `;
+    body.appendChild(row);
   }
 }
 
@@ -216,9 +300,6 @@ function renderReplayBoard() {
       boardContainer.appendChild(cell);
     });
   });
-
-  // อัปเดตข้อความบอกตำแหน่งตาปัจจุบัน
-  document.getElementById('move-counter-txt').textContent = `ตาเดินที่ ${currentMovePointer} / ${loadedMoves.length - 1}`;
 
   // สลับสถานะปุ่มกดล็อกเมื่อสุดขอบตาเดิน
   document.getElementById('btn-first').disabled = (currentMovePointer === 0);

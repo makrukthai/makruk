@@ -999,6 +999,18 @@ let clockInterval = null;
 
 let gameRef = null, gameListener = null;
 
+function getPieceName(p) {
+  if (!p) return '';
+  const names = {'K':'ข','Q':'ม็','B':'ค','N':'ม','R':'ร','P':'บ'};
+  return names[typeOf(p)] || '';
+}
+
+function getPosName(r, c) {
+  const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ซ'];
+  const rows = ['8','7','6','5','4','3','2','1'];
+  return cols[c] + rows[r];
+}
+
 // ════════════════════════════════════════════════
 //   HELPERS
 // ════════════════════════════════════════════════
@@ -1293,11 +1305,11 @@ function handleCellClick(row, col) {
 }
 
 function doMove(move) {
-  const piece   = boardState[move.from.row][move.from.col];
-  const captured= boardState[move.to.row][move.to.col];
-  const promoted= promoteIfNeeded(piece, move.to.row);
+  const piece = boardState[move.from.row][move.from.col];
+  const captured = boardState[move.to.row][move.to.col];
+  const promoted = promoteIfNeeded(piece, move.to.row);
   const movingColor = colorOf(piece);
-
+  const desc = `${getPieceName(piece)} ${getPosName(move.from.row, move.from.col)} ไป ${getPosName(move.to.row, move.to.col)}`;
   boardState[move.to.row][move.to.col]   = promoted;
   boardState[move.from.row][move.from.col] = null;
 
@@ -1308,6 +1320,9 @@ function doMove(move) {
 
   lastMove = move; selected = null; legalForSelected = [];
   moveCount++;
+  turn = opposite(turn);
+  // บันทึกตาเดินลง Firebase พร้อม desc
+  pushMoveToFirebase(move, promoted, captured, null, desc);
 
   if (opponentDrawOffer) {
     if (gameRef) update(gameRef, { drawOffer: null });
@@ -1399,25 +1414,18 @@ function fbToBoard(fb) {
   return fb.map(r => r.split(',').map(c => c || null));
 }
 
-async function pushMoveToFirebase(move, promoted, captured, endReason) {
+async function pushMoveToFirebase(move, promoted, captured, endReason, desc = "") {
   if (!gameRef) return;
   const moveData = {
-    from: move.from, to: move.to,
-    promoted, captured: captured||'',
-    board: boardToFB(boardState),
-    turn,
-    timeW, timeB,
-    moveCount,
-    by: myUid,
-    ts: serverTimestamp(),
-    capturedByW: capturedByW || [],
-    capturedByB: capturedByB || []
+    from: move.from, to: move.to, promoted, captured: captured||'',
+    board: boardToFB(boardState), turn, moveCount,
+    by: myUid, ts: serverTimestamp(), desc: desc // บันทึกคำบรรยายตรงนี้
   };
   if (endReason) moveData.endReason = endReason;
   try {
     await update(gameRef, { lastMove: moveData });
-  await set(ref(db, `games/${gameId}/moves/${moveCount}`), moveData);
-  } catch(e) { console.error('Firebase push error:', e); }
+    await set(ref(db, `games/${gameId}/moves/${moveCount}`), moveData);
+  } catch(e) { console.error('Firebase error:', e); }
 }
 
 // ════════════════════════════════════════════════
@@ -1663,42 +1671,37 @@ function updateSpecialRulesUI() {
   }
 }
 
-function endGame(reason, winner) {
-  // 📌 เพิ่มการแปลง myUid ให้เป็น Safe UID ป้องกัน Firebase บล็อกการบันทึกข้อมูล
+async function endGame(reason, winner) {
   if (myUid && gameId) {
-    const safeMyUid = String(myUid).replace(/[.#$\[\]]/g, '_');
-    
-    const historySummary = {
-      gameId: gameId,
-      opponentName: oppName,
-      opponentAvatar: oppAvatar,
-      result: winner === myColor ? 'win' : winner === null ? 'draw' : 'loss',
-      reason: reason,
-      date: Date.now(),
-      minutes: selectedMinutes || 10,
-      myColor: myColor
-    };
-    
-    // 1. บันทึกลงหน้าประวัติส่วนตัวของเรา (ใช้ safeMyUid)
-    set(ref(db, `user_history/${safeMyUid}/${gameId}`), historySummary)
-      .then(() => console.log("Match history saved successfully to user_history!"))
-      .catch(err => console.error("Error saving user_history:", err));
-    
-    // 2. ให้ฝั่งหมากขาวช่วยก๊อปปี้ห้องเกมเต็มไปเก็บไว้ในคลังประวัติกลางก่อนห้องเกมสดจะหมดอายุ
-    if (myColor === 'w') {
-      get(ref(db, `games/${gameId}`)).then(async (snapshot) => {
-        if (snapshot.exists()) {
-          const gameData = snapshot.val();
-          gameData.finalReason = reason;
-          gameData.winnerColor = winner;
-          gameData.endedAt = serverTimestamp();
+    try {
+      const safeMyUid = String(myUid).replace(/[.#$\[\]]/g, '_');
+      const movesSnapshot = await get(ref(db, `games/${gameId}/moves`));
+      const movesData = movesSnapshot.exists() ? movesSnapshot.val() : {};
+      
+      const historySummary = {
+        gameId, opponentName: oppName, opponentAvatar: oppAvatar,
+        result: winner === myColor ? 'win' : winner === null ? 'draw' : 'loss',
+        reason, date: Date.now(), minutes: selectedMinutes || 10,
+        myColor, moves: movesData 
+      };
+
+      await set(ref(db, `user_history/${safeMyUid}/${gameId}`), historySummary);
+      
+      if (myColor === 'w') {
+        const snap = await get(ref(db, `games/${gameId}`));
+        if (snap.exists()) {
+          const gameData = snap.val();
+          gameData.finalReason = reason; gameData.winnerColor = winner;
+          gameData.endedAt = serverTimestamp(); gameData.moves = movesData;
           await set(ref(db, `game_history/${gameId}`), gameData);
-          console.log("Game fully archived to game_history!");
         }
-      }).catch(err => console.error("Error archiving game:", err));
+      }
+    } catch (err) {
+      console.error("Error saving match history:", err);
     }
   }
   
+  // 📌 จัดการสถานะ UI หลังจบเกม
   if (typeof window.setCurrentUserStatus === "function") {
     window.setCurrentUserStatus("online");
   }
@@ -1709,35 +1712,22 @@ function endGame(reason, winner) {
   const title = document.getElementById('go-title');
   const sub   = document.getElementById('go-sub');
 
-  if (reason === 'checkmate') {
-    if (winner === myColor) {
-      emoji.textContent='🏆'; title.textContent='คุณชนะ!'; sub.textContent='รุกจนสำเร็จ';
-    } else {
-      emoji.textContent='😔'; title.textContent='แพ้'; sub.textContent='ขุนของคุณถูกรุกจน';
-    }
-  } else if (reason === 'stalemate') {
-    emoji.textContent='🤝'; title.textContent='เสมอ!'; sub.textContent='อับ — ไม่มีการเดินที่ถูกกฎ';
-  } else if (reason === 'timeout') {
-    if (winner === myColor) {
-      emoji.textContent='🏆'; title.textContent='คุณชนะ!'; sub.textContent='คู่ต่อสู้หมดเวลา';
-    } else {
-      emoji.textContent='⏰'; title.textContent='แพ้'; sub.textContent='คุณหมดเวลา';
-    }
-  } else if (reason === 'resign') {
-    if (winner === myColor) {
-      emoji.textContent='🏆'; title.textContent='คุณชนะ!'; sub.textContent='คู่ต่อสู้ยอมแพ้';
-    } else {
-      emoji.textContent='🏳'; title.textContent='ยอมแพ้'; sub.textContent='คุณยอมแพ้ในเกมนี้';
-    }
-  } else if (reason === 'draw-offer') {
-    emoji.textContent='🤝'; title.textContent='เสมอ!'; sub.textContent='ตกลงเสมอกัน';
-  } else if (reason === 'draw-threefold') {
-    emoji.textContent='🔁'; title.textContent='เสมอ!'; sub.textContent='รุกล้อซ้ำ 3 ครั้ง';
-  } else if (reason === 'draw-sakdikradan') {
-    emoji.textContent='📋'; title.textContent='เสมอ!'; sub.textContent='นับศักดิ์กระดานครบ 64 ตา';
-  } else if (reason === 'draw-sakdimak' || reason === 'draw-sakdimak-instant') {
-    emoji.textContent='♟'; title.textContent='เสมอ!'; sub.textContent='นับศักดิ์หมากครบกำหนด';
-  }
+  // ตรรกะการแสดงผลสถานะจบเกม
+  const resultMessages = {
+    'checkmate': { emoji: winner === myColor ? '🏆' : '😔', title: winner === myColor ? 'คุณชนะ!' : 'แพ้', sub: winner === myColor ? 'รุกจนสำเร็จ' : 'ขุนของคุณถูกรุกจน' },
+    'stalemate': { emoji: '🤝', title: 'เสมอ!', sub: 'อับ — ไม่มีการเดินที่ถูกกฎ' },
+    'timeout':   { emoji: winner === myColor ? '🏆' : '⏰', title: winner === myColor ? 'คุณชนะ!' : 'แพ้', sub: winner === myColor ? 'คู่ต่อสู้หมดเวลา' : 'คุณหมดเวลา' },
+    'resign':    { emoji: winner === myColor ? '🏆' : '🏳', title: winner === myColor ? 'คุณชนะ!' : 'ยอมแพ้', sub: winner === myColor ? 'คู่ต่อสู้ยอมแพ้' : 'คุณยอมแพ้ในเกมนี้' },
+    'draw-offer': { emoji: '🤝', title: 'เสมอ!', sub: 'ตกลงเสมอกัน' },
+    'draw-threefold': { emoji: '🔁', title: 'เสมอ!', sub: 'รุกล้อซ้ำ 3 ครั้ง' },
+    'draw-sakdikradan': { emoji: '📋', title: 'เสมอ!', sub: 'นับศักดิ์กระดานครบ 64 ตา' },
+    'draw-sakdimak': { emoji: '♟', title: 'เสมอ!', sub: 'นับศักดิ์หมากครบกำหนด' }
+  };
+
+  const msg = resultMessages[reason] || { emoji: '🏁', title: 'จบเกม', sub: 'เกมสิ้นสุดลง' };
+  emoji.textContent = msg.emoji;
+  title.textContent = msg.title;
+  sub.textContent = msg.sub;
 
   document.getElementById('gameover-overlay').classList.remove('hidden');
   document.getElementById('btn-resign').disabled = true;

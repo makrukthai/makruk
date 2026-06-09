@@ -496,11 +496,25 @@
   .result-lose { background: rgba(239,68,68,0.13);  color: #ef4444; }
   .result-draw { background: rgba(251,191,36,0.13);  color: #fbbf24; }
 
-  .moves-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+  .moves-bar { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px; }
+  .moves-num { 
+    font-weight: 700; 
+    font-family: monospace; 
+    min-width: 25px; }
+  .moves-vis { 
+    width: 60px; 
+    height: 6px; 
+    background: rgba(128,128,128,0.1); 
+    border-radius: 3px; 
+    overflow: hidden; 
+  }
+  .moves-fill { 
+    height: 100%; background: #d6b16b; border-radius: 3px; 
+    transition: width 0.5s ease-out;
   }
 
   .date-text { color: var(--muted); font-size: 0.85rem; }
@@ -733,6 +747,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const dateStr = new Date(match.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 
         // 3. ประกอบโครงสร้าง HTML แถวตารางโดยดึงข้อมูลจริง
+        // ในลูป forEach ของ loadRealGameHistory ใน profile.html
+        const movesCount = match.moves ? Object.keys(match.moves).length : 0;
+        // สมมติว่าเราให้เกมยาวสุดที่ 100 ตาเพื่อทำ Visual Bar
+        const barWidth = Math.min((movesCount / 100) * 100, 100); 
+
         tr.innerHTML = `
           <td>
             <div class="player-vs">
@@ -742,7 +761,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </td>
           <td><span class="result-pill ${resClass}">${resText}</span></td>
-          <td><span class="date-text" style="font-weight:600;">⏱ ${match.minutes || 10} นาที</span></td>
+          <td>
+            <div class="moves-bar">
+              <span class="moves-num">${movesCount}</span>
+              <div class="moves-vis"><div class="moves-fill" style="width:${barWidth}%"></div></div>
+            </div>
+          </td>
           <td><span class="date-text">${dateStr}</span></td>
           <td><button class="btn-replay-link" data-gameid="${match.gameId}">🎮 ดูรีเพลย์</button></td>
         `;
