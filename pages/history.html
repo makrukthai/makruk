@@ -6,54 +6,40 @@
 <title>RUKTHAI - รีเพลย์หมากรุกไทย</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
+<script type="module" src="../auth.js"></script>
 <style>
-  .history-body { background: var(--bg, #1a1a1a); color: var(--text, #fff); font-family: 'Noto Sans Thai', sans-serif; padding-bottom: 40px; }
+  .history-body { background: var(--bg); color: var(--text); font-family: 'Noto Sans Thai', sans-serif; padding-bottom: 40px; min-height: 100vh; }
   .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
   .page-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: #f0d8a1; }
   
   /* Loading Screen */
-  .loading-box { text-align: center; padding: 60px; color: var(--muted, #aaa); font-size: 18px; }
+  .loading-box { text-align: center; padding: 60px; color: var(--muted); font-size: 18px; }
   
   /* Replay Section Layout */
   .replay-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; margin-top: 20px; align-items: start; }
-  .board-outer { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .board-outer { display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .board-stack { display: flex; flex-direction: column; align-items: center; }
   .chess-board { --cell: 70px; display: grid; grid-template-columns: repeat(8, var(--cell)); grid-template-rows: repeat(8, var(--cell)); gap: 2px; background: rgba(0,0,0,0.2); padding: 2px; }
+  .coords-col { display: grid; grid-template-rows: repeat(8, var(--cell)); gap: 2px; align-items: center; justify-items: center; }
+  .coords-row { display: grid; grid-template-columns: repeat(8, var(--cell)); gap: 2px; align-items: center; justify-items: center; margin-left: 0; margin-top: 4px; }
+  .coord { font-size: 11px; color: var(--text); font-weight: 500; text-align: center; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
   .chess-cell { width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; border: none; }
   .chess-cell.light { background: #c56c30; }
   .chess-cell.dark  { background: #c56c30; }
   .chess-cell .piece-img { width: 82%; height: 82%; object-fit: contain; }
   
   /* Controller Panel */
-  .control-panel { background: var(--bg2, #262626); 
-    border-radius: 14px; 
-    padding: 20px; 
-    border: 1px solid rgba(255,255,255,0.06); 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: space-between; }
-  .control-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 20px; }
-  .btn-ctrl { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 16px; transition: 0.2s; }
+  .control-panel { background: var(--bg2); border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; justify-content: space-between; }
+  .control-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .btn-ctrl { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text); padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 16px; transition: 0.2s; }
   .btn-ctrl:hover { background: rgba(255,255,255,0.1); border-color: #f0d8a1; color: #f0d8a1; }
   .btn-ctrl:disabled { opacity: 0.3; cursor: not-allowed; }
-  .move-counter { text-align: center; font-size: 18px; font-weight: 700; margin: 15px 0; color: #f0d8a1; font-family: monospace; }
-  .btn-back-profile { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 14px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; font-size: 13px; font-family: 'Noto Sans Thai', sans-serif; }
+  .move-counter { text-align: center; font-size: 16px; font-weight: 700; margin: 12px 0; color: #f0d8a1; font-family: monospace; }
+  .btn-back-profile { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--text); padding: 8px 14px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; font-size: 13px; font-family: 'Noto Sans Thai', sans-serif; transition: 0.2s; }
   .btn-back-profile:hover { background: rgba(255,255,255,0.05); border-color: #f0d8a1; }
   /* ตารางบันทึกตาเดิน */
-  .move-list { 
-    height: 300px; overflow-y: auto; background: var(--bg2); 
-    border-radius: 8px; padding: 10px; font-family: monospace; font-size: 14px;
-  }
-  /* เพิ่ม CSS นี้ใน <style> ของ history.html เพื่อจัดตารางให้สวยงาม */
-  .move-list { 
-    height: 300px; overflow-y: auto; background: var(--bg2); 
-    border-radius: 8px; padding: 10px; font-family: 'Noto Sans Thai', sans-serif; font-size: 14px;
-  }
-  .move-row { 
-    display: grid; 
-    grid-template-columns: 40px 1fr 1fr; 
-    border-bottom: 1px solid rgba(128,128,128,0.1); 
-    padding: 8px 0; 
-  }
+  .move-list { height: 300px; overflow-y: auto; background: var(--bg2); border-radius: 8px; padding: 10px; font-family: 'Noto Sans Thai', sans-serif; font-size: 14px; }
+  .move-row { display: grid; grid-template-columns: 40px 1fr 1fr; border-bottom: 1px solid rgba(128,128,128,0.1); padding: 8px 0; }
   .move-row span { text-align: center; }
 </style>
 </head>
@@ -216,7 +202,9 @@ async function initReplayPage() {
 
     currentMovePointer = 0;
     renderReplayBoard();
-    updateMoveList();
+
+    // ── แก้ไข: ส่ง gameData เข้าไปใน updateMoveList เพื่อรู้ว่าเกมจบด้วย checkmate หรือไม่ ──
+    updateMoveList(gameData);
 
   } catch(err) {
     console.error(err);
@@ -234,40 +222,150 @@ function getPieceName(p) {
 // ฟังก์ชันแปลงตำแหน่ง (0-7 เป็น ก-ข)
 function getPosName(r, c) {
   const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ญ'];
-  const rows = ['8','7','6','5','4','3','2','1']; // ปรับตามการเรียงแถวของคุณ
+  const rows = ['8','7','6','5','4','3','2','1'];
   return cols[c] + rows[r];
+}
+
+// ค้นหากษัตริย์ของฝ่าย
+function findKing(board, color) {
+  const king = `K${color}`;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (board[r][c] === king) return { r, c };
+    }
+  }
+  return null;
+}
+
+// ตรวจสอบว่ากำลังรุกกษัตริย์ (check)
+function isKingUnderAttack(board, kingPos, enemyColor) {
+  if (!kingPos) return false;
+  
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c];
+      if (!piece || !piece.includes(enemyColor)) continue;
+      
+      if (canPieceAttack(board, r, c, kingPos.r, kingPos.c, piece[0])) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// ตรวจสอบว่าหมากตัวหนึ่งสามารถโจมตีตำแหน่งได้หรือไม่
+function canPieceAttack(board, fromR, fromC, toR, toC, type) {
+  const piece = board[fromR][fromC];
+  if (!piece) return false;
+  
+  const dr = toR - fromR;
+  const dc = toC - fromC;
+  
+  switch(type) {
+    case 'P': // บ (เบี้ย)
+      const dir = piece.includes('w') ? -1 : 1;
+      return dr === dir && Math.abs(dc) === 1;
+    
+    case 'N': // ม (ม้า)
+      return (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2);
+    
+    case 'B': // ค (ควบ - ทแยง)
+      if (Math.abs(dr) !== Math.abs(dc)) return false;
+      return isPathClear(board, fromR, fromC, toR, toC);
+    
+    case 'R': // ร (เรือ - ตรง)
+      if (dr !== 0 && dc !== 0) return false;
+      return isPathClear(board, fromR, fromC, toR, toC);
+    
+    case 'Q': // ม็ (มัฒฌาห์ - ทแยง 1 ตัว)
+      return Math.abs(dr) === 1 && Math.abs(dc) === 1;
+    
+    case 'K': // ข (ขุน - ทุกทิศ 1 ตัว)
+      return Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
+    
+    default:
+      return false;
+  }
+}
+
+// ตรวจสอบเส้นทางระหว่างสองช่อง (ไม่มีหมากกั้น)
+function isPathClear(board, fromR, fromC, toR, toC) {
+  const dr = toR > fromR ? 1 : toR < fromR ? -1 : 0;
+  const dc = toC > fromC ? 1 : toC < fromC ? -1 : 0;
+  
+  let r = fromR + dr;
+  let c = fromC + dc;
+  
+  while (r !== toR || c !== toC) {
+    if (board[r][c]) return false;
+    r += dr;
+    c += dc;
+  }
+  
+  return true;
 }
 
 function formatMoveDesc(move) {
   if (!move) return '-';
-  if (typeof move.desc === 'string' && move.desc.trim().length > 0) {
-    return move.desc;
-  }
-
   if (!move.from || !move.to) return '-';
 
+  let notation = (typeof move.desc === 'string' && move.desc.trim().length > 0)
+    ? move.desc.trim().replace(/[+#]$/, '')
+    : (() => {
+      const board = move.board ? fbToBoard(move.board) : null;
+      const piece = board?.[move.to.row]?.[move.to.col] || null;
+      const pieceName = getPieceName(piece);
+      return `${pieceName},${getPosName(move.from.row, move.from.col)}-${getPosName(move.to.row, move.to.col)}`;
+    })();
+
+  // ── ตรวจสอบ + (รุก) จากสถานะบอร์ดหลังตาเดินนี้ ──
   const board = move.board ? fbToBoard(move.board) : null;
   const piece = board?.[move.to.row]?.[move.to.col] || null;
-  const pieceName = getPieceName(piece);
-  return `${pieceName},${getPosName(move.from.row, move.from.col)}-${getPosName(move.to.row, move.to.col)}`;
+  if (board && piece) {
+    const enemyColor = piece.includes('w') ? 'b' : 'w';
+    const kingPos = findKing(board, enemyColor);
+    if (isKingUnderAttack(board, kingPos, enemyColor === 'w' ? 'b' : 'w')) {
+      notation += '+';
+    }
+  }
+
+  return notation;
 }
 
-// ฟังก์ชันอัปเดตตารางบันทึก
-function updateMoveList() {
+// ── แก้ไข: รับ gameData เพื่อตรวจว่าเกมจบด้วย checkmate หรือไม่ ──
+function updateMoveList(gameData) {
   const body = document.getElementById('move-list-body');
   body.innerHTML = "";
-  
+
+  const lastMoveIndex = loadedMoves.length - 1; // index ของตาเดินสุดท้ายใน array
+  const isCheckmateGame = gameData?.finalReason === 'checkmate';
+
   // จัดกลุ่มข้อมูลตาเดินเป็นคู่ (ขาว-ดำ)
   for (let i = 1; i < loadedMoves.length; i += 2) {
     const row = document.createElement('div');
     row.className = 'move-row';
     const whiteMove = loadedMoves[i];
-    const blackMove = loadedMoves[i+1];
-    
+    const blackMove = loadedMoves[i + 1];
+
+    let whiteNotation = formatMoveDesc(whiteMove);
+    let blackNotation = formatMoveDesc(blackMove);
+
+    // ── แก้ไข: ถ้าเกมจบด้วย checkmate ให้แทนที่ + ด้วย # เฉพาะตาสุดท้าย ──
+    if (isCheckmateGame) {
+      if (i === lastMoveIndex) {
+        // ตาสุดท้ายเป็นฝ่ายขาว
+        whiteNotation = whiteNotation.replace(/[+#]$/, '') + '#';
+      } else if (blackMove && (i + 1) === lastMoveIndex) {
+        // ตาสุดท้ายเป็นฝ่ายดำ
+        blackNotation = blackNotation.replace(/[+#]$/, '') + '#';
+      }
+    }
+
     row.innerHTML = `
-      <span>${Math.ceil(i/2)}.</span>
-      <span>${formatMoveDesc(whiteMove)}</span>
-      <span>${formatMoveDesc(blackMove)}</span>
+      <span>${Math.ceil(i / 2)}.</span>
+      <span>${whiteNotation}</span>
+      <span>${blackNotation}</span>
     `;
     body.appendChild(row);
   }

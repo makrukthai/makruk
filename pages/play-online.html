@@ -1320,9 +1320,7 @@ function doMove(move) {
 
   lastMove = move; selected = null; legalForSelected = [];
   moveCount++;
-  turn = opposite(turn);
-  // บันทึกตาเดินลง Firebase พร้อม desc
-  pushMoveToFirebase(move, promoted, captured, null, desc);
+  
 
   if (opponentDrawOffer) {
     if (gameRef) update(gameRef, { drawOffer: null });
@@ -1414,18 +1412,25 @@ function fbToBoard(fb) {
   return fb.map(r => r.split(',').map(c => c || null));
 }
 
-async function pushMoveToFirebase(move, promoted, captured, endReason, desc = "") {
+async function pushMoveToFirebase(move, promoted, captured, endReason) {
   if (!gameRef) return;
   const moveData = {
-    from: move.from, to: move.to, promoted, captured: captured||'',
-    board: boardToFB(boardState), turn, moveCount,
-    by: myUid, ts: serverTimestamp(), desc: desc // บันทึกคำบรรยายตรงนี้
+    from: move.from, to: move.to,
+    promoted, captured: captured||'',
+    board: boardToFB(boardState),
+    turn,
+    timeW, timeB,
+    moveCount,
+    by: myUid,
+    ts: serverTimestamp(),
+    capturedByW: capturedByW || [],
+    capturedByB: capturedByB || []
   };
   if (endReason) moveData.endReason = endReason;
   try {
     await update(gameRef, { lastMove: moveData });
-    await set(ref(db, `games/${gameId}/moves/${moveCount}`), moveData);
-  } catch(e) { console.error('Firebase error:', e); }
+  await set(ref(db, `games/${gameId}/moves/${moveCount}`), moveData);
+  } catch(e) { console.error('Firebase push error:', e); }
 }
 
 // ════════════════════════════════════════════════
@@ -1672,28 +1677,43 @@ function updateSpecialRulesUI() {
 }
 
 async function endGame(reason, winner) {
+  // 📌 ตรวจสอบและบันทึกประวัติการเล่น
   if (myUid && gameId) {
     try {
+      // แปลง UID ให้ปลอดภัยสำหรับ Firebase
       const safeMyUid = String(myUid).replace(/[.#$\[\]]/g, '_');
+      
+      // ดึงข้อมูลตาเดินทั้งหมดมาเก็บไว้ใน history
       const movesSnapshot = await get(ref(db, `games/${gameId}/moves`));
       const movesData = movesSnapshot.exists() ? movesSnapshot.val() : {};
       
       const historySummary = {
-        gameId, opponentName: oppName, opponentAvatar: oppAvatar,
+        gameId: gameId,
+        opponentName: oppName,
+        opponentAvatar: oppAvatar,
         result: winner === myColor ? 'win' : winner === null ? 'draw' : 'loss',
-        reason, date: Date.now(), minutes: selectedMinutes || 10,
-        myColor, moves: movesData 
+        reason: reason,
+        date: Date.now(),
+        minutes: selectedMinutes || 10,
+        myColor: myColor,
+        moves: movesData 
       };
 
+      // บันทึกลงหน้าประวัติส่วนตัวของเรา
       await set(ref(db, `user_history/${safeMyUid}/${gameId}`), historySummary);
+      console.log("Match history saved successfully!");
       
+      // ให้ฝั่งหมากขาวช่วยก๊อปปี้ข้อมูลไปไว้ในคลังประวัติกลาง (เพื่อใช้สำหรับรีเพลย์)
       if (myColor === 'w') {
-        const snap = await get(ref(db, `games/${gameId}`));
-        if (snap.exists()) {
-          const gameData = snap.val();
-          gameData.finalReason = reason; gameData.winnerColor = winner;
-          gameData.endedAt = serverTimestamp(); gameData.moves = movesData;
+        const gameSnapshot = await get(ref(db, `games/${gameId}`));
+        if (gameSnapshot.exists()) {
+          const gameData = gameSnapshot.val();
+          gameData.finalReason = reason;
+          gameData.winnerColor = winner;
+          gameData.endedAt = serverTimestamp();
+          gameData.moves = movesData; // เก็บตาเดินไว้ในประวัติกลางด้วย
           await set(ref(db, `game_history/${gameId}`), gameData);
+          console.log("Game fully archived to game_history!");
         }
       }
     } catch (err) {
