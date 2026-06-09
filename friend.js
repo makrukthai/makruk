@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, update, push, onValue, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, set, get, update, push, onValue, off, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ─── Firebase Config ───
 const firebaseConfig = {
@@ -19,9 +19,9 @@ let friendWrapper = null;
 let friendWrapperUserId = null;
 let onlineFriends = [];
 let onlineFriendRequests = [];
-let globalStatuses = {}; // 📌 เก็บสถานะออน/ออฟไลน์ของทุกคน
+let globalStatuses = {}; // เก็บสถานะออน/ออฟไลน์ของทุกคน
+let friendListeners = {}; // สำหรับเก็บสถานะการดักฟังโปรไฟล์เพื่อนแบบ Real-time
 let isListening = false;
-let friendListeners = {};
 
 // ─── Helpers ───
 function getSafeId(id) {
@@ -38,18 +38,18 @@ function loadCurrentUser() {
 
 // ─── Friend Status Management (Firebase Presence) ───
 function getFriendStatus(friendId) {
-  // 📌 ดึงสถานะจาก Firebase แบบ Real-time
   const safeId = getSafeId(friendId);
   return globalStatuses[safeId]?.state || "offline";
 }
 
-// (เผื่อไว้ใช้ตอนเข้าเล่นเกม แล้วอยากเปลี่ยนสถานะตัวเองเป็น "playing")
 export function setCurrentUserStatus(stateStr) {
   const currentUser = loadCurrentUser();
   if (!currentUser) return;
   const safeUid = getSafeId(currentUser.id);
   set(ref(db, `status/${safeUid}`), { state: stateStr, last_changed: Date.now() });
 }
+
+// แชร์ฟังก์ชันให้ไฟล์อื่น (เช่น play-online.html) เรียกใช้ได้ผ่าน window
 window.setCurrentUserStatus = setCurrentUserStatus;
 
 function getProfileStats(user) {
@@ -73,23 +73,21 @@ export function listenToFriendUpdates() {
 
   const safeUid = getSafeId(currentUser.id);
 
-  // 📌 1. ดักฟังสถานะ Online/Offline ของทุกคน (Presence System)
+  // 1. ดักฟังสถานะ Online/Offline ของทุกคน (Presence System)
   const statusRef = ref(db, 'status');
   onValue(statusRef, (snap) => {
     if (snap.exists()) {
       globalStatuses = snap.val();
-      renderFriendList(); // รีเฟรชหน้าจอทันทีที่มีคนเข้า/ออก
+      renderFriendList(); 
     }
   });
 
-  // 📌 2. แจ้ง Firebase ให้รู้ว่าเราออนไลน์อยู่ และตั้งเวลาให้ออฟไลน์อัตโนมัติเมื่อปิดเว็บ
+  // 2. แจ้ง Firebase ให้รู้ว่าเราออนไลน์อยู่ และตั้งเวลาให้ออฟไลน์อัตโนมัติเมื่อปิดเว็บ
   const connectedRef = ref(db, '.info/connected');
   const myStatusRef = ref(db, `status/${safeUid}`);
   onValue(connectedRef, (snap) => {
     if (snap.val() === true) {
-      // ถ้าปิดเบราว์เซอร์ หรือเน็ตหลุด ให้เป็น offline ทันที
       onDisconnect(myStatusRef).set({ state: 'offline', last_changed: Date.now() }).then(() => {
-        // ถ้าเชื่อมต่อสำเร็จ ให้เป็น online
         set(myStatusRef, { state: 'online', last_changed: Date.now() });
       });
     }
@@ -111,7 +109,7 @@ export function listenToFriendUpdates() {
     refreshFriendBadge();
   });
 
-  // 4. ดักฟังรายชื่อเพื่อน (Friends List)
+  // 4. ดักฟังรายชื่อเพื่อน (Friends List) แบบซิงค์ข้อมูลโปรไฟล์ Real-time
   const friendsRef = ref(db, `friends/${safeUid}`);
   onValue(friendsRef, (snap) => {
     if (!snap.exists()) {
@@ -121,11 +119,8 @@ export function listenToFriendUpdates() {
     }
     
     const friendIds = Object.keys(snap.val());
-    
-    // ลบเพื่อนที่ถูกลบไปแล้วออกจากหน้าจอ
     onlineFriends = onlineFriends.filter(f => friendIds.includes(f.id));
     
-    // ดักฟังการอัปเดต "ชื่อ" และ "รูปโปรไฟล์" ของเพื่อนแต่ละคน
     friendIds.forEach(fid => {
       if (!friendListeners[fid]) {
         friendListeners[fid] = true;
@@ -135,11 +130,11 @@ export function listenToFriendUpdates() {
             const existingIndex = onlineFriends.findIndex(f => f.id === fid);
             
             if (existingIndex !== -1) {
-              onlineFriends[existingIndex] = userData; // ถ้าเป็นเพื่อนอยู่แล้วให้อัปเดตข้อมูล
+              onlineFriends[existingIndex] = userData;
             } else {
-              onlineFriends.push(userData); // ถ้าเพิ่งรับแอด ให้เพิ่มเข้า List
+              onlineFriends.push(userData);
             }
-            renderFriendList(); // รีเฟรชรายชื่อทันทีที่เพื่อนเปลี่ยนชื่อ/รูป
+            renderFriendList(); 
           }
         });
       }
@@ -285,7 +280,6 @@ function renderFriendList() {
     const statusText = status === "online" ? "ออนไลน์" : status === "playing" ? "กำลังเล่น" : "ออฟไลน์";
     const displayName = friend.name || friend.email || 'ผู้ใช้';
     
-    // 📌 เพิ่มคำสั่ง onerror: ถ้ารูปพังหรือโหลดไม่ขึ้น ให้แสดงเป็นตัวอักษรแรกแทน
     const avatarHtml = (friend.avatar && friend.avatar.trim() !== "")
       ? `<img src="${friend.avatar}" alt="${displayName}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.outerHTML='${displayName.charAt(0).toUpperCase()}'">`
       : displayName.charAt(0).toUpperCase();
@@ -453,7 +447,7 @@ function showFriendProfile(userData) {
   closeBtn?.addEventListener("click", closeModal);
 
   inviteBtn?.addEventListener("click", () => {
-    showFriendAlert(`เชิญ ${userData.name || userData.email} เล่นเกมแล้ว!`);
+    showTimeSelectionModal(userData);
     closeModal();
   });
 
@@ -463,6 +457,185 @@ function showFriendProfile(userData) {
       closeModal();
     }
   });
+}
+
+// ════════════════════════════════════════════════
+//   GAME INVITATION SYSTEM (ระบบท้าดวลสมบูรณ์แบบ)
+// ════════════════════════════════════════════════
+
+// 1. ดักฟังคำท้าดวลที่ส่งมาหาเรา
+function listenToGameInvites() {
+  const currentUser = loadCurrentUser();
+  if (!currentUser) return;
+  
+  const safeUid = getSafeId(currentUser.id);
+  onValue(ref(db, `game_invites/${safeUid}`), (snap) => {
+    if (snap.exists()) {
+      const invites = snap.val();
+      for (const gameId in invites) {
+        if (invites[gameId].status === 'pending') {
+          showIncomingInvitePopup(invites[gameId], gameId);
+        }
+      }
+    }
+  });
+}
+
+// 2. แสดง Pop-up รับคำท้าดวลบนหน้าจอ (เวอร์ชันเสถียร ส่งค่าเวลาครบถ้วน)
+function showIncomingInvitePopup(inviteData, gameId) {
+  if (document.getElementById(`invite-${gameId}`)) return;
+
+  const popup = document.createElement("div");
+  popup.id = `invite-${gameId}`;
+  popup.className = "game-invite-popup";
+  popup.innerHTML = `
+    <p>⚔️ <strong>${inviteData.fromName}</strong> ท้าดวลหватьรุก <strong>(${inviteData.timeControl} นาที)</strong></p>
+    <div class="invite-actions">
+      <button class="invite-btn invite-btn-accept" id="accept-${gameId}">รับคำท้า</button>
+      <button class="invite-btn invite-btn-reject" id="reject-${gameId}">ปฏิเสธ</button>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const currentUser = loadCurrentUser();
+  const safeUid = getSafeId(currentUser.id);
+
+  document.getElementById(`accept-${gameId}`).onclick = async () => {
+    popup.innerHTML = `<p style="text-align:center;">กำลังสร้างห้อง...</p>`;
+    
+    const myColor = Math.random() > 0.5 ? 'w' : 'b';
+    const challengerColor = myColor === 'w' ? 'b' : 'w';
+    const minutes = parseInt(inviteData.timeControl) || 10;
+    
+    const friendSnap = await get(ref(db, `users/${inviteData.from}`));
+    const friendAvatar = friendSnap.exists() ? (friendSnap.val().avatar || '') : '';
+
+    const meData = { uid: safeUid, name: currentUser.name || currentUser.email, avatar: currentUser.avatar || '' };
+    const oppData = { uid: inviteData.from, name: inviteData.fromName, avatar: friendAvatar };
+
+    const initBoard = [
+      "Rb,Nb,Bb,Qb,Kb,Bb,Nb,Rb",
+      ",,,,,,,",
+      "Pb,Pb,Pb,Pb,Pb,Pb,Pb,Pb",
+      ",,,,,,,",
+      ",,,,,,,",
+      "Pw,Pw,Pw,Pw,Pw,Pw,Pw,Pw",
+      ",,,,,,,",
+      "Rw,Nw,Bw,Kw,Qw,Bw,Nw,Rw"
+    ];
+
+    // สร้างข้อมูลกระดานและตัวแปร minutes ให้ตรงกับ play-online.html เป๊ะๆ
+    await set(ref(db, `games/${gameId}`), {
+       w: myColor === 'w' ? meData : oppData,
+       b: myColor === 'b' ? meData : oppData,
+       minutes: minutes,
+       timeW: minutes * 60,
+       timeB: minutes * 60,
+       turn: 'w',
+       board: initBoard,
+       moveCount: 0,
+       startedAt: Date.now(),
+       conn_w: true,
+       conn_b: true
+    });
+
+    await update(ref(db, `game_invites/${safeUid}/${gameId}`), {
+       status: 'accepted',
+       challengerColor: challengerColor 
+    });
+
+    popup.remove();
+    window.location.href = `play-online.html?room=${gameId}&color=${myColor}`;
+  };
+
+  document.getElementById(`reject-${gameId}`).onclick = async () => {
+    await update(ref(db, `game_invites/${safeUid}/${gameId}`), { status: 'rejected' });
+    popup.remove();
+  };
+}
+
+// 3. หน้าต่างให้ผู้ส่งเลือกเวลาก่อนท้า
+function showTimeSelectionModal(friend) {
+  if (document.getElementById('time-select-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'time-select-overlay';
+  overlay.className = 'time-select-overlay';
+  overlay.innerHTML = `
+    <div class="time-select-modal">
+      <div class="time-select-title">ท้าดวล ${friend.name || friend.email}</div>
+      <button class="time-option-btn" data-time="5">⏱️ 5 นาที (Blitz)</button>
+      <button class="time-option-btn" data-time="10">⏱️ 10 นาที (Rapid)</button>
+      <button class="time-option-btn" data-time="30">⏱️ 30 นาที (Classic)</button>
+      <button class="time-cancel-btn">ยกเลิก</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelectorAll('.time-option-btn').forEach(btn => {
+    btn.onclick = () => {
+      const time = parseInt(btn.dataset.time);
+      handleSendGameInvite(friend.id, friend.name || friend.email, time);
+      overlay.remove();
+    };
+  });
+
+  overlay.querySelector('.time-cancel-btn').onclick = () => overlay.remove();
+}
+
+// 4. ฟังก์ชันส่งคำท้าไปหาเพื่อน
+async function handleSendGameInvite(friendId, friendName, timeControl) {
+  const currentUser = loadCurrentUser();
+  if (!currentUser) return;
+  
+  const safeMyId = getSafeId(currentUser.id);
+  const safeFriendId = getSafeId(friendId);
+  const gameId = "room_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+  try {
+    await set(ref(db, `game_invites/${safeFriendId}/${gameId}`), {
+      from: safeMyId,
+      fromName: currentUser.name || currentUser.email,
+      gameId: gameId,
+      timeControl: timeControl, 
+      status: 'pending',
+      timestamp: Date.now()
+    });
+
+    showFriendAlert(`ส่งคำท้าหา ${friendName} (${timeControl} นาที) แล้ว...`);
+
+    const mySentInviteRef = ref(db, `game_invites/${safeFriendId}/${gameId}`);
+    const unsub = onValue(mySentInviteRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        if (data.status === 'accepted') {
+          unsub();
+          const myColor = data.challengerColor; 
+          remove(mySentInviteRef);
+          window.location.href = `play-online.html?room=${gameId}&color=${myColor}`;
+        } else if (data.status === 'rejected') {
+          unsub();
+          showFriendAlert(`${friendName} ปฏิเสธคำท้าของคุณ`, true);
+          remove(mySentInviteRef);
+        }
+      } else {
+        unsub();
+      }
+    });
+
+    setTimeout(() => {
+      unsub();
+      get(mySentInviteRef).then(snap => {
+        if(snap.exists() && snap.val().status === 'pending') {
+          remove(mySentInviteRef);
+          showFriendAlert(`คำท้าดวลหมดเวลาแล้ว`, true);
+        }
+      });
+    }, 30000);
+
+  } catch (error) {
+    showFriendAlert("เกิดข้อผิดพลาดในการส่งคำท้า", true);
+  }
 }
 
 // ─── Event Handlers ───
@@ -575,7 +748,7 @@ function handleFriendListClick(event) {
     const friendId = playBtn.dataset.id;
     const friend = onlineFriends.find(f => f.id === friendId);
     if (friend) {
-      showFriendAlert(`เชิญ ${friend.name} เล่นเกมแล้ว!`);
+      showTimeSelectionModal(friend); 
     }
     return;
   }
@@ -638,6 +811,7 @@ export function createFriendButton() {
   friendWrapper.style.position = "relative";
   
   listenToFriendUpdates();
+  listenToGameInvites(); // เปิดระบบรอสแตนบายรับคำท้าดวล
 
   friendWrapper.innerHTML = `
     <button type="button" class="topbar-icon-btn friend-button" title="เพิ่มเพื่อน" aria-haspopup="true" aria-expanded="false">

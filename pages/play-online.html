@@ -2052,27 +2052,6 @@ document.getElementById('btn-draw-reject').addEventListener('click', () => {
 });
 
 // ════════════════════════════════════════════════
-//   ขอนับศักดิ์กระดาน (Commented out to prevent errors)
-// ════════════════════════════════════════════════
-/*document.getElementById('btn-sakdikradan').addEventListener('click', async () => {
-  if (gameOver || sakdiKradanActive || sakdiMakActive) return;
-  if (!confirm('ขอใช้สิทธิ์นับศักดิ์กระดาน? คุณจะเป็นฝ่ายหนี')) return;
-  sakdiKradanActive = true;
-  sakdiKradanCount = 0;
-  sakdiKradanFleeColor = myColor;
-  if (gameRef) await update(gameRef, { sakdiKradan: { flee: myColor, count: 0 } });
-  updateSpecialRulesUI();
-});
-
-document.getElementById('btn-cancel-sakdikradan').addEventListener('click', async () => {
-  if (!sakdiKradanActive || sakdiKradanFleeColor !== myColor) return;
-  if (!confirm('ยกเลิกการนับศักดิ์กระดาน?')) return;
-  sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
-  if (gameRef) await update(gameRef, { sakdiKradan: null });
-  updateSpecialRulesUI();
-});*/
-
-// ════════════════════════════════════════════════
 //   REMATCH / MENU
 // ════════════════════════════════════════════════
 document.getElementById('btn-rematch').addEventListener('click', () => {
@@ -2122,10 +2101,36 @@ loadMe();
 applyCell(calcCell());
 setupCoords();
 renderBoard();
-// Show matchmaking overlay on load
-document.getElementById('mm-overlay').classList.remove('hidden');
-showStep('mm-select');
-if (!myUid) document.getElementById('mm-login-warn').classList.remove('hidden');
+
+// ═══════════════════════════════════════════════════
+// 📌 ตรวจสอบคำท้าดวลจาก URL หรือเปิดหน้าค้นหาเกม
+// ═══════════════════════════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+const inviteRoomId = urlParams.get('room');
+const inviteColor = urlParams.get('color');
+
+if (inviteRoomId && inviteColor) {
+  // 1. กำหนดสีและกลับกระดานตามคำท้า
+  myColor = inviteColor; 
+  flipped = (myColor === 'b'); 
+
+  // 2. ซ่อนหน้าต่างระบบจับคู่ทั้งหมด
+  document.getElementById('mm-overlay').classList.add('hidden');
+  const mmSelect = document.getElementById('mm-select');
+  const mmSearching = document.getElementById('mm-searching');
+  if (mmSelect) mmSelect.classList.add('hidden');
+  if (mmSearching) mmSearching.classList.add('hidden');
+
+  // 3. โหลดเข้ากระดานเล่นเกมทันที
+  startGame(inviteRoomId); 
+} else {
+  // ถ้าไม่มีการท้าดวล ให้แสดงหน้าต่างค้นหาคู่ต่อสู้ตามปกติ
+  document.getElementById('mm-overlay').classList.remove('hidden');
+  showStep('mm-select');
+  if (!myUid) document.getElementById('mm-login-warn').classList.remove('hidden');
+}
+
+// 📌 คืนสถานะออนไลน์เมื่อออกจากหน้าเว็บ
 window.addEventListener('beforeunload', () => {
   if (typeof window.setCurrentUserStatus === "function") {
     window.setCurrentUserStatus("online");

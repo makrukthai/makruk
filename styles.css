@@ -1918,3 +1918,96 @@ html[data-background-mode="light"] .board-choice {
 .friend-item-status::before {
   display: none !important;
 }
+/* 📌 หน้าต่างแจ้งเตือนรับคำท้าดวล (Game Invite Popup) */
+.game-invite-popup {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg-surface, #262626);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-left: 4px solid #f0d8a1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  padding: 16px 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideInRight 0.4s ease-out forwards;
+  min-width: 280px;
+}
+
+.game-invite-popup p {
+  margin: 0;
+  color: var(--text, #fff);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.game-invite-popup p strong {
+  color: #f0d8a1;
+  font-size: 15px;
+}
+
+.invite-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.invite-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.invite-btn-accept {
+  background: linear-gradient(135deg, #d6b16b, #f0d8a1);
+  color: #1a1a1a;
+}
+.invite-btn-accept:hover { filter: brightness(1.1); }
+
+.invite-btn-reject {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.invite-btn-reject:hover { background: rgba(255, 255, 255, 0.15); }
+
+@keyframes slideInRight {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* 📌 หน้าต่างเลือกเวลาดวลหมากรุก */
+.time-select-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10001;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.time-select-modal {
+  background: var(--bg-surface, #262626); border-radius: 12px; padding: 24px;
+  width: 320px; text-align: center; border: 1px solid rgba(255, 215, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  animation: popIn 0.2s ease-out;
+}
+.time-select-title { color: #fff; margin-bottom: 20px; font-weight: 600; font-size: 16px; }
+.time-option-btn {
+  display: block; width: 100%; padding: 14px; margin-bottom: 10px; border-radius: 8px;
+  background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); 
+  cursor: pointer; font-size: 15px; font-weight: 500; transition: all 0.2s;
+}
+.time-option-btn:hover { background: rgba(255,255,255,0.1); border-color: #f0d8a1; color: #f0d8a1; transform: translateY(-2px); }
+.time-cancel-btn {
+  display: block; width: 100%; padding: 12px; margin-top: 16px; border-radius: 8px;
+  background: transparent; color: #ef4444; border: none; cursor: pointer; font-size: 14px;
+}
+.time-cancel-btn:hover { text-decoration: underline; }
+
+@keyframes popIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
