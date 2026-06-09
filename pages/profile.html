@@ -143,7 +143,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s,;
+    transition: transform 0.2s;
   }
 
   #upload-avatar-btn:hover {
@@ -293,12 +293,9 @@
     margin-bottom: 14px;
   }
 
-    html[data-background-mode="light"] #edit-username-btn {
+  html[data-background-mode="light"] .section-title {
     color: rgba(0,0,0,0.65);
-    }
-    html[data-background-mode="light"] .section-title {
-      color: rgba(0,0,0,0.65);
-    }
+  }
 
   .elo-grid {
     display: grid;
@@ -317,11 +314,10 @@
     cursor: default;
   }
 
-    html[data-background-mode="light"] .elo-card {
+  html[data-background-mode="light"] .elo-card {
     background: linear-gradient(140deg, #f0f0f0 0%, #e4e4e4 100%);
     border-color: rgba(0,0,0,0.12);
   }
-  
   .elo-card:hover {
     transform: translateY(-3px);
     border-color: var(--bg2);
@@ -363,12 +359,10 @@
     color: var(--text);
     line-height: 1;
   }
-/* Light Mode - ELO Mode */
-html[data-background-mode="light"] .elo-mode {
-    border-bottom-color: rgba(0, 0, 0, 0.1);
-    color: #1a1a1a;
-}
 
+  html[data-background-mode="light"] .elo-mode {
+    color: #1a1a1a;
+  }
 
   .elo-trend {
     position: absolute;
@@ -495,6 +489,7 @@ html[data-background-mode="light"] .elo-mode {
     font-size: 0.82rem;
     font-weight: 700;
     letter-spacing: 0.5px;
+    min-width: 55px;
   }
 
   .result-win  { background: rgba(74,222,128,0.13); color: #4ade80; }
@@ -519,11 +514,19 @@ html[data-background-mode="light"] .elo-mode {
   .profile-card    { animation: fadeUp 0.4s ease both; }
   .elo-section     { animation: fadeUp 0.4s 0.1s ease both; }
   .history-section { animation: fadeUp 0.4s 0.2s ease both; }
+  
+  .btn-replay-link {
+    background: transparent; border: 1px solid rgba(128,128,128,0.3);
+    color: var(--text); padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 11px; transition: 0.2s; font-family: 'Noto Sans Thai', sans-serif;
+  }
+  .btn-replay-link:hover {
+    background: #f0d8a1; color: #1a1a1a; border-color: #f0d8a1;
+  }
 </style>
 </head>
 <body class="profile-body">
 
-<!-- TOP BAR (same as other pages) -->
 <header class="topbar">
   <div class="left">
     <a href="play.html" class="logo">
@@ -547,11 +550,9 @@ html[data-background-mode="light"] .elo-mode {
   </div>
 </header>
 
-<!-- PROFILE MAIN -->
 <main class="profile-main">
   <div class="profile-wrapper">
 
-    <!-- ── LEFT: Avatar / Info Card ── -->
     <div class="profile-card">
       <div class="avatar-wrap">
         <div class="avatar-ring"></div>
@@ -579,28 +580,27 @@ html[data-background-mode="light"] .elo-mode {
       <div class="quick-stats">
         <div class="quick-stat-row">
           <span class="quick-stat-label">เกมทั้งหมด</span>
-          <span class="quick-stat-value">3</span>
+          <span class="quick-stat-value" id="stat-total">0</span>
         </div>
         <div class="quick-stat-row">
           <span class="quick-stat-label">ชนะ</span>
-          <span class="quick-stat-value" style="color:#4ade80;">1</span>
+          <span class="quick-stat-value" id="stat-wins" style="color:#4ade80;">0</span>
         </div>
         <div class="quick-stat-row">
           <span class="quick-stat-label">แพ้</span>
-          <span class="quick-stat-value" style="color:#ef4444;">1</span>
+          <span class="quick-stat-value" id="stat-losses" style="color:#ef4444;">0</span>
         </div>
         <div class="quick-stat-row">
           <span class="quick-stat-label">เสมอ</span>
-          <span class="quick-stat-value" style="color:#fbbf24;">1</span>
+          <span class="quick-stat-value" id="stat-draws" style="color:#fbbf24;">0</span>
         </div>
         <div class="quick-stat-row">
           <span class="quick-stat-label">อัตราชนะ</span>
-          <span class="quick-stat-value">33%</span>
+          <span class="quick-stat-value" id="stat-winrate">0%</span>
         </div>
       </div>
     </div>
 
-    <!-- ── RIGHT TOP: ELO Cards ── -->
     <div class="elo-section">
       <p class="section-title">คะแนน ELO</p>
       <div class="elo-grid">
@@ -631,92 +631,65 @@ html[data-background-mode="light"] .elo-mode {
       </div>
     </div>
 
-    <!-- ── RIGHT BOTTOM: History Table ── -->
     <div class="history-section">
       <div class="history-panel">
         <div class="history-header">
           <h3>ประวัติการเล่น</h3>
-          <span class="history-count">3 เกมล่าสุด</span>
+          <span class="history-count" id="history-total-count">0 เกมล่าสุด</span>
         </div>
         <table>
           <thead>
             <tr>
               <th>ผู้เล่น</th>
               <th>ผล</th>
-              <th>จำนวนตา</th>
+              <th>โหมดเวลา</th>
               <th>วันที่</th>
+              <th>รีเพลย์</th>
             </tr>
           </thead>
           <tbody id="game-history-table">
             <tr>
-              <td>
-                <div class="player-vs">
-                  <span class="player-me">mick2004</span>
-                  <span class="player-sep">VS</span>
-                  <span class="player-opp">ผู้เล่น A</span>
-                </div>
-              </td>
-              <td><span class="result-pill result-win">1 – 0</span></td>
-              <td>
-                <div class="moves-bar">
-                  <span class="moves-num">34</span>
-                  <div class="moves-vis"><div class="moves-fill" style="width:68%"></div></div>
-                </div>
-              </td>
-              <td><span class="date-text">01/06/2569</span></td>
-            </tr>
-            <tr>
-              <td>
-                <div class="player-vs">
-                  <span class="player-me">mick2004</span>
-                  <span class="player-sep">VS</span>
-                  <span class="player-opp">ผู้เล่น B</span>
-                </div>
-              </td>
-              <td><span class="result-pill result-lose">0 – 1</span></td>
-              <td>
-                <div class="moves-bar">
-                  <span class="moves-num">28</span>
-                  <div class="moves-vis"><div class="moves-fill" style="width:56%"></div></div>
-                </div>
-              </td>
-              <td><span class="date-text">31/05/2569</span></td>
-            </tr>
-            <tr>
-              <td>
-                <div class="player-vs">
-                  <span class="player-me">mick2004</span>
-                  <span class="player-sep">VS</span>
-                  <span class="player-opp">ผู้เล่น C</span>
-                </div>
-              </td>
-              <td><span class="result-pill result-draw">½ – ½</span></td>
-              <td>
-                <div class="moves-bar">
-                  <span class="moves-num">42</span>
-                  <div class="moves-vis"><div class="moves-fill" style="width:84%"></div></div>
-                </div>
-              </td>
-              <td><span class="date-text">30/05/2569</span></td>
+              <td colspan="5" style="text-align:center; color:#aaa; padding: 30px;">กำลังโหลดประวัติการแข่งขันจริงจากระบบ...</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-  </div><!-- /.profile-wrapper -->
-</main>
+  </div></main>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── Firebase Config ──
+const firebaseConfig = {
+  apiKey:            "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain:        "rukthai-b4971.firebaseapp.com",
+  databaseURL:       "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "rukthai-b4971",
+  storageBucket:     "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId:             "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
 function loadUsers(){try{return JSON.parse(localStorage.getItem('rukthai_users'))||[];}catch(e){return [];}}
 function saveUsers(u){localStorage.setItem('rukthai_users', JSON.stringify(u));}
 function loadCurrent(){try{return JSON.parse(localStorage.getItem('rukthai_current_user'))||null;}catch(e){return null;}}
 function saveCurrent(u){if(u)localStorage.setItem('rukthai_current_user', JSON.stringify(u));else localStorage.removeItem('rukthai_current_user');}
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const current = loadCurrent();
   if (!current) return;
 
+  // ดึง Safe UID เพื่อนำไปใช้อ่านข้อมูลในฐานข้อมูลให้ตรงจุด
+  const myRealUid = current.id || current.email;
+  const safeUid = String(myRealUid).replace(/[.#$\[\]]/g, '_');
+
+  // แสดงผลข้อมูลชื่อ รูปภาพ และ ELO เบื้องต้น
   document.getElementById('profile-username').textContent = current.name || 'ผู้เล่น';
   const preview = document.getElementById('profile-avatar-preview');
   preview.src = current.avatar || '../LOGO.png';
@@ -727,6 +700,82 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('elo-blitz').textContent  = stats.blitz  || 0;
   document.getElementById('elo-daily').textContent  = stats.daily  || 0;
 
+  // 📌 ฟังก์ชันดึงประวัติการดวลจริงจาก Firebase มาเสียบแทน Mock
+  async function loadRealGameHistory() {
+    try {
+      const snapshot = await get(ref(db, `user_history/${safeUid}`));
+      const tableBody = document.getElementById('game-history-table');
+      
+      if (!snapshot.exists()) {
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; padding: 30px;">คุณยังไม่มีประวัติบันทึกการแข่งขันออนไลน์ในขณะนี้</td></tr>`;
+        return;
+      }
+
+      const matches = Object.values(snapshot.val()).sort((a, b) => b.date - a.date);
+      tableBody.innerHTML = "";
+
+      // ตัวแปรสำหรับคำนวณสถิติสดฝั่งซ้ายมือ
+      let totalGames = matches.length;
+      let wins = 0;
+      let losses = 0;
+      let draws = 0;
+
+      matches.forEach(match => {
+        const tr = document.createElement('tr');
+        
+        // 1. นับผล ชนะ/แพ้/เสมอ
+        let resClass = "result-draw", resText = "½ – ½";
+        if (match.result === 'win') { wins++; resClass = "result-win"; resText = "1 – 0"; }
+        else if (match.result === 'loss') { losses++; resClass = "result-lose"; resText = "0 – 1"; }
+        else { draws++; }
+
+        // 2. จัดรูปแบบข้อความวันที่เป็น พ.ศ. ของไทยให้เข้าธีมเดิม
+        const dateStr = new Date(match.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        // 3. ประกอบโครงสร้าง HTML แถวตารางโดยดึงข้อมูลจริง
+        tr.innerHTML = `
+          <td>
+            <div class="player-vs">
+              <span class="player-me" title="ตัวคุณ">${current.name || 'คุณ'}</span>
+              <span class="player-sep">VS</span>
+              <span class="player-opp" title="${match.opponentName}">${match.opponentName || 'คู่ต่อสู้'}</span>
+            </div>
+          </td>
+          <td><span class="result-pill ${resClass}">${resText}</span></td>
+          <td><span class="date-text" style="font-weight:600;">⏱ ${match.minutes || 10} นาที</span></td>
+          <td><span class="date-text">${dateStr}</span></td>
+          <td><button class="btn-replay-link" data-gameid="${match.gameId}">🎮 ดูรีเพลย์</button></td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      // 4. คำนวณเปอร์เซ็นต์ Win Rate
+      let winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
+      // 5. ดันข้อมูลสถิติที่คำนวณได้จริงไปโชว์ที่การ์ดฝั่งซ้ายมือ
+      document.getElementById('stat-total').textContent = totalGames;
+      document.getElementById('stat-wins').textContent = wins;
+      document.getElementById('stat-losses').textContent = losses;
+      document.getElementById('stat-draws').textContent = draws;
+      document.getElementById('stat-winrate').textContent = winRate + "%";
+      document.getElementById('history-total-count').textContent = `${totalGames} เกมล่าสุด`;
+
+      // 6. ลิงก์เชื่อมโยงไปยังหน้าจอไฟล์กระดานรีเพลย์ (history.html) เมื่อกดปุ่มดูรีเพลย์
+      tableBody.querySelectorAll('.btn-replay-link').forEach(btn => {
+        btn.onclick = () => {
+          window.location.href = `history.html?room=${btn.dataset.gameid}`;
+        };
+      });
+
+    } catch (err) {
+      console.error("Error loading match history from Firebase:", err);
+    }
+  }
+
+  // เรียกทำงานดึงข้อมูลประวัติทันที
+  loadRealGameHistory();
+
+  // ── ระบบจัดการอัปโหลดรูปภาพเดิม ──
   document.getElementById('upload-avatar-btn').addEventListener('click', () => {
     document.getElementById('avatar-file-input').click();
   });
@@ -735,17 +784,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const f = e.target.files[0];
     if (!f) return;
     const r = new FileReader();
-    r.onload = () => {
+    r.onload = async () => {
       preview.src = r.result;
       current.avatar = r.result;
       saveCurrent(current);
+      
       const users = loadUsers();
       const idx = users.findIndex(u => u.email === current.email);
       if (idx !== -1) { users[idx] = current; saveUsers(users); }
+
+      // อัปเดตรูปลงฐานข้อมูล Firebase ด้วย
+      try { await update(ref(db, `users/${safeUid}`), { avatar: r.result }); } catch(err){}
     };
     r.readAsDataURL(f);
   });
 
+  // ── ระบบแก้ไขข้อมูลชื่อเดิม ──
   const editButton = document.getElementById('edit-username-btn');
   const editBox = document.getElementById('username-edit-box');
   const editInput = document.getElementById('username-input');
@@ -758,7 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editInput.focus();
   });
 
-  saveButton.addEventListener('click', () => {
+  saveButton.addEventListener('click', async () => {
     const newName = editInput.value.trim();
     if (!newName || newName === current.name) {
       editBox.classList.add('hidden');
@@ -771,6 +825,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (idx !== -1) { users[idx] = current; saveUsers(users); }
     document.getElementById('profile-username').textContent = newName;
     editBox.classList.add('hidden');
+
+    // อัปเดตชื่อลงฐานข้อมูล Firebase แบบ Real-time
+    try { await update(ref(db, `users/${safeUid}`), { name: newName }); } catch(err){}
   });
 
   cancelButton.addEventListener('click', () => {

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUKTHAI - รีเพลย์หมากรุกไทย</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  .history-body { background: var(--bg, #1a1a1a); color: var(--text, #fff); font-family: 'Noto Sans Thai', sans-serif; padding-bottom: 40px; }
+  .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+  .page-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: #f0d8a1; }
+  
+  /* Loading Screen */
+  .loading-box { text-align: center; padding: 60px; color: var(--muted, #aaa); font-size: 18px; }
+  
+  /* Replay Section Layout */
+  .replay-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 30px; margin-top: 20px; }
+  .board-outer { display: flex; flex-direction: column; align-items: center; }
+  .chess-board { display: grid; grid-template-columns: repeat(8, var(--cell, 55px)); grid-template-rows: repeat(8, var(--cell, 55px)); gap: 2px; background: rgba(0,0,0,0.2); padding: 2px; }
+  .chess-cell { width: var(--cell, 55px); height: var(--cell, 55px); display: flex; align-items: center; justify-content: center; border: none; }
+  .chess-cell.light { background: #c56c30; }
+  .chess-cell.dark  { background: #c56c30; }
+  .chess-cell .piece-img { width: 82%; height: 82%; object-fit: contain; }
+  
+  /* Controller Panel */
+  .control-panel { background: var(--bg2, #262626); border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; justify-content: space-between; }
+  .control-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 20px; }
+  .btn-ctrl { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 16px; transition: 0.2s; }
+  .btn-ctrl:hover { background: rgba(255,255,255,0.1); border-color: #f0d8a1; color: #f0d8a1; }
+  .btn-ctrl:disabled { opacity: 0.3; cursor: not-allowed; }
+  .move-counter { text-align: center; font-size: 18px; font-weight: 700; margin: 15px 0; color: #f0d8a1; font-family: monospace; }
+  .btn-back-profile { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 14px; border-radius: 6px; cursor: pointer; margin-bottom: 20px; font-size: 13px; font-family: 'Noto Sans Thai', sans-serif; }
+  .btn-back-profile:hover { background: rgba(255,255,255,0.05); border-color: #f0d8a1; }
+</style>
+</head>
+<body class="history-body">
+
+<header class="topbar">
+  <div class="left">
+    <a href="play.html" class="logo">
+      <div class="logo-icon">
+        <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+        <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+      </div>
+    </a>
+    <nav class="nav">
+      <a href="play.html">เล่น</a>
+      <a href="tournament.html">ทัวร์นาเมนต์</a>
+      <a href="learn.html">เรียนรู้</a>
+      <a href="watch.html">ดูเกม</a>
+      <a href="community.html">ชุมชน</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container" id="replay-screen-section">
+  <button class="btn-back-profile" id="btn-back-to-profile">⬅ กลับไปหน้าโปรไฟล์</button>
+  <h1 class="page-title" id="replay-title">กระดานบันทึกเกมย้อนหลัง</h1>
+
+
+  <div class="replay-layout hidden" id="replay-content-layout">
+    <div class="board-outer">
+      <div class="chess-board" id="replay-chess-board"></div>
+    </div>
+    
+    <div class="control-panel">
+      <div>
+        <h3 style="margin:0 0 10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">📊 สรุปผลหมาก</h3>
+        <p id="replay-meta-players" style="margin: 6px 0; font-size:14px; line-height:1.6;"></p>
+        <p id="replay-meta-reason" style="margin: 12px 0 6px; font-size:13px; color:#aaa; font-style:italic;"></p>
+      </div>
+      
+      <div>
+        <div class="move-counter" id="move-counter-txt">ตาที่ 0 / 0</div>
+        <div class="control-buttons">
+          <button class="btn-ctrl" id="btn-first" title="ตาแรกสุด">|◀</button>
+          <button class="btn-ctrl" id="btn-prev" title="ถอยกลับ">◀</button>
+          <button class="btn-ctrl" id="btn-next" title="เดินหน้า">▶</button>
+          <button class="btn-ctrl" id="btn-last" title="ตาสุดท้าย">▶|</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── Firebase Config ──
+const firebaseConfig = {
+  apiKey:            "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain:        "rukthai-b4971.firebaseapp.com",
+  databaseURL:       "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "rukthai-b4971",
+  storageBucket:     "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId:             "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let loadedMoves = [];
+let currentMovePointer = 0;
+let replayFlipped = false;
+
+const INITIAL_BOARD = [
+  ['Rb','Nb','Bb','Qb','Kb','Bb','Nb','Rb'],
+  [null,null,null,null,null,null,null,null],
+  ['Pb','Pb','Pb','Pb','Pb','Pb','Pb','Pb'],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  ['Pw','Pw','Pw','Pw','Pw','Pw','Pw','Pw'],
+  [null,null,null,null,null,null,null,null],
+  ['Rw','Nw','Bw','Kw','Qw','Bw','Nw','Rw'],
+];
+
+function fbToBoard(fb) {
+  if (!fb) return INITIAL_BOARD;
+  return fb.map(r => r.split(',').map(c => c || null));
+}
+
+function boardToFB(board) {
+  return board.map(row => row.map(c => c || '')).map(r => r.join(','));
+}
+
+// ─── โดดดึงข้อมูลแมตช์ด้วยรหัสห้องจาก URL พารามิเตอร์ ───
+async function initReplayPage() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomId = urlParams.get('room');
+
+  if (!roomId) {
+    document.getElementById('loading-box').textContent = "❌ ไม่พบรหัสห้องเกมที่ระบุสำหรับเปิดรีเพลย์";
+    return;
+  }
+
+  try {
+    const snapshot = await get(ref(db, `game_history/${roomId}`));
+    if (!snapshot.exists()) {
+      document.getElementById('loading-box').textContent = "❌ ไม่พบประวัติบันทึกตาเดินของห้องเกมนี้ในฐานข้อมูลกลาง";
+      return;
+    }
+
+    const gameData = snapshot.val();
+    
+    // ตั้งค่าเริ่มต้น: ตาที่ 0 คือตำแหน่งหมากตั้งต้นของกระดาน
+    loadedMoves = [];
+    loadedMoves.push({ board: boardToFB(INITIAL_BOARD), moveCount: 0 });
+
+    // ดึงค่าสเต็ปตาเดินที่เก็บบันทึกไว้มาประกอบลง Array
+    if (gameData.moves) {
+      const rawMoves = Object.values(gameData.moves).sort((a, b) => a.moveCount - b.moveCount);
+      loadedMoves.push(...rawMoves);
+    }
+
+    // ดึงประวัติว่าผู้เล่นล็อกอินปัจจุบันเล่นสีอะไร เพื่อทำการกลับกระดานให้เหมาะสม
+    const currentUserRaw = localStorage.getItem('rukthai_current_user');
+    if (currentUserRaw) {
+      const u = JSON.parse(currentUserRaw);
+      const safeUid = String(u.id || u.email).replace(/[.#$\[\]]/g, '_');
+      // ถ้าเราเล่นฝั่งหมากดำ (playerB) ให้กลับกระดานอัตโนมัติ
+      if (gameData.b && gameData.b.uid === safeUid) {
+        replayFlipped = true;
+      }
+    }
+
+    // แสดงรายละเอียดแมตช์บนการ์ดด้านข้าง
+    const nameW = gameData.w?.name || 'ฝ่ายขาว';
+    const nameB = gameData.b?.name || 'ฝ่ายดำ';
+    document.getElementById('replay-title').textContent = `⚔️ รีเพลย์แมตช์: ${nameW} VS ${nameB}`;
+    document.getElementById('replay-meta-players').innerHTML = `⚪ ฝ่ายขาว: <strong>${nameW}</strong><br>⚫ ฝ่ายดำ: <strong>${nameB}</strong>`;
+    
+    // แปลงประเภทผลลัพธ์การจบเกมให้อ่านง่าย
+    const reasonLabels = { 'checkmate': 'รุกจน', 'resign': 'มีฝ่ายกดยอมแพ้', 'timeout': 'หมดเวลาในการเดินหมาก', 'draw-offer': 'ตกลงเสมอกันทั้งสองฝ่าย' };
+    document.getElementById('replay-meta-reason').textContent = `รูปแบบการจบเกม: ${reasonLabels[gameData.finalReason] || gameData.finalReason || 'จบแมตช์ปกติ'}`;
+
+    // ซ่อนข้อความดาวน์โหลด เปิดส่วนกระดานควบคุม
+    document.getElementById('loading-box').classList.add('hidden');
+    document.getElementById('replay-content-layout').classList.remove('hidden');
+
+    currentMovePointer = 0;
+    renderReplayBoard();
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById('loading-box').textContent = "❌ เกิดข้อผิดพลาดทางเทคนิคในการประมวลผลกระดานรีเพลย์";
+  }
+}
+
+// ─── ฟังก์ชันเรนเดอร์สีกระดานและตัวหมากตาม Pointer ตาเดินปัจจุบัน ───
+function renderReplayBoard() {
+  const boardContainer = document.getElementById('replay-chess-board');
+  boardContainer.innerHTML = "";
+
+  const currentMove = loadedMoves[currentMovePointer];
+  const activeBoard = fbToBoard(currentMove.board);
+
+  // ควบคุมทิศทางมุมมองกระดาน (กลับด้านหมากดำ/ขาว)
+  const rowOrder = replayFlipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
+  const colOrder = replayFlipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
+
+  rowOrder.forEach(row => {
+    colOrder.forEach(col => {
+      const cell = document.createElement('div');
+      cell.className = `chess-cell ${(row+col)%2===0?'light':'dark'}`;
+      
+      const piece = activeBoard[row][col];
+      if (piece) {
+        const img = document.createElement('img');
+        img.className = 'piece-img';
+        img.src = `../Pieces/${piece}.png`;
+        cell.appendChild(img);
+      }
+      boardContainer.appendChild(cell);
+    });
+  });
+
+  // อัปเดตข้อความบอกตำแหน่งตาปัจจุบัน
+  document.getElementById('move-counter-txt').textContent = `ตาเดินที่ ${currentMovePointer} / ${loadedMoves.length - 1}`;
+
+  // สลับสถานะปุ่มกดล็อกเมื่อสุดขอบตาเดิน
+  document.getElementById('btn-first').disabled = (currentMovePointer === 0);
+  document.getElementById('btn-prev').disabled  = (currentMovePointer === 0);
+  document.getElementById('btn-next').disabled  = (currentMovePointer === loadedMoves.length - 1);
+  document.getElementById('btn-last').disabled  = (currentMovePointer === loadedMoves.length - 1);
+}
+
+// ─── เหตุการณ์เมื่อคลิกปุ่มคอนโทรลควบคุม ───
+document.getElementById('btn-first').onclick = () => { currentMovePointer = 0; renderReplayBoard(); };
+document.getElementById('btn-prev').onclick  = () => { if (currentMovePointer > 0) { currentMovePointer--; renderReplayBoard(); } };
+document.getElementById('btn-next').onclick  = () => { if (currentMovePointer < loadedMoves.length - 1) { currentMovePointer++; renderReplayBoard(); } };
+document.getElementById('btn-last').onclick  = () => { currentMovePointer = loadedMoves.length - 1; renderReplayBoard(); };
+
+// ปุ่มกดพาย้อนกลับไปยังหน้าจอแก้ไขโปรไฟล์
+document.getElementById('btn-back-to-profile').onclick = () => {
+  window.location.href = 'profile.html';
+};
+
+// เริ่มรันระบบทันทีที่เปิดหน้านี้
+initReplayPage();
+</script>
+</body>
+</html>

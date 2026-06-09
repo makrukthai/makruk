@@ -1416,6 +1416,7 @@ async function pushMoveToFirebase(move, promoted, captured, endReason) {
   if (endReason) moveData.endReason = endReason;
   try {
     await update(gameRef, { lastMove: moveData });
+  await set(ref(db, `games/${gameId}/moves/${moveCount}`), moveData);
   } catch(e) { console.error('Firebase push error:', e); }
 }
 
@@ -1663,6 +1664,41 @@ function updateSpecialRulesUI() {
 }
 
 function endGame(reason, winner) {
+  // 📌 เพิ่มการแปลง myUid ให้เป็น Safe UID ป้องกัน Firebase บล็อกการบันทึกข้อมูล
+  if (myUid && gameId) {
+    const safeMyUid = String(myUid).replace(/[.#$\[\]]/g, '_');
+    
+    const historySummary = {
+      gameId: gameId,
+      opponentName: oppName,
+      opponentAvatar: oppAvatar,
+      result: winner === myColor ? 'win' : winner === null ? 'draw' : 'loss',
+      reason: reason,
+      date: Date.now(),
+      minutes: selectedMinutes || 10,
+      myColor: myColor
+    };
+    
+    // 1. บันทึกลงหน้าประวัติส่วนตัวของเรา (ใช้ safeMyUid)
+    set(ref(db, `user_history/${safeMyUid}/${gameId}`), historySummary)
+      .then(() => console.log("Match history saved successfully to user_history!"))
+      .catch(err => console.error("Error saving user_history:", err));
+    
+    // 2. ให้ฝั่งหมากขาวช่วยก๊อปปี้ห้องเกมเต็มไปเก็บไว้ในคลังประวัติกลางก่อนห้องเกมสดจะหมดอายุ
+    if (myColor === 'w') {
+      get(ref(db, `games/${gameId}`)).then(async (snapshot) => {
+        if (snapshot.exists()) {
+          const gameData = snapshot.val();
+          gameData.finalReason = reason;
+          gameData.winnerColor = winner;
+          gameData.endedAt = serverTimestamp();
+          await set(ref(db, `game_history/${gameId}`), gameData);
+          console.log("Game fully archived to game_history!");
+        }
+      }).catch(err => console.error("Error archiving game:", err));
+    }
+  }
+  
   if (typeof window.setCurrentUserStatus === "function") {
     window.setCurrentUserStatus("online");
   }
