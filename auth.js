@@ -65,7 +65,7 @@ function normalizeUser(user) {
 }
 
 function compactAvatar(avatar) {
-  return typeof avatar === "string" && avatar.length <= 2000 ? avatar : "";
+  return typeof avatar === "string" ? avatar : "";
 }
 
 function compactStats(stats) {

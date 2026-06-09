@@ -1877,8 +1877,44 @@ html[data-background-mode="light"] .board-choice {
     border-color: rgba(0, 0, 0, 0.1);
     background: rgba(0, 0, 0, 0.02);
 }
-/* ════════════════════════════════════════
-   RESPONSIVE — MOBILE & TABLET
-   ════════════════════════════════════════ */
 
-/* Mobile UI rules have been moved into mobile.css */
+/* 📌 จัดการกล่องข้อมูลเพื่อนให้รองรับการย่อขนาด */
+.friend-item-info {
+  min-width: 0; /* สำคัญมาก: ช่วยให้ชื่อไม่ดันกล่องจนทะลุ */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 📌 แก้ปัญหาชื่อยาวให้กลายเป็น ... จุดไข่ปลาแทน */
+.friend-item-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 13px;
+}
+
+/* 📌 ซ่อนพื้นหลังของสถานะ และจัดตำแหน่งจุดวงกลม */
+.friend-item-status {
+  background: transparent !important; /* ลบพื้นหลังสีเขียว/ส้มทิ้ง */
+  padding: 0 !important; /* ลบกรอบทิ้ง */
+  color: var(--muted) !important; /* เปลี่ยนตัวหนังสือเป็นสีเทา */
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+/* 📌 กำหนดสีเฉพาะตรงจุดวงกลม */
+.status-online .status-dot { color: #4ade80; }  /* สีเขียว */
+.status-playing .status-dot { color: #f59e0b; } /* สีส้ม */
+.status-offline .status-dot { color: #9ca3af; } /* สีเทา */
+
+/* สั่งซ่อนจุดวงกลมจากโค้ดเดิมเพื่อไม่ให้เบิ้ล */
+.friend-item-status::before {
+  display: none !important;
+}

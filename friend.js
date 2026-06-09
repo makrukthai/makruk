@@ -21,6 +21,7 @@ let onlineFriends = [];
 let onlineFriendRequests = [];
 let globalStatuses = {}; // 📌 เก็บสถานะออน/ออฟไลน์ของทุกคน
 let isListening = false;
+let friendListeners = {};
 
 // ─── Helpers ───
 function getSafeId(id) {
@@ -112,18 +113,37 @@ export function listenToFriendUpdates() {
 
   // 4. ดักฟังรายชื่อเพื่อน (Friends List)
   const friendsRef = ref(db, `friends/${safeUid}`);
-  onValue(friendsRef, async (snap) => {
-    onlineFriends = [];
-    if (snap.exists()) {
-      const friendIds = Object.keys(snap.val());
-      for (const fid of friendIds) {
-        const fSnap = await get(ref(db, `users/${getSafeId(fid)}`));
-        if (fSnap.exists()) {
-          onlineFriends.push({ id: fid, ...fSnap.val() });
-        }
-      }
+  onValue(friendsRef, (snap) => {
+    if (!snap.exists()) {
+      onlineFriends = [];
+      renderFriendList();
+      return;
     }
-    renderFriendList();
+    
+    const friendIds = Object.keys(snap.val());
+    
+    // ลบเพื่อนที่ถูกลบไปแล้วออกจากหน้าจอ
+    onlineFriends = onlineFriends.filter(f => friendIds.includes(f.id));
+    
+    // ดักฟังการอัปเดต "ชื่อ" และ "รูปโปรไฟล์" ของเพื่อนแต่ละคน
+    friendIds.forEach(fid => {
+      if (!friendListeners[fid]) {
+        friendListeners[fid] = true;
+        onValue(ref(db, `users/${fid}`), (userSnap) => {
+          if (userSnap.exists()) {
+            const userData = { id: fid, ...userSnap.val() };
+            const existingIndex = onlineFriends.findIndex(f => f.id === fid);
+            
+            if (existingIndex !== -1) {
+              onlineFriends[existingIndex] = userData; // ถ้าเป็นเพื่อนอยู่แล้วให้อัปเดตข้อมูล
+            } else {
+              onlineFriends.push(userData); // ถ้าเพิ่งรับแอด ให้เพิ่มเข้า List
+            }
+            renderFriendList(); // รีเฟรชรายชื่อทันทีที่เพื่อนเปลี่ยนชื่อ/รูป
+          }
+        });
+      }
+    });
   });
 }
 
@@ -260,22 +280,27 @@ function renderFriendList() {
   }
 
   onlineFriends.forEach((friend) => {
-    const status = getFriendStatus(friend.id); // 📌 ดึงสถานะที่แท้จริง
+    const status = getFriendStatus(friend.id); 
     const statusClass = status === "online" ? "status-online" : status === "playing" ? "status-playing" : "status-offline";
     const statusText = status === "online" ? "ออนไลน์" : status === "playing" ? "กำลังเล่น" : "ออฟไลน์";
     const displayName = friend.name || friend.email || 'ผู้ใช้';
     
+    // 📌 เพิ่มคำสั่ง onerror: ถ้ารูปพังหรือโหลดไม่ขึ้น ให้แสดงเป็นตัวอักษรแรกแทน
+    const avatarHtml = (friend.avatar && friend.avatar.trim() !== "")
+      ? `<img src="${friend.avatar}" alt="${displayName}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.outerHTML='${displayName.charAt(0).toUpperCase()}'">`
+      : displayName.charAt(0).toUpperCase();
+
     const item = document.createElement("div");
     item.className = "friend-item";
     item.innerHTML = `
       <div class="friend-item-header">
         <div class="friend-item-left">
-          <div class="friend-item-avatar" style="background: linear-gradient(135deg, #d6b16b, #f0d8a1); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a;">
-            ${displayName.charAt(0).toUpperCase()}
+          <div class="friend-item-avatar" style="background: linear-gradient(135deg, #d6b16b, #f0d8a1); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a; flex-shrink: 0; overflow: hidden;">
+            ${avatarHtml}
           </div>
-          <div>
-            <div class="friend-item-name">${displayName}</div>
-            <div class="friend-item-status ${statusClass}">${statusText}</div>
+          <div class="friend-item-info">
+            <div class="friend-item-name" title="${displayName}">${displayName}</div>
+            <div class="friend-item-status ${statusClass}"><span class="status-dot">●</span> ${statusText}</div>
           </div>
         </div>
         <div class="friend-item-actions">
