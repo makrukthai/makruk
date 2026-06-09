@@ -1,8 +1,37 @@
+// 📌 1. นำเข้า getApps และ getApp เพิ่มเข้ามา
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
 import { createProfileModal, openProfileModal, renderProfileMenu, setProfileSubmitHandler, closeProfileDropdown, closeProfileModal } from "./profile.js";
 import { createNotificationButton } from "./notification.js";
 import { createFriendButton } from "./friend.js";
 import { handleSettingsClick, initializeTheme } from "./setting.js";
 
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+
+// 📌 2. เช็คก่อนว่ามี App อยู่แล้วหรือยัง ถ้ายังไม่มีให้ Initialize ถ้ามีแล้วให้ดึงของเดิมมาใช้
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const db = getDatabase(app);
+
+// 📌 ฟังก์ชันช่วยอัปเดตข้อมูลผู้ใช้ขึ้น Firebase (โดยตัดรหัสผ่านออกเพื่อความปลอดภัย)
+function syncUserToFirebase(user) {
+  if (!user || !user.id) return;
+  // Firebase ไม่ยอมให้ใช้จุด (.) เป็นชื่อ key เลยต้องแปลง ID ให้ปลอดภัย
+  const safeId = user.id.replace(/[.#$\[\]]/g, '_');
+  
+  const { password, ...safeUserData } = user;
+  safeUserData.id = safeId; 
+  
+  update(ref(db, `users/${safeId}`), safeUserData).catch(e => console.error("Firebase sync error:", e));
+}
 // Global function to close ALL dropdowns
 function closeAllDropdowns() {
   document.querySelectorAll(".profile-dropdown").forEach((dropdown) => {
@@ -359,7 +388,7 @@ function isProfilePage() {
 function redirectToLoginPage() {
   if (isProfilePage()) {
     sessionStorage.setItem("redirectToLoginAfterLogout", "true");
-    window.location.href = "home.html";
+    window.location.href = "play.html";
   } else {
     openAuthModal("login");
   }
@@ -568,10 +597,17 @@ function handleRegister(form) {
     return;
   }
 
-  const newUser = { id: email, name, email, password };
+  // โค้ดที่แก้ใหม่
+  const userId = "user_" + Date.now().toString(); // สร้าง ID แบบไม่มีจุด
+  const newUser = { id: userId, name, email, password };
+  
   authState.users.push(newUser);
   saveUsers(authState.users);
   saveCurrentUser(newUser);
+  
+  // 📌 ส่งข้อมูลขึ้น Firebase
+  syncUserToFirebase(newUser);
+
   updateAuthUI();
   closeAuthModal();
   ALERT: "สมัครสมาชิกสำเร็จแล้ว ยินดีต้อนรับ!"
@@ -590,6 +626,7 @@ function handleLogin(form) {
   }
 
   saveCurrentUser(user);
+  syncUserToFirebase(user);
   updateAuthUI();
   closeAuthModal();
   ALERT: `ยินดีต้อนรับกลับ, ${user.name}`
@@ -635,6 +672,7 @@ function handleProfileForm({ name, avatar }) {
   }
 
   saveCurrentUser(currentUser);
+  syncUserToFirebase(currentUser);
   updateAuthUI();
   closeProfileModal();
   // REMOVED ALERT: "บันทึกโปรไฟล์เรียบร้อยแล้ว"
@@ -728,6 +766,7 @@ function handleGoogleCredentialResponse(response) {
   }
 
   saveCurrentUser(user);
+  syncUserToFirebase(user);
   updateAuthUI();
   closeAuthModal();
   // REMOVED ALERT: `เข้าสู่ระบบด้วย Google สำเร็จ: ${name}`

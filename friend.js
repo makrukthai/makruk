@@ -1,239 +1,55 @@
-const STORAGE_FRIENDS_KEY = "rukthai_friends";
-const STORAGE_FRIEND_REQUESTS_KEY = "rukthai_friend_requests";
-const STORAGE_FRIEND_STATUS_KEY = "rukthai_friend_status";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, push, onValue, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ─── Firebase Config ───
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const db = getDatabase(app);
 
 let friendWrapper = null;
-let friendModal = null;
 let friendWrapperUserId = null;
+let onlineFriends = [];
+let onlineFriendRequests = [];
+let globalStatuses = {}; // 📌 เก็บสถานะออน/ออฟไลน์ของทุกคน
+let isListening = false;
 
-// ─── Friend Status Management ───
+// ─── Helpers ───
+function getSafeId(id) {
+  return id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+}
+
+function loadCurrentUser() {
+  try {
+    return JSON.parse(localStorage.getItem("rukthai_current_user")) || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// ─── Friend Status Management (Firebase Presence) ───
 function getFriendStatus(friendId) {
-  try {
-    const statuses = JSON.parse(localStorage.getItem(STORAGE_FRIEND_STATUS_KEY)) || {};
-    return statuses[friendId] || "offline";
-  } catch (error) {
-    return "offline";
-  }
+  // 📌 ดึงสถานะจาก Firebase แบบ Real-time
+  const safeId = getSafeId(friendId);
+  return globalStatuses[safeId]?.state || "offline";
 }
 
-function setFriendStatus(friendId, status) {
-  try {
-    const statuses = JSON.parse(localStorage.getItem(STORAGE_FRIEND_STATUS_KEY)) || {};
-    statuses[friendId] = status;
-    localStorage.setItem(STORAGE_FRIEND_STATUS_KEY, JSON.stringify(statuses));
-  } catch (error) {
-    console.error("Error setting friend status:", error);
-  }
-}
-
-// ─── Friends List Management ───
-function loadFriends() {
-  const currentUser = loadCurrentUser();
-  if (!currentUser) return [];
-  return getFriendsForUser(currentUser.id);
-}
-
-function saveFriends(friends) {
+// (เผื่อไว้ใช้ตอนเข้าเล่นเกม แล้วอยากเปลี่ยนสถานะตัวเองเป็น "playing")
+export function setCurrentUserStatus(stateStr) {
   const currentUser = loadCurrentUser();
   if (!currentUser) return;
-  saveFriendsForUser(currentUser.id, friends);
+  const safeUid = getSafeId(currentUser.id);
+  set(ref(db, `status/${safeUid}`), { state: stateStr, last_changed: Date.now() });
 }
-
-function addFriend(friend, ownerId = loadCurrentUser()?.id) {
-  if (!ownerId || !friend?.id || ownerId === friend.id) return;
-  const friends = getFriendsForUser(ownerId);
-  if (!friends.find(f => f.id === friend.id)) {
-    friends.push(friend);
-    saveFriendsForUser(ownerId, friends);
-  }
-}
-
-function removeFriend(friendId, ownerId = loadCurrentUser()?.id) {
-  if (!ownerId || !friendId) return;
-  const friends = getFriendsForUser(ownerId).filter(f => f.id !== friendId);
-  saveFriendsForUser(ownerId, friends);
-  const peerFriends = getFriendsForUser(friendId).filter(f => f.id !== ownerId);
-  saveFriendsForUser(friendId, peerFriends);
-}
-
-function isFriendWithUser(userId) {
-  const currentUser = loadCurrentUser();
-  if (!currentUser) return false;
-  return areUsersFriends(currentUser.id, userId);
-}
-
-// ─── Friend Requests Management ───
-function loadFriendRequests() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_FRIEND_REQUESTS_KEY));
-    return Array.isArray(stored) ? stored : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function saveFriendRequests(requests) {
-  localStorage.setItem(STORAGE_FRIEND_REQUESTS_KEY, JSON.stringify(requests));
-}
-
-function getPendingRequestBetween(fromUserId, toUserId) {
-  return loadFriendRequests().find(request =>
-    request.from === fromUserId &&
-    request.to === toUserId &&
-    request.status === "pending"
-  );
-}
-
-function refreshFriendBadge() {
-  if (!friendWrapper) return;
-  const button = friendWrapper.querySelector(".friend-button");
-  if (!button) return;
-
-  const pendingCount = getPendingRequestsForMe().length;
-  let badge = button.querySelector(".friend-request-badge");
-  if (pendingCount > 0) {
-    if (!badge) {
-      badge = document.createElement("span");
-      badge.className = "friend-request-badge";
-      button.insertBefore(badge, button.firstChild);
-    }
-    badge.textContent = pendingCount;
-  } else {
-    badge?.remove();
-  }
-}
-
-function sendFriendRequest(toUserId, toUserData) {
-  const requests = loadFriendRequests();
-  const currentUser = loadCurrentUser();
-  
-  if (!currentUser) {
-    showFriendAlert("กรุณาเข้าสู่ระบบก่อน", true);
-    return false;
-  }
-
-  if (currentUser.id === toUserId) {
-    showFriendAlert("ไม่สามารถเพิ่มตัวเองเป็นเพื่อนได้", true);
-    return false;
-  }
-
-  // Check if already friends
-  if (isFriendWithUser(toUserId)) {
-    showFriendAlert("คุณเป็นเพื่อนกับผู้เล่นนี้แล้ว", true);
-    return false;
-  }
-
-  // Check if request already sent
-  if (requests.some(r => r.from === currentUser.id && r.to === toUserId && r.status === "pending")) {
-    showFriendAlert("ส่งขอเพิ่มเพื่อนไปแล้ว", true);
-    return false;
-  }
-
-  if (requests.some(r => r.from === toUserId && r.to === currentUser.id && r.status === "pending")) {
-    showFriendAlert("ผู้เล่นนี้ส่งคำขอถึงคุณแล้ว กรุณากดยอมรับในรายการคำขอ", true);
-    return false;
-  }
-
-  requests.push({
-    id: Date.now().toString(),
-    from: currentUser.id,
-    fromName: currentUser.name || currentUser.email,
-    to: toUserId,
-    toName: toUserData.name || toUserData.email,
-    status: "pending",
-    timestamp: Date.now()
-  });
-
-  saveFriendRequests(requests);
-  showFriendAlert("ส่งขอเพิ่มเพื่อนเรียบร้อยแล้ว");
-  return true;
-}
-
-function acceptFriendRequest(requestId) {
-  const requests = loadFriendRequests();
-  const request = requests.find(r => r.id === requestId);
-  const currentUser = loadCurrentUser();
-  
-  if (!request || !currentUser || request.to !== currentUser.id) return false;
-
-  // Load user data
-  const users = loadUsers();
-  const fromUser = users.find(u => u.id === request.from);
-  const toUser = users.find(u => u.id === request.to);
-
-  if (!fromUser || !toUser) return false;
-
-  // Add as friends
-  addFriend({
-    id: fromUser.id,
-    name: fromUser.name || fromUser.email,
-    email: fromUser.email,
-    avatar: fromUser.avatar || ""
-  }, toUser.id);
-
-  addFriend({
-    id: toUser.id,
-    name: toUser.name || toUser.email,
-    email: toUser.email,
-    avatar: toUser.avatar || ""
-  }, fromUser.id);
-
-  // Update request status
-  saveFriendRequests(requests.filter(item => item.id !== requestId));
-
-  showFriendAlert("ยอมรับคำขอเพิ่มเพื่อนเรียบร้อยแล้ว");
-  return true;
-}
-
-function rejectFriendRequest(requestId) {
-  const requests = loadFriendRequests();
-  const request = requests.find(r => r.id === requestId);
-  const currentUser = loadCurrentUser();
-  
-  if (!request || !currentUser || request.to !== currentUser.id) return false;
-
-  saveFriendRequests(requests.filter(item => item.id !== requestId));
-  showFriendAlert("ปฏิเสธคำขอเพิ่มเพื่อนแล้ว");
-  return true;
-}
-
-function getPendingRequestsForMe() {
-  const currentUser = loadCurrentUser();
-  if (!currentUser) return [];
-  return loadFriendRequests().filter(r => r.to === currentUser.id && r.status === "pending");
-}
-
-// ─── UI Functions ───
-function showFriendAlert(message, isError = false) {
-  if (!friendWrapper) return;
-  const alertElement = friendWrapper.querySelector(".friend-alert");
-  if (!alertElement) return;
-  
-  alertElement.textContent = message;
-  alertElement.classList.toggle("error", isError);
-  alertElement.style.display = "block";
-  clearTimeout(alertElement.hideTimeout);
-  alertElement.hideTimeout = setTimeout(() => {
-    alertElement.style.display = "none";
-  }, 2600);
-}
-
-function getUserById(userId) {
-  return loadUsers().find(user => user.id === userId) || null;
-}
-
-function getDisplayUser(user) {
-  const fullUser = user?.id ? getUserById(user.id) : null;
-  return fullUser || user;
-}
-
-function getAvatarHtml(user, className) {
-  const name = user?.name || user?.email || "U";
-  if (user?.avatar) {
-    return `<img class="${className}" src="${user.avatar}" alt="${name}">`;
-  }
-  return `<div class="${className}">${name.charAt(0).toUpperCase()}</div>`;
-}
+window.setCurrentUserStatus = setCurrentUserStatus;
 
 function getProfileStats(user) {
   const stats = user?.stats || {};
@@ -248,33 +64,217 @@ function getProfileStats(user) {
   };
 }
 
+// ─── Firebase Real-time Listeners ───
+export function listenToFriendUpdates() {
+  const currentUser = loadCurrentUser();
+  if (!currentUser || isListening) return;
+  isListening = true;
+
+  const safeUid = getSafeId(currentUser.id);
+
+  // 📌 1. ดักฟังสถานะ Online/Offline ของทุกคน (Presence System)
+  const statusRef = ref(db, 'status');
+  onValue(statusRef, (snap) => {
+    if (snap.exists()) {
+      globalStatuses = snap.val();
+      renderFriendList(); // รีเฟรชหน้าจอทันทีที่มีคนเข้า/ออก
+    }
+  });
+
+  // 📌 2. แจ้ง Firebase ให้รู้ว่าเราออนไลน์อยู่ และตั้งเวลาให้ออฟไลน์อัตโนมัติเมื่อปิดเว็บ
+  const connectedRef = ref(db, '.info/connected');
+  const myStatusRef = ref(db, `status/${safeUid}`);
+  onValue(connectedRef, (snap) => {
+    if (snap.val() === true) {
+      // ถ้าปิดเบราว์เซอร์ หรือเน็ตหลุด ให้เป็น offline ทันที
+      onDisconnect(myStatusRef).set({ state: 'offline', last_changed: Date.now() }).then(() => {
+        // ถ้าเชื่อมต่อสำเร็จ ให้เป็น online
+        set(myStatusRef, { state: 'online', last_changed: Date.now() });
+      });
+    }
+  });
+
+  // 3. ดักฟังคำขอเพิ่มเพื่อน (Friend Requests)
+  const requestsRef = ref(db, `friend_requests/${safeUid}`);
+  onValue(requestsRef, (snap) => {
+    onlineFriendRequests = [];
+    if (snap.exists()) {
+      const data = snap.val();
+      for (const reqId in data) {
+        if (data[reqId].status === "pending") {
+          onlineFriendRequests.push({ id: reqId, ...data[reqId] });
+        }
+      }
+    }
+    renderFriendRequests();
+    refreshFriendBadge();
+  });
+
+  // 4. ดักฟังรายชื่อเพื่อน (Friends List)
+  const friendsRef = ref(db, `friends/${safeUid}`);
+  onValue(friendsRef, async (snap) => {
+    onlineFriends = [];
+    if (snap.exists()) {
+      const friendIds = Object.keys(snap.val());
+      for (const fid of friendIds) {
+        const fSnap = await get(ref(db, `users/${getSafeId(fid)}`));
+        if (fSnap.exists()) {
+          onlineFriends.push({ id: fid, ...fSnap.val() });
+        }
+      }
+    }
+    renderFriendList();
+  });
+}
+
+// ─── Friend Actions (Firebase) ───
+async function sendFriendRequest(toUserId, toUserData) {
+  const currentUser = loadCurrentUser();
+  if (!currentUser) {
+    showFriendAlert("กรุณาเข้าสู่ระบบก่อน", true);
+    return false;
+  }
+
+  const safeUid = getSafeId(currentUser.id);
+  const safeToId = getSafeId(toUserId);
+
+  if (safeUid === safeToId) {
+    showFriendAlert("ไม่สามารถเพิ่มตัวเองเป็นเพื่อนได้", true);
+    return false;
+  }
+  if (onlineFriends.some(f => getSafeId(f.id) === safeToId)) {
+    showFriendAlert("คุณเป็นเพื่อนกับผู้เล่นนี้แล้ว", true);
+    return false;
+  }
+
+  try {
+    const newRequestRef = push(ref(db, `friend_requests/${safeToId}`));
+    await set(newRequestRef, {
+      from: safeUid,
+      fromName: currentUser.name || currentUser.email,
+      to: safeToId,
+      toName: toUserData.name || toUserData.email,
+      status: "pending",
+      timestamp: Date.now()
+    });
+    showFriendAlert("ส่งขอเพิ่มเพื่อนเรียบร้อยแล้ว");
+    return true;
+  } catch (error) {
+    showFriendAlert("เกิดข้อผิดพลาดในการส่งคำขอ", true);
+    return false;
+  }
+}
+
+async function acceptFriendRequest(requestId) {
+  const request = onlineFriendRequests.find(r => r.id === requestId);
+  const currentUser = loadCurrentUser();
+  if (!request || !currentUser) return false;
+
+  const safeUid = getSafeId(currentUser.id);
+  const safeFromId = getSafeId(request.from);
+
+  try {
+    await update(ref(db, `friends/${safeUid}`), { [safeFromId]: true });
+    await update(ref(db, `friends/${safeFromId}`), { [safeUid]: true });
+    await remove(ref(db, `friend_requests/${safeUid}/${requestId}`));
+    showFriendAlert("ยอมรับคำขอเพิ่มเพื่อนเรียบร้อยแล้ว");
+    return true;
+  } catch (error) {
+    showFriendAlert("เกิดข้อผิดพลาดในการยอมรับ", true);
+    return false;
+  }
+}
+
+async function rejectFriendRequest(requestId) {
+  const currentUser = loadCurrentUser();
+  if (!currentUser) return false;
+  const safeUid = getSafeId(currentUser.id);
+
+  try {
+    await remove(ref(db, `friend_requests/${safeUid}/${requestId}`));
+    showFriendAlert("ปฏิเสธคำขอเพิ่มเพื่อนแล้ว");
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function removeFriend(friendId) {
+  const currentUser = loadCurrentUser();
+  if (!currentUser) return;
+
+  const safeUid = getSafeId(currentUser.id);
+  const safeFriendId = getSafeId(friendId);
+
+  try {
+    await remove(ref(db, `friends/${safeUid}/${safeFriendId}`));
+    await remove(ref(db, `friends/${safeFriendId}/${safeUid}`));
+    showFriendAlert("ลบเพื่อนเรียบร้อยแล้ว");
+  } catch (error) {
+    showFriendAlert("เกิดข้อผิดพลาดในการลบ", true);
+  }
+}
+
+// ─── UI Rendering ───
+function showFriendAlert(message, isError = false) {
+  if (!friendWrapper) return;
+  const alertElement = friendWrapper.querySelector(".friend-alert");
+  if (!alertElement) return;
+  
+  alertElement.textContent = message;
+  alertElement.classList.toggle("error", isError);
+  alertElement.style.display = "block";
+  clearTimeout(alertElement.hideTimeout);
+  alertElement.hideTimeout = setTimeout(() => {
+    alertElement.style.display = "none";
+  }, 2600);
+}
+
+function refreshFriendBadge() {
+  if (!friendWrapper) return;
+  const button = friendWrapper.querySelector(".friend-button");
+  if (!button) return;
+
+  const pendingCount = onlineFriendRequests.length;
+  let badge = button.querySelector(".friend-request-badge");
+  if (pendingCount > 0) {
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "friend-request-badge";
+      button.insertBefore(badge, button.firstChild);
+    }
+    badge.textContent = pendingCount;
+  } else {
+    badge?.remove();
+  }
+}
+
 function renderFriendList() {
   if (!friendWrapper) return;
   const listContainer = friendWrapper.querySelector(".friend-list");
-  const friends = loadFriends();
-
   listContainer.innerHTML = "";
 
-  if (!friends.length) {
+  if (!onlineFriends.length) {
     listContainer.innerHTML = `<div class="friend-empty">คุณยังไม่มีเพื่อนในตอนนี้</div>`;
     return;
   }
 
-  friends.forEach((friend) => {
-    const displayFriend = getDisplayUser(friend);
-    const stats = getProfileStats(displayFriend);
-    const status = getFriendStatus(friend.id);
+  onlineFriends.forEach((friend) => {
+    const status = getFriendStatus(friend.id); // 📌 ดึงสถานะที่แท้จริง
     const statusClass = status === "online" ? "status-online" : status === "playing" ? "status-playing" : "status-offline";
     const statusText = status === "online" ? "ออนไลน์" : status === "playing" ? "กำลังเล่น" : "ออฟไลน์";
+    const displayName = friend.name || friend.email || 'ผู้ใช้';
     
     const item = document.createElement("div");
     item.className = "friend-item";
     item.innerHTML = `
       <div class="friend-item-header">
         <div class="friend-item-left">
-          <div class="friend-item-avatar" style="background: linear-gradient(135deg, #d6b16b, #f0d8a1); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a;">${friend.name.charAt(0).toUpperCase()}</div>
+          <div class="friend-item-avatar" style="background: linear-gradient(135deg, #d6b16b, #f0d8a1); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a;">
+            ${displayName.charAt(0).toUpperCase()}
+          </div>
           <div>
-            <div class="friend-item-name">${friend.name}</div>
+            <div class="friend-item-name">${displayName}</div>
             <div class="friend-item-status ${statusClass}">${statusText}</div>
           </div>
         </div>
@@ -293,21 +293,21 @@ function renderFriendRequests() {
   if (!friendWrapper) return;
   const requestContainer = friendWrapper.querySelector(".friend-requests");
   if (!requestContainer) return;
-
-  const requests = getPendingRequestsForMe();
   requestContainer.innerHTML = "";
 
-  if (!requests.length) {
+  if (!onlineFriendRequests.length) {
     requestContainer.innerHTML = `<div class="friend-request-empty">ไม่มีคำขอเพิ่มเพื่อนใหม่</div>`;
     return;
   }
 
-  requests.forEach((request) => {
+  onlineFriendRequests.forEach((request) => {
     const item = document.createElement("div");
     item.className = "friend-request-item";
     item.innerHTML = `
       <div class="friend-request-header">
-        <div class="friend-request-avatar" style="background: linear-gradient(135deg, #d6b16b, #f0d8a1); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a;">${request.fromName.charAt(0).toUpperCase()}</div>
+        <div class="friend-request-avatar" style="background: linear-gradient(135deg, #d6b16b, #f0d8a1); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a;">
+          ${(request.fromName || 'U').charAt(0).toUpperCase()}
+        </div>
         <div class="friend-request-name">${request.fromName} ขอเพิ่มเพื่อน</div>
       </div>
       <div class="friend-request-actions">
@@ -319,21 +319,25 @@ function renderFriendRequests() {
   });
 }
 
-function clearFriendSearchResult() {
-  const resultContainer = friendWrapper?.querySelector(".friend-search-result");
-  if (resultContainer) {
-    resultContainer.innerHTML = "";
-  }
-}
-
-function renderFriendSearchResult(user) {
+async function renderFriendSearchResult(user) {
   const resultContainer = friendWrapper?.querySelector(".friend-search-result");
   const currentUser = loadCurrentUser();
   if (!resultContainer || !currentUser || !user) return;
 
-  const alreadyFriend = areUsersFriends(currentUser.id, user.id);
-  const outgoingRequest = getPendingRequestBetween(currentUser.id, user.id);
-  const incomingRequest = getPendingRequestBetween(user.id, currentUser.id);
+  const safeUid = getSafeId(currentUser.id);
+  const safeUserId = getSafeId(user.id);
+
+  const alreadyFriend = onlineFriends.some(f => getSafeId(f.id) === safeUserId);
+  
+  let outgoingRequest = false;
+  const reqSnap = await get(ref(db, `friend_requests/${safeUserId}`));
+  if (reqSnap.exists()) {
+    const data = reqSnap.val();
+    outgoingRequest = Object.values(data).some(r => r.from === safeUid && r.status === 'pending');
+  }
+
+  const incomingRequest = onlineFriendRequests.some(r => r.from === safeUserId);
+
   let actionHTML = `<button type="button" class="friend-result-add" data-id="${user.id}">ADD</button>`;
 
   if (alreadyFriend) {
@@ -344,11 +348,12 @@ function renderFriendSearchResult(user) {
     actionHTML = `<button type="button" class="friend-result-add" disabled>รอคุณตอบรับ</button>`;
   }
 
+  const displayName = user.name || user.email || "U";
   resultContainer.innerHTML = `
     <div class="friend-search-card">
-      <div class="friend-search-avatar">${(user.name || user.email || "U").charAt(0).toUpperCase()}</div>
+      <div class="friend-search-avatar">${displayName.charAt(0).toUpperCase()}</div>
       <div class="friend-search-info">
-        <div class="friend-search-name">${user.name || user.email}</div>
+        <div class="friend-search-name">${displayName}</div>
         <div class="friend-search-email">${user.email || ""}</div>
       </div>
       ${actionHTML}
@@ -356,161 +361,15 @@ function renderFriendSearchResult(user) {
   `;
 }
 
-function handleAddFriend(event) {
-  event.preventDefault();
-  event.stopPropagation();
-  if (!friendWrapper) return;
-
-  const form = friendWrapper.querySelector("#friend-add-form");
-  if (!form) return;
-
-  const searchInput = form.elements.friendSearch?.value.trim().toLowerCase();
-
-  if (!searchInput) {
-    showFriendAlert("กรุณากรอกชื่อหรืออีเมลของเพื่อน", true);
-    return;
-  }
-
-  const users = loadUsers() || [];
-  const currentUser = loadCurrentUser();
-
-  if (!currentUser) {
-    showFriendAlert("กรุณาเข้าสู่ระบบก่อน", true);
-    return;
-  }
-  
-  const foundUser = users.find(u => 
-    u.id !== currentUser.id && (
-      u.name?.toLowerCase().includes(searchInput) || 
-      u.email?.toLowerCase().includes(searchInput)
-    )
-  );
-
-  if (!foundUser) {
-    showFriendAlert("ไม่พบผู้เล่นที่ตรงกับการค้นหา", true);
-    return;
-  }
-
-  renderFriendSearchResult(foundUser);
+function clearFriendSearchResult() {
+  const resultContainer = friendWrapper?.querySelector(".friend-search-result");
+  if (resultContainer) resultContainer.innerHTML = "";
 }
 
-function handleFriendSearchResultClick(event) {
-  event.stopPropagation();
-
-  const addBtn = event.target.closest("button.friend-result-add");
-  if (!addBtn || addBtn.disabled) return;
-
-  const userId = addBtn.dataset.id;
-  const foundUser = loadUsers().find(user => user.id === userId);
-  if (!foundUser) {
-    showFriendAlert("ไม่พบผู้เล่นนี้แล้ว", true);
-    clearFriendSearchResult();
-    return;
-  }
-
-  if (sendFriendRequest(foundUser.id, foundUser)) {
-    renderFriendSearchResult(foundUser);
-  }
-}
-
-function handleFriendListClick(event) {
-  event.stopPropagation();
-  
-  const removeBtn = event.target.closest("button.friend-remove");
-  if (removeBtn) {
-    const friendId = removeBtn.dataset.id;
-    removeFriend(friendId);
-    renderFriendList();
-    showFriendAlert("ลบเพื่อนเรียบร้อยแล้ว");
-    return;
-  }
-
-  const playBtn = event.target.closest("button.friend-play");
-  if (playBtn) {
-    const friendId = playBtn.dataset.id;
-    const friend = loadFriends().find(f => f.id === friendId);
-    if (friend) {
-      showFriendAlert(`เชิญ ${friend.name} เล่นเกมแล้ว!`);
-      // TODO: Implement game invitation logic
-    }
-    return;
-  }
-
-  const profileBtn = event.target.closest("button.friend-profile");
-  if (profileBtn) {
-    const friendId = profileBtn.dataset.id;
-    const users = loadUsers();
-    const friend = users.find(u => u.id === friendId);
-    if (friend) {
-      showFriendProfile(friend);
-    }
-    return;
-  }
-}
-
-function handleFriendRequestAction(event) {
-  event.stopPropagation();
-  
-  const acceptBtn = event.target.closest("button.friend-request-accept");
-  if (acceptBtn) {
-    const requestId = acceptBtn.dataset.id;
-    if (acceptFriendRequest(requestId)) {
-      renderFriendRequests();
-      renderFriendList();
-      clearFriendSearchResult();
-      refreshFriendBadge();
-    }
-    return;
-  }
-
-  const rejectBtn = event.target.closest("button.friend-request-reject");
-  if (rejectBtn) {
-    const requestId = rejectBtn.dataset.id;
-    if (rejectFriendRequest(requestId)) {
-      renderFriendRequests();
-      refreshFriendBadge();
-    }
-    return;
-  }
-}
-
-function closeFriendDropdown() {
-  if (!friendWrapper) return;
-  const dropdown = friendWrapper.querySelector(".profile-dropdown");
-  if (dropdown) {
-    dropdown.classList.add("hidden");
-    const button = friendWrapper.querySelector(".topbar-icon-btn");
-    if (button) button.setAttribute("aria-expanded", "false");
-  }
-}
-
-function toggleFriendDropdown() {
-  if (!friendWrapper) return;
-  const dropdown = friendWrapper.querySelector(".profile-dropdown");
-  if (!dropdown) return;
-  const isHidden = dropdown.classList.contains("hidden");
-  document.querySelectorAll(".profile-dropdown").forEach((menu) => {
-    menu.classList.add("hidden");
-    menu.style.display = "";
-  });
-
-  if (isHidden) {
-    renderFriendList();
-    renderFriendRequests();
-    dropdown.classList.remove("hidden");
-    const button = friendWrapper.querySelector(".topbar-icon-btn");
-    if (button) button.setAttribute("aria-expanded", "true");
-  } else {
-    closeFriendDropdown();
-  }
-}
-
-function showFriendProfile(friend) {
-  const users = loadUsers();
-  const userData = users.find(u => u.id === friend.id);
+function showFriendProfile(userData) {
   if (!userData) return;
-
-  const status = getFriendStatus(friend.id);
+  const stats = getProfileStats(userData);
+  const status = getFriendStatus(userData.id);
   const statusText = status === "online" ? "ออนไลน์" : status === "playing" ? "กำลังเล่น" : "ออฟไลน์";
 
   const profileHTML = `
@@ -519,7 +378,7 @@ function showFriendProfile(friend) {
       <div class="friend-profile-content">
         <button type="button" class="friend-profile-close" id="friend-profile-close">✕</button>
         <div class="friend-profile-header">
-          <div class="friend-profile-avatar">${userData.name?.charAt(0).toUpperCase() || 'U'}</div>
+          <div class="friend-profile-avatar">${(userData.name || 'U').charAt(0).toUpperCase()}</div>
           <div class="friend-profile-info">
             <div class="friend-profile-name">${userData.name || userData.email}</div>
             <div class="friend-profile-status status-${status}">${statusText}</div>
@@ -530,19 +389,19 @@ function showFriendProfile(friend) {
         <div class="friend-profile-stats">
           <div class="stat-item">
             <span class="stat-label">เกมทั้งหมด</span>
-            <span class="stat-value">${userData.stats?.total || 0}</span>
+            <span class="stat-value">${stats.total}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">ชนะ</span>
-            <span class="stat-value" style="color: #4ade80;">${userData.stats?.wins || 0}</span>
+            <span class="stat-value" style="color: #4ade80;">${stats.wins}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">แพ้</span>
-            <span class="stat-value" style="color: #ef4444;">${userData.stats?.losses || 0}</span>
+            <span class="stat-value" style="color: #ef4444;">${stats.losses}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">ELO</span>
-            <span class="stat-value">${userData.stats?.elo || 1600}</span>
+            <span class="stat-value">${stats.rapid}</span>
           </div>
         </div>
 
@@ -563,9 +422,7 @@ function showFriendProfile(friend) {
   const inviteBtn = document.getElementById("friend-profile-invite");
   const removeBtn = document.getElementById("friend-profile-remove");
 
-  const closeModal = () => {
-    modal.remove();
-  };
+  const closeModal = () => modal.remove();
 
   overlay?.addEventListener("click", closeModal);
   closeBtn?.addEventListener("click", closeModal);
@@ -576,13 +433,167 @@ function showFriendProfile(friend) {
   });
 
   removeBtn?.addEventListener("click", () => {
-    removeFriend(friend.id);
-    renderFriendList();
-    showFriendAlert("ลบเพื่อนเรียบร้อยแล้ว");
-    closeModal();
+    if(confirm("แน่ใจหรือไม่ที่จะลบเพื่อนคนนี้?")) {
+      removeFriend(userData.id);
+      closeModal();
+    }
   });
 }
 
+// ─── Event Handlers ───
+async function handleAddFriend(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (!friendWrapper) return;
+
+  const form = friendWrapper.querySelector("#friend-add-form");
+  const searchInput = form.elements.friendSearch?.value.trim().toLowerCase();
+
+  if (!searchInput) {
+    showFriendAlert("กรุณากรอกชื่อหรืออีเมลของเพื่อน", true);
+    return;
+  }
+
+  const currentUser = loadCurrentUser();
+  if (!currentUser) {
+    showFriendAlert("กรุณาเข้าสู่ระบบก่อน", true);
+    return;
+  }
+
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    if (!usersSnap.exists()) {
+      showFriendAlert("ไม่พบข้อมูลผู้เล่นในระบบ", true);
+      return;
+    }
+
+    const usersData = usersSnap.val();
+    let foundUser = null;
+    const safeUid = getSafeId(currentUser.id);
+
+    for (const uid in usersData) {
+      const u = usersData[uid];
+      if (uid !== safeUid && (
+          u.name?.toLowerCase().includes(searchInput) || 
+          u.email?.toLowerCase().includes(searchInput)
+      )) {
+        foundUser = { id: uid, ...u };
+        break;
+      }
+    }
+
+    if (!foundUser) {
+      showFriendAlert("ไม่พบผู้เล่นที่ตรงกับการค้นหา", true);
+      return;
+    }
+
+    renderFriendSearchResult(foundUser);
+  } catch (error) {
+    showFriendAlert("เกิดข้อผิดพลาดในการค้นหา", true);
+  }
+}
+
+async function handleFriendSearchResultClick(event) {
+  event.stopPropagation();
+  const addBtn = event.target.closest("button.friend-result-add");
+  if (!addBtn || addBtn.disabled) return;
+
+  const userId = addBtn.dataset.id;
+  const safeUserId = getSafeId(userId);
+  
+  const userSnap = await get(ref(db, `users/${safeUserId}`));
+  if (!userSnap.exists()) {
+    showFriendAlert("ไม่พบผู้เล่นนี้แล้ว", true);
+    clearFriendSearchResult();
+    return;
+  }
+
+  const foundUser = { id: userId, ...userSnap.val() };
+  if (await sendFriendRequest(foundUser.id, foundUser)) {
+    renderFriendSearchResult(foundUser);
+  }
+}
+
+async function handleFriendRequestAction(event) {
+  event.stopPropagation();
+  
+  const acceptBtn = event.target.closest("button.friend-request-accept");
+  if (acceptBtn) {
+    const requestId = acceptBtn.dataset.id;
+    await acceptFriendRequest(requestId);
+    clearFriendSearchResult();
+    return;
+  }
+
+  const rejectBtn = event.target.closest("button.friend-request-reject");
+  if (rejectBtn) {
+    const requestId = rejectBtn.dataset.id;
+    await rejectFriendRequest(requestId);
+    return;
+  }
+}
+
+function handleFriendListClick(event) {
+  event.stopPropagation();
+  
+  const removeBtn = event.target.closest("button.friend-remove");
+  if (removeBtn) {
+    const friendId = removeBtn.dataset.id;
+    if(confirm("แน่ใจหรือไม่ที่จะลบเพื่อนคนนี้?")) {
+      removeFriend(friendId);
+    }
+    return;
+  }
+
+  const playBtn = event.target.closest("button.friend-play");
+  if (playBtn) {
+    const friendId = playBtn.dataset.id;
+    const friend = onlineFriends.find(f => f.id === friendId);
+    if (friend) {
+      showFriendAlert(`เชิญ ${friend.name} เล่นเกมแล้ว!`);
+    }
+    return;
+  }
+
+  const profileBtn = event.target.closest("button.friend-profile");
+  if (profileBtn) {
+    const friendId = profileBtn.dataset.id;
+    const friend = onlineFriends.find(u => u.id === friendId);
+    if (friend) showFriendProfile(friend);
+    return;
+  }
+}
+
+function closeFriendDropdown() {
+  if (!friendWrapper) return;
+  const dropdown = friendWrapper.querySelector(".profile-dropdown");
+  if (dropdown) {
+    dropdown.classList.add("hidden");
+    const button = friendWrapper.querySelector(".topbar-icon-btn");
+    if (button) button.setAttribute("aria-expanded", "false");
+  }
+}
+
+function toggleFriendDropdown() {
+  if (!friendWrapper) return;
+  const dropdown = friendWrapper.querySelector(".profile-dropdown");
+  if (!dropdown) return;
+  
+  const isHidden = dropdown.classList.contains("hidden");
+  document.querySelectorAll(".profile-dropdown").forEach((menu) => {
+    menu.classList.add("hidden");
+  });
+
+  if (isHidden) {
+    dropdown.classList.remove("hidden");
+    const button = friendWrapper.querySelector(".topbar-icon-btn");
+    if (button) button.setAttribute("aria-expanded", "true");
+  } else {
+    closeFriendDropdown();
+  }
+}
+
+// ─── Setup Widget ───
 export function createFriendButton() {
   const currentUser = loadCurrentUser();
   const currentUserId = currentUser?.id || null;
@@ -593,10 +604,6 @@ export function createFriendButton() {
   }
 
   if (friendWrapper) {
-    clearFriendSearchResult();
-    renderFriendRequests();
-    renderFriendList();
-    refreshFriendBadge();
     return friendWrapper;
   }
 
@@ -605,12 +612,10 @@ export function createFriendButton() {
   friendWrapper.className = "profile-menu friend-menu";
   friendWrapper.style.position = "relative";
   
-  const pendingCount = getPendingRequestsForMe().length;
-  const requestBadge = pendingCount > 0 ? `<span class="friend-request-badge">${pendingCount}</span>` : "";
+  listenToFriendUpdates();
 
   friendWrapper.innerHTML = `
     <button type="button" class="topbar-icon-btn friend-button" title="เพิ่มเพื่อน" aria-haspopup="true" aria-expanded="false">
-      ${requestBadge}
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
         <circle cx="9" cy="7" r="4"/>
@@ -626,13 +631,11 @@ export function createFriendButton() {
         </div>
       </div>
       <div class="profile-dropdown-items">
-        <!-- Friend Requests Section -->
         <div class="friend-requests-section">
           <div class="friend-section-title">คำขอเพิ่มเพื่อน</div>
           <div class="friend-requests"></div>
         </div>
 
-        <!-- Friend Search Section -->
         <form id="friend-add-form" class="friend-search-form">
           <input type="text" name="friendSearch" class="auth-input" placeholder="ค้นหาชื่อหรืออีเมล" required>
           <button type="submit" class="auth-button">ค้นหา</button>
@@ -641,7 +644,6 @@ export function createFriendButton() {
         
         <div class="friend-alert settings-message" aria-live="polite" style="display:none"></div>
 
-        <!-- Friends List Section -->
         <div class="friend-list-section">
           <div class="friend-section-title">รายชื่อเพื่อน</div>
           <div class="friend-list"></div>
@@ -661,7 +663,6 @@ export function createFriendButton() {
     event.stopPropagation();
   });
 
-  // Close all dropdowns when clicking outside
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".profile-menu")) {
       closeFriendDropdown();
@@ -674,101 +675,4 @@ export function createFriendButton() {
   friendWrapper.querySelector(".friend-requests").addEventListener("click", handleFriendRequestAction);
 
   return friendWrapper;
-}
-
-// Helper functions to load data (same as in auth.js)
-function normalizeUser(user) {
-  if (!user || typeof user !== "object") return user;
-  return {
-    id: user.id || user.email || `${user.name || "user"}-${Date.now()}`,
-    name: user.name || user.email || "ผู้ใช้",
-    email: user.email || "",
-    password: user.password || "",
-    avatar: user.avatar || "",
-    ...user,
-  };
-}
-
-function loadUsers() {
-  try {
-    const stored = JSON.parse(localStorage.getItem("rukthai_users")) || [];
-    const users = Array.isArray(stored) ? stored.map(normalizeUser) : [];
-    if (JSON.stringify(users) !== JSON.stringify(stored)) {
-      localStorage.setItem("rukthai_users", JSON.stringify(users));
-    }
-    return users;
-  } catch (error) {
-    return [];
-  }
-}
-
-function saveUsers(users) {
-  localStorage.setItem("rukthai_users", JSON.stringify(users));
-}
-
-function toFriendSummary(user) {
-  if (!user) return null;
-  return {
-    id: user.id,
-    name: user.name || user.email,
-    email: user.email || "",
-    avatar: user.avatar || ""
-  };
-}
-
-function getFriendsForUser(userId) {
-  const users = loadUsers();
-  const user = users.find(u => u.id === userId);
-  if (!user || !Array.isArray(user.friends)) return [];
-
-  return user.friends
-    .map(friend => {
-      if (typeof friend === "string") {
-        return toFriendSummary(users.find(u => u.id === friend));
-      }
-      return toFriendSummary(friend);
-    })
-    .filter(friend => friend && friend.id && friend.id !== userId);
-}
-
-function saveFriendsForUser(userId, friends) {
-  const users = loadUsers();
-  const userIndex = users.findIndex(u => u.id === userId);
-  if (userIndex === -1) return;
-
-  const uniqueFriends = [];
-  friends.forEach(friend => {
-    const summary = toFriendSummary(friend);
-    if (summary && summary.id !== userId && !uniqueFriends.some(item => item.id === summary.id)) {
-      uniqueFriends.push(summary);
-    }
-  });
-
-  users[userIndex] = { ...users[userIndex], friends: uniqueFriends };
-  saveUsers(users);
-
-  const currentUser = loadCurrentUser();
-  if (currentUser?.id === userId) {
-    localStorage.setItem("rukthai_current_user", JSON.stringify({
-      ...currentUser,
-      friends: uniqueFriends
-    }));
-  }
-}
-
-function areUsersFriends(userId, otherUserId) {
-  return getFriendsForUser(userId).some(friend => friend.id === otherUserId);
-}
-
-function loadCurrentUser() {
-  try {
-    const stored = JSON.parse(localStorage.getItem("rukthai_current_user"));
-    const user = normalizeUser(stored);
-    if (user && (!stored || user.id !== stored.id)) {
-      localStorage.setItem("rukthai_current_user", JSON.stringify(user));
-    }
-    return user;
-  } catch (error) {
-    return null;
-  }
 }

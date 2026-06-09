@@ -1424,6 +1424,12 @@ async function pushMoveToFirebase(move, promoted, captured, endReason) {
 // ════════════════════════════════════════════════
 function listenToGame(gid) {
   gameRef = ref(db, `games/${gid}`);
+
+  // 📌 เปลี่ยนสถานะเป็น "กำลังเล่น" ทันทีที่เข้าห้องเกมสำเร็จ
+  if (typeof window.setCurrentUserStatus === "function") {
+    window.setCurrentUserStatus("playing");
+  }
+
   // onDisconnect: mark player as disconnected
   onDisconnect(ref(db, `games/${gid}/conn_${myColor}`)).set(false);
 
@@ -1549,6 +1555,8 @@ function listenToGame(gid) {
 // ════════════════════════════════════════════════
 //   GAME END
 // ════════════════════════════════════════════════
+
+
 // ════════════════════════════════════════════════
 //   SPECIAL RULES: รุกล้อ 3 ครั้ง, ศักดิ์กระดาน, ศักดิ์หมาก
 // ════════════════════════════════════════════════
@@ -1655,6 +1663,9 @@ function updateSpecialRulesUI() {
 }
 
 function endGame(reason, winner) {
+  if (typeof window.setCurrentUserStatus === "function") {
+    window.setCurrentUserStatus("online");
+  }
   stopClock();
   gameOver = true;
 
@@ -2115,6 +2126,11 @@ renderBoard();
 document.getElementById('mm-overlay').classList.remove('hidden');
 showStep('mm-select');
 if (!myUid) document.getElementById('mm-login-warn').classList.remove('hidden');
+window.addEventListener('beforeunload', () => {
+  if (typeof window.setCurrentUserStatus === "function") {
+    window.setCurrentUserStatus("online");
+  }
+});
 </script>
 </body>
 </html>
