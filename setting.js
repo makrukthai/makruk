@@ -110,44 +110,6 @@ export function createSettingsModal() {
             <input type="checkbox" name="soundNotifications">
           </label>
         </div>
-
-        <!-- ── Board picker ── -->
-        <div class="settings-section">
-          <div class="settings-section-title">เลือกกระดาน</div>
-          <div class="settings-board-grid">
-            <label class="board-choice">
-              <input type="radio" name="boardBackground" value="Board6.png">
-              <img src="/Boards/Board6.png" alt="กระดาน 6">
-              <span>กระดาน 6</span>
-            </label>
-            <label class="board-choice">
-              <input type="radio" name="boardBackground" value="Board7.png">
-              <img src="/Boards/Board7.png" alt="กระดาน 7">
-              <span>กระดาน 7</span>
-            </label>
-            <label class="board-choice">
-              <input type="radio" name="boardBackground" value="Board8.png">
-              <img src="/Boards/Board8.png" alt="กระดาน 8">
-              <span>กระดาน 8</span>
-            </label>
-            <label class="board-choice">
-              <input type="radio" name="boardBackground" value="Board9.png">
-              <img src="/Boards/Board9.png" alt="กระดาน 9">
-              <span>กระดาน 9</span>
-            </label>
-            <label class="board-choice">
-              <input type="radio" name="boardBackground" value="Board1.png">
-              <img src="/Boards/Board1.png" alt="กระดาน 1">
-              <span>กระดาน 1</span>
-            </label>
-            <label class="board-choice">
-              <input type="radio" name="boardBackground" value="Board2.png">
-              <img src="/Boards/Board2.png" alt="กระดาน 2">
-              <span>กระดาน 2</span>
-            </label>
-          </div>
-        </div>
-
         <button type="submit" class="auth-button">บันทึกการตั้งค่า</button>
       </form>
       <div class="settings-message" aria-live="polite"></div>
