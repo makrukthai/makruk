@@ -467,20 +467,20 @@ html[data-background-mode="light"] .time-modal {
             <span class="menu-card-arrow">›</span>
           </button>
 
-          <button class="menu-card" id="btn-friend">
-            <div class="menu-card-icon friend">🤝</div>
-            <div>
-              <div class="menu-card-title">เล่นกับเพื่อน</div>
-              <div class="menu-card-desc">ชวนเพื่อนมาเล่นด้วยกัน</div>
-            </div>
-            <span class="menu-card-arrow">›</span>
-          </button>
-
           <button class="menu-card" id="btn-tourney">
             <div class="menu-card-icon tourney">🏆</div>
             <div>
               <div class="menu-card-title">ทัวร์นาเมนต์</div>
               <div class="menu-card-desc">เข้าร่วมการแข่งขันและลุ้นรางวัล</div>
+            </div>
+            <span class="menu-card-arrow">›</span>
+          </button>
+
+          <button class="menu-card" id="btn-analysis">
+            <div class="menu-card-icon analysis">🔍</div>
+            <div>
+              <div class="menu-card-title">วิเคราะห์เกม</div>
+              <div class="menu-card-desc">ดูการเคลื่อนไหวของหมากรุกที่ผ่านมา</div>
             </div>
             <span class="menu-card-arrow">›</span>
           </button>
@@ -633,21 +633,18 @@ document.querySelectorAll('.time-option').forEach(btn => {
   });
 });
 
-// กดเริ่มเกมกับบอท (โยนพารามิเตอร์ไป play-bot.html)
 document.getElementById('start-bot').addEventListener('click', () => {
   if (!selectedMinutes) return;
   window.location.href = `play-bot.html?time=${selectedMinutes}&depth=${selectedDepth}`;
 });
-
-// ปุมเมนูอื่นๆ
 document.getElementById('btn-online').addEventListener('click', () => {
   window.location.href = 'play-online.html';
 });
-document.getElementById('btn-friend').addEventListener('click', () => {
-  alert('เล่นกับเพื่อน — เร็วๆ นี้!');
-});
 document.getElementById('btn-tourney').addEventListener('click', () => {
-  alert('ทัวร์นาเมนต์ — เร็วๆ นี้!');
+  window.location.href = 'tournament.html';
+});
+document.getElementById('btn-analysis').addEventListener('click', () => {
+  window.location.href = 'analysis.html';
 });
 </script>
 </body>
