@@ -146,21 +146,28 @@ function renderBoard(boardState, selected, legalForSelected, lastMove, turn, fli
   const el = document.getElementById('chess-board');
   if (!el) return;
   el.replaceChildren();
+  
+  // ล็อกไม่ให้จอมือถือเลื่อนเวลาพยายามลากหมาก
+  el.style.touchAction = 'none';
+
   const rowOrder = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
   const colOrder = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
-  
-  // เช็คว่าเป็นตาของเราหรือไม่
-  const isMyTurn = (turn === window.myColor && !window.gameOver);
 
   rowOrder.forEach(row => {
     colOrder.forEach(col => {
       const cell = document.createElement('button');
       cell.type = 'button';
       cell.className = `chess-cell ${(row+col)%2===0?'light':'dark'}`;
+      
+      // เก็บพิกัดไว้ที่ DOM เพื่อให้อ้างอิงง่าย
+      cell.dataset.row = row;
+      cell.dataset.col = col;
 
       if (lastMove && ((lastMove.from.row===row&&lastMove.from.col===col) || (lastMove.to.row===row&&lastMove.to.col===col))) 
         cell.classList.add('last-move');
-      if (selected && selected.row===row && selected.col===col) cell.classList.add('selected');
+      
+      if (selected && selected.row===row && selected.col===col) 
+        cell.classList.add('selected');
 
       const isLegal = legalForSelected && legalForSelected.some(m=>m.to.row===row&&m.to.col===col);
       if (isLegal) cell.classList.add(boardState[row][col] ? 'capture' : 'legal');
@@ -178,34 +185,134 @@ function renderBoard(boardState, selected, legalForSelected, lastMove, turn, fli
         img.src = `../Pieces/${piece}.png`;
         img.alt = piece;
         
-        // 📌 เพิ่มระบบลากวาง (Drag & Drop)
-        if (isMyTurn && colorOf(piece) === window.myColor) {
-          img.draggable = true;
-          img.addEventListener('dragstart', e => {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', JSON.stringify({row, col}));
-            if (onCellClick) onCellClick(row, col); // เลือกหมากทันทีที่เริ่มลาก
+        img.draggable = false; 
+
+        // 📌 เมื่อเริ่มจับตัวหมาก
+        img.addEventListener('pointerdown', (e) => {
+          if (window.gameOver) return;
+
+          const movingColor = colorOf(piece);
+          
+          // ป้องกันไม่ให้หยิบหมากคู่แข่ง (ยกเว้นอยู่ในโหมด setup ของหน้า analysis)
+          if (window.myColor !== null && window.myColor !== movingColor) {
+             if (typeof currentMode === 'undefined' || currentMode !== 'setup') return;
+          }
+
+          e.preventDefault(); 
+          e.stopPropagation();
+
+          // 📌 1. โชว์จุดสีเทา (ตาเดิน) และไฮไลต์ช่องทันทีที่เอามือแตะ
+          let moves = [];
+          if (!window.myColor || (window.myColor === movingColor && turn === movingColor)) {
+              moves = window.getLegalMoves(boardState, row, col);
+          }
+
+          const chessCells = el.querySelectorAll('.chess-cell');
+          chessCells.forEach(c => {
+             const cr = parseInt(c.dataset.row);
+             const cc = parseInt(c.dataset.col);
+             
+             // ไฮไลต์ช่องที่เราจับหมากอยู่
+             if (cr === row && cc === col) {
+                c.classList.add('selected'); 
+             }
+
+             // แสดงจุดสีเทาและกรอบสีแดงโดยใช้คลาสปกติของระบบ
+             const isLegalMove = moves.some(m => m.to.row === cr && m.to.col === cc);
+             if (isLegalMove) {
+                c.classList.add(boardState[cr][cc] ? 'capture' : 'legal');
+             }
           });
-        }
+
+          // สร้างหมากจำลอง (Clone) ให้ลอยติดเคอร์เซอร์
+          const rect = img.getBoundingClientRect();
+          const clone = img.cloneNode(true);
+          clone.classList.add('dragging-piece');
+          clone.style.width = `${rect.width}px`;
+          clone.style.height = `${rect.height}px`;
+          document.body.appendChild(clone);
+
+          img.style.opacity = '0.3'; // ให้ตัวจริงจางลง
+          
+          const moveAt = (pageX, pageY) => {
+            clone.style.left = pageX - rect.width / 2 + 'px';
+            clone.style.top = pageY - rect.height / 2 + 'px';
+          };
+          moveAt(e.pageX, e.pageY);
+
+          // ตัวแปรแยกว่า "คลิกเฉยๆ" หรือ "กำลังลาก"
+          let startX = e.pageX;
+          let startY = e.pageY;
+          let isDragging = false;
+
+          const onPointerMove = (moveEvent) => {
+            moveEvent.preventDefault();
+            // ถ้าขยับเมาส์/นิ้วเกิน 5px ถือว่ากำลังลาก
+            if (Math.abs(moveEvent.pageX - startX) > 5 || Math.abs(moveEvent.pageY - startY) > 5) {
+               isDragging = true;
+            }
+            moveAt(moveEvent.pageX, moveEvent.pageY);
+          };
+
+          // 📌 2. เมื่อปล่อยตัวหมาก (Drop)
+          const onPointerUp = (upEvent) => {
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+            clone.remove(); 
+            img.style.opacity = '1'; 
+
+            // ล้างคลาสไฮไลต์ชั่วคราวออกไปเพื่อคืนค่าเดิม
+            chessCells.forEach(c => {
+                c.classList.remove('legal', 'capture', 'selected');
+            });
+
+            clone.hidden = true; 
+            const elemBelow = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
+            clone.hidden = false;
+
+            if (!isDragging) {
+                // 📌 ถ้าแค่จิ้มเฉยๆ ไม่ได้ลาก ให้ถือเป็นการ "คลิกปกติ" เพื่อโชว์จุดค้างไว้เหมือนเดิม
+                if (onCellClick) onCellClick(row, col);
+            } else {
+                // 📌 ถ้าเป็นการ "ลากไปวาง"
+                if (elemBelow) {
+                  const targetCell = elemBelow.closest('.chess-cell');
+                  if (targetCell) {
+                    const targetRow = parseInt(targetCell.dataset.row);
+                    const targetCol = parseInt(targetCell.dataset.col);
+                    
+                    if (targetRow !== row || targetCol !== col) {
+                      // วางลงช่องใหม่ ตรวจสอบและเดินหมาก
+                      if (onDropMove) onDropMove({row, col}, {row: targetRow, col: targetCol});
+                    } else {
+                      // ลากไปวางทับช่องเดิมเป๊ะๆ ให้โชว์จุดค้างไว้เหมือนโดนคลิก
+                      if (onCellClick) onCellClick(row, col);
+                    }
+                  }
+                }
+            }
+          };
+
+          document.addEventListener('pointermove', onPointerMove, {passive: false});
+          document.addEventListener('pointerup', onPointerUp);
+        });
+
         cell.appendChild(img);
       }
 
-      if (!isMyTurn) cell.classList.add('not-my-turn');
+      // ปรับหน้าตากระดานสำหรับฝ่ายที่ไม่ได้เดิน
+      if (turn !== window.myColor && !window.gameOver && window.myColor !== null && window.myColor !== turn) {
+        cell.classList.add('not-my-turn');
+      }
       
-      // 📌 Event กดคลิก และ ปล่อยหมาก (Drop)
-      cell.addEventListener('click', () => onCellClick && onCellClick(row, col));
-      cell.addEventListener('dragover', e => e.preventDefault());
-      cell.addEventListener('drop', e => {
-        e.preventDefault();
-        if (!isMyTurn) return;
-        const payload = e.dataTransfer.getData('text/plain');
-        if (!payload) return;
-        try {
-          const from = JSON.parse(payload);
-          if (from.row === row && from.col === col) return;
-          if (onDropMove) onDropMove(from, {row, col});
-        } catch(err) {}
+      // รองรับการจิ้มช่องว่าง หรือจิ้มหมากศัตรู
+      cell.addEventListener('pointerdown', (e) => {
+        if (window.gameOver) return;
+        if (e.target.tagName !== 'IMG' && onCellClick) {
+           onCellClick(row, col);
+        }
       });
+      
       el.appendChild(cell);
     });
   });

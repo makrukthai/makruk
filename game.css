@@ -89,7 +89,21 @@
   width: calc(var(--cell) * 0.82);
   height: calc(var(--cell) * 0.82);
   object-fit: contain;
-  pointer-events: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.chess-cell .piece-img:active {
+  cursor: grabbing;
+}
+
+.dragging-piece {
+  position: absolute !important;
+  z-index: 9999 !important;
+  pointer-events: none !important; /* ปล่อยให้เมาส์ทะลุไปจับช่องกระดานด้านล่างได้ */
+  cursor: grabbing !important;
+  transform: scale(1.15); /* ขยายตัวหมากให้ใหญ่ขึ้นนิดนึงตอนหยิบ จะได้ดูมีมิติ */
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); /* เพิ่มเงาตอนลอย */
 }
 
 /* Player card */
