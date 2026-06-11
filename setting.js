@@ -1,16 +1,21 @@
 const STORAGE_SETTINGS_KEY = "rukthai_settings";
 let settingsModal = null;
 
+// 1. รวมค่าเริ่มต้น (Default) ไว้ที่เดียวกัน
 const DEFAULT_SETTINGS = {
   backgroundMode: "dark",
   emailNotifications: true,
   soundNotifications: true,
   boardBackground: "Board9.png",
+  moveMethod: "both",  // เพิ่มการเดินหมาก
+  showMoves: "show"    // เพิ่มการแสดงตาเดิน
 };
 
 function loadSettings() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_SETTINGS_KEY)) || DEFAULT_SETTINGS;
+    const saved = JSON.parse(localStorage.getItem(STORAGE_SETTINGS_KEY));
+    // รวมค่าที่เซฟไว้ กับค่าเริ่มต้น เผื่อมีคีย์ใหม่ๆ เพิ่มเข้ามา
+    return saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS;
   } catch (error) {
     return DEFAULT_SETTINGS;
   }
@@ -32,12 +37,19 @@ function populateSettingsForm() {
   if (!settingsModal) return;
   const settings = loadSettings();
   const form = settingsModal.querySelector("#settings-form");
+  
   form.elements.backgroundMode.value = settings.backgroundMode;
   form.elements.emailNotifications.checked = settings.emailNotifications;
   form.elements.soundNotifications.checked = settings.soundNotifications;
   if (form.elements.boardBackground) {
     form.elements.boardBackground.value = settings.boardBackground;
   }
+
+  // 2. ดึงค่าการเดินหมากและจุดสีเทามาแสดงให้ตรงตอนเปิดหน้าตั้งค่า
+  const moveSelect = form.querySelector("#set-move-method");
+  const showSelect = form.querySelector("#set-show-moves");
+  if (moveSelect) moveSelect.value = settings.moveMethod;
+  if (showSelect) showSelect.value = settings.showMoves;
 }
 
 function showSettingsMessage(message) {
@@ -56,15 +68,27 @@ function handleSettingsSubmit(event) {
   if (!settingsModal) return;
 
   const form = event.target;
+  const moveSelect = form.querySelector("#set-move-method");
+  const showSelect = form.querySelector("#set-show-moves");
+
+  // 3. เซฟข้อมูลทั้งหมดพร้อมกันรวดเดียว
   const settings = {
     backgroundMode: form.elements.backgroundMode.value,
     emailNotifications: form.elements.emailNotifications.checked,
     soundNotifications: form.elements.soundNotifications.checked,
     boardBackground: form.elements.boardBackground?.value || "Board9.png",
+    moveMethod: moveSelect ? moveSelect.value : "both",
+    showMoves: showSelect ? showSelect.value : "show",
   };
 
   saveSettings(settings);
   applyThemeAndBackground();
+  
+  // 4. บังคับอัปเดตหน้ากระดานทันทีที่กดบันทึก
+  if (typeof window.syncSharedStateAndRender === 'function') {
+    window.syncSharedStateAndRender();
+  }
+
   showSettingsMessage("บันทึกการตั้งค่าเรียบร้อยแล้ว");
 }
 
@@ -86,7 +110,6 @@ export function createSettingsModal() {
       <h2 id="settings-modal-title">ตั้งค่า</h2>
       <form id="settings-form" class="auth-form">
 
-        <!-- ── Appearance ── -->
         <div class="settings-section">
           <div class="settings-section-title">รูปแบบการแสดงผล</div>
           <div class="settings-row">
@@ -98,7 +121,27 @@ export function createSettingsModal() {
           </div>
         </div>
 
-        <!-- ── Notifications ── -->
+        <div class="settings-section">
+          <div class="settings-section-title">การควบคุมเกม</div>
+          
+          <div class="settings-row" style="margin-bottom: 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;">
+            <span class="settings-row-label" style="font-weight: 600;">การเดินหมาก</span>
+            <select id="set-move-method" class="auth-input" style="width: 100%;">
+              <option value="both">ลาก + คลิก (มาตรฐาน)</option>
+              <option value="drag">ลาก (ไม่สามารถคลิกได้)</option>
+              <option value="click">คลิก (ไม่สามารถลากได้)</option>
+            </select>
+          </div>
+
+          <div class="settings-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px;">
+            <span class="settings-row-label" style="font-weight: 600;">แสดงตาเดิน (จุดสีเทา)</span>
+            <select id="set-show-moves" class="auth-input" style="width: 100%;">
+              <option value="show">แสดงจุดตาเดิน</option>
+              <option value="hide">ไม่แสดงตาเดิน</option>
+            </select>
+          </div>
+        </div>
+
         <div class="settings-section">
           <div class="settings-section-title">การแจ้งเตือน</div>
           <label class="settings-toggle">

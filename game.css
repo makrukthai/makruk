@@ -92,7 +92,6 @@
   user-select: none;
   cursor: grab;
 }
-
 .chess-cell .piece-img:active {
   cursor: grabbing;
 }
@@ -104,6 +103,20 @@
   cursor: grabbing !important;
   transform: scale(1.15); /* ขยายตัวหมากให้ใหญ่ขึ้นนิดนึงตอนหยิบ จะได้ดูมีมิติ */
   filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); /* เพิ่มเงาตอนลอย */
+}
+
+.chess-cell.drag-legal::after {
+  content: '';
+  position: absolute;
+  width: 30%;
+  height: 30%;
+  background: rgba(131,131,131,0.77);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.chess-cell.drag-capture {
+  outline: 3px solid rgba(239,100,68,0.7);
+  outline-offset: -2px;
 }
 
 /* Player card */
