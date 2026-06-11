@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>RUKTHAI - วิเคราะห์เกม & จัดกระดาน</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
@@ -16,12 +16,16 @@
   overflow-x: hidden; 
   overflow-y: auto;
   background: var(--bg);
+  /* ป้องกันการเผลอคลุมดำหรือซูมหน้าจอบนมือถือ */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .analysis-main {
   min-height: calc(100vh - 64px);
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* เปลี่ยนจาก center เป็น flex-start เพื่อให้บอร์ดอยู่ด้านบนเสมอในมือถือ */
   justify-content: center;
   padding: 20px 0;
 }
@@ -147,8 +151,8 @@ html[data-background-mode="light"] .palette-card {
 .palette-btn.eraser {
   grid-column: span 6;
   aspect-ratio: auto;
-  padding: 8px;
-  font-size: 12px;
+  padding: 10px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
   gap: 6px;
@@ -172,7 +176,6 @@ html[data-background-mode="light"] .palette-card {
   border-color: rgba(128,128,128,0.2);
 }
 
-/* 📌 ปุ่มเริ่มเล่นจากกระดานที่จัด (เด่นเป็นพิเศษ) */
 .btn-start-custom {
   background: linear-gradient(135deg, #22c55e, #16a34a) !important;
   color: white !important;
@@ -186,13 +189,32 @@ html[data-background-mode="light"] .palette-card {
   box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
 }
 
+/* 📌 ปรับแต่งสำหรับหน้าจอมือถือโดยเฉพาะ */
 @media screen and (max-width: 850px) {
-  .analysis-layout {
-    grid-template-columns: 1fr;
-    gap: 20px;
+  .analysis-main {
+    padding: 10px 0 30px 0; /* ลดช่องว่างด้านบน */
   }
+
+  .analysis-layout {
+    grid-template-columns: 1fr; /* ยุบรวมเป็นคอลัมน์เดียว */
+    gap: 16px;
+    padding: 0 12px;
+  }
+
   .right-panel {
     width: 100%;
+  }
+
+  /* เรียงปุ่มกดใหม่บนมือถือให้เป็น 2 คอลัมน์ ไม่เปลืองที่แนวตั้ง */
+  .action-buttons-vertical {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ปุ่มเริ่มเล่น, ล้างกระดาน และ กลับหน้าหลัก ให้กว้างเต็มบรรทัด */
+  .btn-start-custom, .btn-clear-board, #btn-back {
+    grid-column: span 2;
   }
 }
 </style>
@@ -207,13 +229,12 @@ html[data-background-mode="light"] .palette-card {
         <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
       </div>
     </a>
-    <nav class="nav">
+    <nav class="nav mobile-hidden">
       <a href="play.html">เล่น</a>
       <a href="tournament.html">ทัวร์นาเมนต์</a>
       <a href="learn.html">เรียนรู้</a>
       <a href="watch.html">ดูเกม</a>
       <a href="community.html">ชุมชน</a>
-      <input class="search" placeholder="ค้นหาผู้เล่น...">
     </nav>
   </div>
   <div class="right">
@@ -300,7 +321,7 @@ html[data-background-mode="light"] .palette-card {
 // ════════════════════════════════════════════════
 //   STATE VARIABLES
 // ════════════════════════════════════════════════
-let currentMode = 'analyze';   // 'analyze' (ทดลองเดิน) | 'setup' (จัดกระดาน)
+let currentMode = 'analyze';   
 let activePaletteTool = null;  
 
 let boardState = window.cloneBoard(window.INITIAL_BOARD);
@@ -308,16 +329,25 @@ let turn = 'w';
 let selected = null, legalForSelected = [];
 let lastMove = null;
 let flipped = false;
-let analysisGameOver = false; // ตรวจสอบสถานะว่ารุกจนหรือยัง
+let analysisGameOver = false; 
 
 // ════════════════════════════════════════════════
 //   LAYOUT & RENDER CORES
 // ════════════════════════════════════════════════
 function calcCell() {
-  const overallMargin = 64 + 80 + 100; 
-  const ah = window.innerHeight - overallMargin;
-  const aw = window.innerWidth > 850 ? window.innerWidth - 340 : window.innerWidth - 40;
-  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 76));
+  const isMobile = window.innerWidth <= 850;
+  
+  if (isMobile) {
+    // 📌 บนมือถือให้เน้นขยายความกว้างเต็มจอ (เผื่อขอบไว้เล็กน้อย)
+    const availableWidth = window.innerWidth - 32; 
+    return Math.max(30, Math.floor(availableWidth / 8));
+  } else {
+    // บน PC คำนวณแบบเดิม
+    const overallMargin = 64 + 80 + 100; 
+    const ah = window.innerHeight - overallMargin;
+    const aw = window.innerWidth - 340;
+    return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 76));
+  }
 }
 
 function updateLayoutSize() {
@@ -328,7 +358,7 @@ function updateLayoutSize() {
 
 function syncSharedStateAndRender() {
   window.myColor = turn;
-  window.gameOver = analysisGameOver; // ถ้าเกมจบบนกระดานทดลองเดิน จะล็อกไม่ให้ขยับ
+  window.gameOver = analysisGameOver; 
 
   window.renderBoard(
     boardState, 
@@ -344,7 +374,7 @@ function syncSharedStateAndRender() {
 
 function updateStatusUI() {
   const statusEl = document.getElementById('game-status');
-  statusEl.style.color = ''; // รีเซ็ตสีตัวอักษร
+  statusEl.style.color = ''; 
   
   if (analysisGameOver) {
     const isCheck = window.isInCheck(boardState, turn);
@@ -378,13 +408,13 @@ function handleCellClick(row, col) {
     selected = null;
     legalForSelected = [];
     lastMove = null;
-    analysisGameOver = false; // รีเซ็ตสถานะจบเกมเมื่อจัดกระดานใหม่
+    analysisGameOver = false; 
     syncSharedStateAndRender();
     updateStatusUI();
     return;
   }
 
-  if (analysisGameOver) return; // ถ้ารุกจนแล้ว ไม่ให้คลิกเดินต่อ
+  if (analysisGameOver) return; 
 
   const piece = boardState[row][col];
   if (selected) {
@@ -443,7 +473,6 @@ function executeAnalysisMove(move) {
   legalForSelected = [];
   turn = window.opposite(turn); 
 
-  // 📌 ตรวจสอบสถานะจบเกม (รุกจน หรือ อับ)
   const availableMoves = window.getAllLegalMoves(boardState, turn);
   if (availableMoves.length === 0) {
     analysisGameOver = true;
@@ -457,21 +486,18 @@ function executeAnalysisMove(move) {
 //   UI INTERACTIVE INTERFACES & EVENTS
 // ════════════════════════════════════════════════
 
-// เปลี่ยนโหมดเป็น "ทดลองเดิน"
 document.getElementById('mode-analyze-btn').addEventListener('click', () => {
   currentMode = 'analyze';
   document.getElementById('mode-analyze-btn').classList.add('active');
   document.getElementById('mode-setup-btn').classList.remove('active');
   document.getElementById('palette-card').classList.add('hidden');
   
-  // ซ่อนปุ่มฝั่ง Setup
   document.getElementById('btn-clear-board').classList.add('hidden');
   document.getElementById('btn-start-custom').classList.add('hidden');
   
   activePaletteTool = null;
   document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('selected'));
   
-  // เช็คก่อนว่ากระดานที่จัดใหม่นี้ ผู้เล่นฝั่งที่จะเดิน มีตาเดินได้ไหม?
   const availableMoves = window.getAllLegalMoves(boardState, turn);
   analysisGameOver = (availableMoves.length === 0);
   
@@ -481,30 +507,28 @@ document.getElementById('mode-analyze-btn').addEventListener('click', () => {
   updateStatusUI();
 });
 
-// เปลี่ยนโหมดเป็น "จัดกระดาน"
 document.getElementById('mode-setup-btn').addEventListener('click', () => {
   currentMode = 'setup';
   document.getElementById('mode-setup-btn').classList.add('active');
   document.getElementById('mode-analyze-btn').classList.remove('active');
   document.getElementById('palette-card').classList.remove('hidden');
   
-  // แสดงปุ่มฝั่ง Setup
   document.getElementById('btn-clear-board').classList.remove('hidden');
   document.getElementById('btn-start-custom').classList.remove('hidden');
   
   selected = null;
   legalForSelected = [];
-  analysisGameOver = false; // ปลดล็อกการเดิน
+  analysisGameOver = false; 
   syncSharedStateAndRender();
   updateStatusUI();
 });
 
-// 📌 ปุ่มสีเขียว: สลับจากจัดกระดานไปหน้าเล่นปกติ (แค่ทริกเกอร์คลิกปุ่มโหมด Analyze)
 document.getElementById('btn-start-custom').addEventListener('click', () => {
   document.getElementById('mode-analyze-btn').click();
+  // บนมือถือเมื่อกดปุ่มนี้ ให้เลื่อนหน้าจอกลับไปที่กระดานด้านบนสุด
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-// การเลือกไอเทมกระบะ
 document.querySelectorAll('.palette-btn[data-piece]').forEach(btn => {
   btn.addEventListener('click', () => {
     if (currentMode !== 'setup') return;
@@ -527,7 +551,6 @@ document.getElementById('btn-toggle-turn').addEventListener('click', () => {
   selected = null;
   legalForSelected = [];
   
-  // รีเช็คสถานะรุกจนอีกรอบเมื่อเปลี่ยนตา
   if (currentMode === 'analyze') {
     const availableMoves = window.getAllLegalMoves(boardState, turn);
     analysisGameOver = (availableMoves.length === 0);
