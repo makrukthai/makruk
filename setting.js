@@ -1,20 +1,17 @@
 const STORAGE_SETTINGS_KEY = "rukthai_settings";
 let settingsModal = null;
 
-// 1. รวมค่าเริ่มต้น (Default) ไว้ที่เดียวกัน
+// 1. ปรับค่าเริ่มต้น (Default) โดยตัดส่วนการแจ้งเตือนออก
 const DEFAULT_SETTINGS = {
   backgroundMode: "dark",
-  emailNotifications: true,
-  soundNotifications: true,
   boardBackground: "Board9.png",
-  moveMethod: "both",  // เพิ่มการเดินหมาก
-  showMoves: "show"    // เพิ่มการแสดงตาเดิน
+  moveMethod: "both",  
+  showMoves: "show"    
 };
 
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_SETTINGS_KEY));
-    // รวมค่าที่เซฟไว้ กับค่าเริ่มต้น เผื่อมีคีย์ใหม่ๆ เพิ่มเข้ามา
     return saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS;
   } catch (error) {
     return DEFAULT_SETTINGS;
@@ -39,13 +36,11 @@ function populateSettingsForm() {
   const form = settingsModal.querySelector("#settings-form");
   
   form.elements.backgroundMode.value = settings.backgroundMode;
-  form.elements.emailNotifications.checked = settings.emailNotifications;
-  form.elements.soundNotifications.checked = settings.soundNotifications;
   if (form.elements.boardBackground) {
     form.elements.boardBackground.value = settings.boardBackground;
   }
 
-  // 2. ดึงค่าการเดินหมากและจุดสีเทามาแสดงให้ตรงตอนเปิดหน้าตั้งค่า
+  // ดึงค่าการเดินหมากและจุดสีเทามาแสดงให้ตรงตอนเปิดหน้าตั้งค่า
   const moveSelect = form.querySelector("#set-move-method");
   const showSelect = form.querySelector("#set-show-moves");
   if (moveSelect) moveSelect.value = settings.moveMethod;
@@ -71,11 +66,9 @@ function handleSettingsSubmit(event) {
   const moveSelect = form.querySelector("#set-move-method");
   const showSelect = form.querySelector("#set-show-moves");
 
-  // 3. เซฟข้อมูลทั้งหมดพร้อมกันรวดเดียว
+  // บันทึกเฉพาะข้อมูลที่มีอยู่จริง (ตัดตัวแปรกดรับแจ้งเตือนออกแล้ว)
   const settings = {
     backgroundMode: form.elements.backgroundMode.value,
-    emailNotifications: form.elements.emailNotifications.checked,
-    soundNotifications: form.elements.soundNotifications.checked,
     boardBackground: form.elements.boardBackground?.value || "Board9.png",
     moveMethod: moveSelect ? moveSelect.value : "both",
     showMoves: showSelect ? showSelect.value : "show",
@@ -84,7 +77,7 @@ function handleSettingsSubmit(event) {
   saveSettings(settings);
   applyThemeAndBackground();
   
-  // 4. บังคับอัปเดตหน้ากระดานทันทีที่กดบันทึก
+  // บังคับอัปเดตหน้ากระดานทันทีที่กดบันทึก
   if (typeof window.syncSharedStateAndRender === 'function') {
     window.syncSharedStateAndRender();
   }
@@ -142,18 +135,7 @@ export function createSettingsModal() {
           </div>
         </div>
 
-        <div class="settings-section">
-          <div class="settings-section-title">การแจ้งเตือน</div>
-          <label class="settings-toggle">
-            <span>รับการแจ้งเตือนทางอีเมล</span>
-            <input type="checkbox" name="emailNotifications">
-          </label>
-          <label class="settings-toggle">
-            <span>เสียงแจ้งเตือน</span>
-            <input type="checkbox" name="soundNotifications">
-          </label>
-        </div>
-        <button type="submit" class="auth-button">บันทึกการตั้งค่า</button>
+        <button type="submit" class="auth-button" style="margin-top: 10px;">บันทึกการตั้งค่า</button>
       </form>
       <div class="settings-message" aria-live="polite"></div>
     </div>
