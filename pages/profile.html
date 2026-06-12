@@ -377,10 +377,92 @@
   .trend-down { background: rgba(239,68,68,0.12);  color: #ef4444; }
   .trend-flat { background: rgba(251,191,36,0.12);  color: #fbbf24; }
 
+  /* ── HEAD-TO-HEAD (vs current user) ── */
+  .h2h-section {
+    grid-column: 2;
+    grid-row: 2;
+    margin-bottom: 4px;
+  }
+
+  .h2h-panel {
+    background: var(--bg2);
+    border: 1px solid rgba(128,128,128,0.18);
+    border-radius: 20px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  html[data-background-mode="light"] .h2h-panel {
+    background: linear-gradient(160deg, #f5f5f5 0%, #ededed 100%);
+    border-color: rgba(0,0,0,0.12);
+  }
+
+  .h2h-panel::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(214,177,107,0.6), transparent);
+  }
+
+  .h2h-title {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .h2h-subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .h2h-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .h2h-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-align: center;
+  }
+
+  html[data-background-mode="light"] .h2h-box {
+    background: rgba(0,0,0,0.03);
+    border-color: rgba(0,0,0,0.08);
+  }
+
+  .h2h-box-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .h2h-box-value {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .h2h-box-value.win  { color: #4ade80; }
+  .h2h-box-value.draw { color: #fbbf24; }
+  .h2h-box-value.loss { color: #ef4444; }
+
   /* ── RIGHT BOTTOM: History ── */
   .history-section {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 3;
   }
 
   .history-panel {
@@ -519,6 +601,47 @@
 
   .date-text { color: var(--muted); font-size: 0.85rem; }
 
+  /* ── Read-only viewing banner ── */
+  .viewing-banner {
+    grid-column: 1 / 3;
+    grid-row: 0;
+    background: rgba(214,177,107,0.1);
+    border: 1px solid rgba(214,177,107,0.3);
+    border-radius: 14px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .viewing-banner-text {
+    font-size: 0.9rem;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .viewing-banner-text strong { color: #d6b16b; }
+
+  .btn-back-game {
+    background: rgba(128,128,128,0.12);
+    border: 1px solid rgba(128,128,128,0.3);
+    color: var(--text);
+    padding: 7px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: 'Noto Sans Thai', sans-serif;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-back-game:hover {
+    background: rgba(128,128,128,0.22);
+  }
+
   /* ── Animations ── */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
@@ -527,6 +650,7 @@
 
   .profile-card    { animation: fadeUp 0.4s ease both; }
   .elo-section     { animation: fadeUp 0.4s 0.1s ease both; }
+  .h2h-section     { animation: fadeUp 0.4s 0.15s ease both; }
   .history-section { animation: fadeUp 0.4s 0.2s ease both; }
   
   .btn-replay-link {
@@ -536,6 +660,17 @@
   }
   .btn-replay-link:hover {
     background: #f0d8a1; color: #1a1a1a; border-color: #f0d8a1;
+  }
+
+  @media screen and (max-width: 900px) {
+    .profile-wrapper {
+      grid-template-columns: 1fr;
+    }
+    .profile-card, .elo-section, .h2h-section, .history-section {
+      grid-column: 1;
+    }
+    .profile-card { grid-row: auto; }
+    .h2h-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -566,6 +701,14 @@
 
 <main class="profile-main">
   <div class="profile-wrapper">
+
+    <!-- แถบแจ้งเตือนเมื่อกำลังดูโปรไฟล์ผู้เล่นอื่น (อ่านอย่างเดียว) -->
+    <div class="viewing-banner hidden" id="viewing-banner">
+      <div class="viewing-banner-text">
+        👁 กำลังดูโปรไฟล์ของ <strong id="viewing-name">ผู้เล่น</strong> (ดูอย่างเดียว แก้ไขไม่ได้)
+      </div>
+      <button class="btn-back-game" id="btn-back-game">← ย้อนกลับ</button>
+    </div>
 
     <div class="profile-card">
       <div class="avatar-wrap">
@@ -645,10 +788,37 @@
       </div>
     </div>
 
+    <!-- ประวัติการเล่นด้วยกัน (แสดงเฉพาะตอนดูโปรไฟล์คนอื่น) -->
+    <div class="h2h-section hidden" id="h2h-section">
+      <p class="section-title">ประวัติการเล่นด้วยกัน</p>
+      <div class="h2h-panel">
+        <div class="h2h-title">⚔ คุณ <span id="h2h-vs-name" style="color:var(--muted); font-weight:400;"></span></div>
+        <div class="h2h-subtitle" id="h2h-summary">ยังไม่เคยเล่นด้วยกัน</div>
+        <div class="h2h-grid">
+          <div class="h2h-box">
+            <div class="h2h-box-label">เล่นทั้งหมด</div>
+            <div class="h2h-box-value" id="h2h-total">0</div>
+          </div>
+          <div class="h2h-box">
+            <div class="h2h-box-label">คุณชนะ</div>
+            <div class="h2h-box-value win" id="h2h-wins">0</div>
+          </div>
+          <div class="h2h-box">
+            <div class="h2h-box-label">เสมอ</div>
+            <div class="h2h-box-value draw" id="h2h-draws">0</div>
+          </div>
+          <div class="h2h-box">
+            <div class="h2h-box-label">คุณแพ้</div>
+            <div class="h2h-box-value loss" id="h2h-losses">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="history-section">
       <div class="history-panel">
         <div class="history-header">
-          <h3>ประวัติการเล่น</h3>
+          <h3 id="history-heading">ประวัติการเล่น</h3>
           <span class="history-count" id="history-total-count">0 เกมล่าสุด</span>
         </div>
         <table>
@@ -694,19 +864,86 @@ function loadUsers(){try{return JSON.parse(localStorage.getItem('rukthai_users')
 function saveUsers(u){localStorage.setItem('rukthai_users', JSON.stringify(u));}
 function loadCurrent(){try{return JSON.parse(localStorage.getItem('rukthai_current_user'))||null;}catch(e){return null;}}
 function saveCurrent(u){if(u)localStorage.setItem('rukthai_current_user', JSON.stringify(u));else localStorage.removeItem('rukthai_current_user');}
+function getSafeId(id){ return id ? String(id).replace(/[.#$\[\]]/g, '_') : ''; }
 
 document.addEventListener('DOMContentLoaded', async () => {
   const current = loadCurrent();
-  if (!current) return;
 
-  // ดึง Safe UID เพื่อนำไปใช้อ่านข้อมูลในฐานข้อมูลให้ตรงจุด
-  const myRealUid = current.id || current.email;
-  const safeUid = String(myRealUid).replace(/[.#$\[\]]/g, '_');
+  // ── ตรวจสอบว่ากำลังดูโปรไฟล์ของผู้เล่นคนอื่นหรือไม่ ──
+  const urlParams = new URLSearchParams(window.location.search);
+  const viewUserId = urlParams.get('user');
 
-  // แสดงผลข้อมูลชื่อ รูปภาพ และ ELO เบื้องต้น
+  const myRealUid = current ? (current.id || current.email) : null;
+  const mySafeUid = myRealUid ? getSafeId(myRealUid) : null;
+
+  // ถ้ามี ?user= และไม่ใช่ตัวเราเอง → เข้าโหมดดูโปรไฟล์คนอื่น (อ่านอย่างเดียว)
+  const isViewingOther = viewUserId && getSafeId(viewUserId) !== mySafeUid;
+
+  if (isViewingOther) {
+    await initViewOtherProfile(getSafeId(viewUserId), current, mySafeUid);
+  } else {
+    if (!current) return;
+    await initOwnProfile(current, mySafeUid);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//   โหมด: ดูโปรไฟล์ของผู้เล่นคนอื่น (อ่านอย่างเดียว)
+// ═══════════════════════════════════════════════════════════
+async function initViewOtherProfile(targetSafeId, current, mySafeUid) {
+  // 1. ซ่อนปุ่มแก้ไขทั้งหมด (แก้ไขชื่อ + อัปโหลดรูป)
+  document.getElementById('edit-username-btn')?.classList.add('hidden');
+  document.getElementById('upload-avatar-btn')?.classList.add('hidden');
+
+  // 2. แสดงแถบ "กำลังดูโปรไฟล์ของ..."
+  const banner = document.getElementById('viewing-banner');
+  banner.classList.remove('hidden');
+  document.getElementById('btn-back-game').addEventListener('click', () => {
+    history.back();
+  });
+
+  // 3. โหลดข้อมูลโปรไฟล์ของคู่ต่อสู้จาก Firebase
+  let targetUser = {};
+  try {
+    const snap = await get(ref(db, `users/${targetSafeId}`));
+    if (snap.exists()) targetUser = snap.val();
+  } catch (e) {
+    console.error('โหลดข้อมูลโปรไฟล์ผู้เล่นไม่สำเร็จ:', e);
+  }
+
+  const targetName = targetUser.name || 'ผู้เล่น';
+
+  // 4. แสดงชื่อ + รูป + ELO ของคู่ต่อสู้
+  document.getElementById('profile-username').textContent = targetName;
+  document.getElementById('viewing-name').textContent = targetName;
+  document.title = `${targetName} - RUKTHAI`;
+
+  const preview = document.getElementById('profile-avatar-preview');
+  preview.src = targetUser.avatar || '/Images/LOGO.png';
+
+  const stats = targetUser.stats || { bullet: 0, rapid: 0, blitz: 0, daily: 0 };
+  document.getElementById('elo-bullet').textContent = stats.bullet || 0;
+  document.getElementById('elo-rapid').textContent  = stats.rapid  || 0;
+  document.getElementById('elo-blitz').textContent  = stats.blitz  || 0;
+  document.getElementById('elo-daily').textContent  = stats.daily  || 0;
+
+  // 5. โหลดประวัติการเล่นย้อนหลังของคู่ต่อสู้ (จาก user_history ของเขา)
+  await loadGameHistory(targetSafeId, targetName, false);
+
+  // 6. คำนวณ + แสดง "ประวัติการเล่นด้วยกัน" (จาก user_history ของเรา)
+  if (mySafeUid) {
+    await loadHeadToHead(mySafeUid, targetSafeId, targetName);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//   โหมด: ดูโปรไฟล์ของตัวเอง (แก้ไขได้ตามปกติ)
+// ═══════════════════════════════════════════════════════════
+async function initOwnProfile(current, safeUid) {
+  // แสดงชื่อ รูป ELO ของตัวเอง
   document.getElementById('profile-username').textContent = current.name || 'ผู้เล่น';
   const preview = document.getElementById('profile-avatar-preview');
-  preview.src = current.avatar || '../LOGO.png';
+  preview.src = current.avatar || '/Images/LOGO.png';
 
   const stats = current.stats || { bullet: 0, rapid: 0, blitz: 0, daily: 0 };
   document.getElementById('elo-bullet').textContent = stats.bullet || 0;
@@ -714,92 +951,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('elo-blitz').textContent  = stats.blitz  || 0;
   document.getElementById('elo-daily').textContent  = stats.daily  || 0;
 
-  // 📌 ฟังก์ชันดึงประวัติการดวลจริงจาก Firebase มาเสียบแทน Mock
-  async function loadRealGameHistory() {
-    try {
-      const snapshot = await get(ref(db, `user_history/${safeUid}`));
-      const tableBody = document.getElementById('game-history-table');
-      
-      if (!snapshot.exists()) {
-        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; padding: 30px;">คุณยังไม่มีประวัติบันทึกการแข่งขันออนไลน์ในขณะนี้</td></tr>`;
-        return;
-      }
+  // โหลดประวัติของตัวเอง
+  await loadGameHistory(safeUid, current.name || 'คุณ', true);
 
-      const matches = Object.values(snapshot.val()).sort((a, b) => b.date - a.date);
-      tableBody.innerHTML = "";
-
-      // ตัวแปรสำหรับคำนวณสถิติสดฝั่งซ้ายมือ
-      let totalGames = matches.length;
-      let wins = 0;
-      let losses = 0;
-      let draws = 0;
-
-      matches.forEach(match => {
-        const tr = document.createElement('tr');
-        
-        // 1. นับผล ชนะ/แพ้/เสมอ
-        let resClass = "result-draw", resText = "½ – ½";
-        if (match.result === 'win') { wins++; resClass = "result-win"; resText = "1 – 0"; }
-        else if (match.result === 'loss') { losses++; resClass = "result-lose"; resText = "0 – 1"; }
-        else { draws++; }
-
-        // 2. จัดรูปแบบข้อความวันที่เป็น พ.ศ. ของไทยให้เข้าธีมเดิม
-        const dateStr = new Date(match.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-
-        // 3. ประกอบโครงสร้าง HTML แถวตารางโดยดึงข้อมูลจริง
-        // ในลูป forEach ของ loadRealGameHistory ใน profile.html
-        const movesCount = match.moves ? Object.keys(match.moves).length : 0;
-        // สมมติว่าเราให้เกมยาวสุดที่ 100 ตาเพื่อทำ Visual Bar
-        const barWidth = Math.min((movesCount / 100) * 100, 100); 
-
-        tr.innerHTML = `
-          <td>
-            <div class="player-vs">
-              <span class="player-me" title="ตัวคุณ">${current.name || 'คุณ'}</span>
-              <span class="player-sep">VS</span>
-              <span class="player-opp" title="${match.opponentName}">${match.opponentName || 'คู่ต่อสู้'}</span>
-            </div>
-          </td>
-          <td><span class="result-pill ${resClass}">${resText}</span></td>
-          <td>
-            <div class="moves-bar">
-              <span class="moves-num">${movesCount}</span>
-              <div class="moves-vis"><div class="moves-fill" style="width:${barWidth}%"></div></div>
-            </div>
-          </td>
-          <td><span class="date-text">${dateStr}</span></td>
-          <td><button class="btn-replay-link" data-gameid="${match.gameId}">🎮 ดูรีเพลย์</button></td>
-        `;
-        tableBody.appendChild(tr);
-      });
-
-      // 4. คำนวณเปอร์เซ็นต์ Win Rate
-      let winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-
-      // 5. ดันข้อมูลสถิติที่คำนวณได้จริงไปโชว์ที่การ์ดฝั่งซ้ายมือ
-      document.getElementById('stat-total').textContent = totalGames;
-      document.getElementById('stat-wins').textContent = wins;
-      document.getElementById('stat-losses').textContent = losses;
-      document.getElementById('stat-draws').textContent = draws;
-      document.getElementById('stat-winrate').textContent = winRate + "%";
-      document.getElementById('history-total-count').textContent = `${totalGames} เกมล่าสุด`;
-
-      // 6. ลิงก์เชื่อมโยงไปยังหน้าจอไฟล์กระดานรีเพลย์ (history.html) เมื่อกดปุ่มดูรีเพลย์
-      tableBody.querySelectorAll('.btn-replay-link').forEach(btn => {
-        btn.onclick = () => {
-          window.location.href = `history.html?room=${btn.dataset.gameid}`;
-        };
-      });
-
-    } catch (err) {
-      console.error("Error loading match history from Firebase:", err);
-    }
-  }
-
-  // เรียกทำงานดึงข้อมูลประวัติทันที
-  loadRealGameHistory();
-
-  // ── ระบบจัดการอัปโหลดรูปภาพเดิม ──
+  // ── ระบบจัดการอัปโหลดรูปภาพ (เฉพาะโปรไฟล์ตัวเอง) ──
   document.getElementById('upload-avatar-btn').addEventListener('click', () => {
     document.getElementById('avatar-file-input').click();
   });
@@ -812,18 +967,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       preview.src = r.result;
       current.avatar = r.result;
       saveCurrent(current);
-      
+
       const users = loadUsers();
       const idx = users.findIndex(u => u.email === current.email);
       if (idx !== -1) { users[idx] = current; saveUsers(users); }
 
-      // อัปเดตรูปลงฐานข้อมูล Firebase ด้วย
       try { await update(ref(db, `users/${safeUid}`), { avatar: r.result }); } catch(err){}
     };
     r.readAsDataURL(f);
   });
 
-  // ── ระบบแก้ไขข้อมูลชื่อเดิม ──
+  // ── ระบบแก้ไขชื่อ (เฉพาะโปรไฟล์ตัวเอง) ──
   const editButton = document.getElementById('edit-username-btn');
   const editBox = document.getElementById('username-edit-box');
   const editInput = document.getElementById('username-input');
@@ -850,14 +1004,156 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('profile-username').textContent = newName;
     editBox.classList.add('hidden');
 
-    // อัปเดตชื่อลงฐานข้อมูล Firebase แบบ Real-time
     try { await update(ref(db, `users/${safeUid}`), { name: newName }); } catch(err){}
   });
 
   cancelButton.addEventListener('click', () => {
     editBox.classList.add('hidden');
   });
-});
+}
+
+// ═══════════════════════════════════════════════════════════
+//   โหลดประวัติการเล่น (ใช้ได้ทั้งโปรไฟล์ตัวเองและคนอื่น)
+//   ownerSafeId = เจ้าของประวัติ, ownerName = ชื่อที่แสดงในคอลัมน์ "ผู้เล่น"
+//   isSelf = true ถ้าเป็นโปรไฟล์ตัวเอง (มีปุ่มดูรีเพลย์)
+// ═══════════════════════════════════════════════════════════
+async function loadGameHistory(ownerSafeId, ownerName, isSelf) {
+  try {
+    const snapshot = await get(ref(db, `user_history/${ownerSafeId}`));
+    const tableBody = document.getElementById('game-history-table');
+
+    // เปลี่ยนหัวข้อตารางตามว่าเป็นของใคร
+    document.getElementById('history-heading').textContent =
+      isSelf ? 'ประวัติการเล่น' : `ประวัติการเล่นของ ${ownerName}`;
+
+    if (!snapshot.exists()) {
+      tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#aaa; padding: 30px;">${isSelf ? 'คุณยังไม่มีประวัติบันทึกการแข่งขันออนไลน์ในขณะนี้' : 'ผู้เล่นคนนี้ยังไม่มีประวัติการแข่งขัน'}</td></tr>`;
+      document.getElementById('history-total-count').textContent = '0 เกมล่าสุด';
+      document.getElementById('stat-total').textContent = 0;
+      document.getElementById('stat-wins').textContent = 0;
+      document.getElementById('stat-losses').textContent = 0;
+      document.getElementById('stat-draws').textContent = 0;
+      document.getElementById('stat-winrate').textContent = '0%';
+      return;
+    }
+
+    const matches = Object.values(snapshot.val()).sort((a, b) => b.date - a.date);
+    tableBody.innerHTML = "";
+
+    let totalGames = matches.length;
+    let wins = 0, losses = 0, draws = 0;
+
+    matches.forEach(match => {
+      const tr = document.createElement('tr');
+
+      // ผลลัพธ์ตามมุมมองของเจ้าของประวัติ
+      let resClass = "result-draw", resText = "½ – ½";
+      if (match.result === 'win') { wins++; resClass = "result-win"; resText = "1 – 0"; }
+      else if (match.result === 'loss') { losses++; resClass = "result-lose"; resText = "0 – 1"; }
+      else { draws++; }
+
+      const dateStr = new Date(match.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      const movesCount = match.moves ? Object.keys(match.moves).length : 0;
+      const barWidth = Math.min((movesCount / 100) * 100, 100);
+
+      // ปุ่มดูรีเพลย์ (แสดงสำหรับทุกคน เพราะเป็นการ "ดู" เกมย้อนหลัง)
+      const replayBtn = `<button class="btn-replay-link" data-gameid="${match.gameId}">🎮 ดูรีเพลย์</button>`;
+
+      tr.innerHTML = `
+        <td>
+          <div class="player-vs">
+            <span class="player-me" title="${ownerName}">${ownerName}</span>
+            <span class="player-sep">VS</span>
+            <span class="player-opp" title="${match.opponentName || ''}">${match.opponentName || 'คู่ต่อสู้'}</span>
+          </div>
+        </td>
+        <td><span class="result-pill ${resClass}">${resText}</span></td>
+        <td>
+          <div class="moves-bar">
+            <span class="moves-num">${movesCount}</span>
+            <div class="moves-vis"><div class="moves-fill" style="width:${barWidth}%"></div></div>
+          </div>
+        </td>
+        <td><span class="date-text">${dateStr}</span></td>
+        <td>${replayBtn}</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
+    document.getElementById('stat-total').textContent = totalGames;
+    document.getElementById('stat-wins').textContent = wins;
+    document.getElementById('stat-losses').textContent = losses;
+    document.getElementById('stat-draws').textContent = draws;
+    document.getElementById('stat-winrate').textContent = winRate + "%";
+    document.getElementById('history-total-count').textContent = `${totalGames} เกมล่าสุด`;
+
+    tableBody.querySelectorAll('.btn-replay-link').forEach(btn => {
+      btn.onclick = () => {
+        window.location.href = `history.html?room=${btn.dataset.gameid}`;
+      };
+    });
+
+  } catch (err) {
+    console.error("Error loading match history from Firebase:", err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//   คำนวณ "ประวัติการเล่นด้วยกัน" (Head-to-Head)
+//   อ่านจาก user_history ของเรา แล้วกรองเฉพาะเกมที่เจอคู่ต่อสู้คนนี้
+// ═══════════════════════════════════════════════════════════
+async function loadHeadToHead(mySafeId, oppSafeId, oppName) {
+  const section = document.getElementById('h2h-section');
+  section.classList.remove('hidden');
+  document.getElementById('h2h-vs-name').textContent = `VS ${oppName}`;
+
+  try {
+    const snap = await get(ref(db, `user_history/${mySafeId}`));
+    if (!snap.exists()) {
+      updateH2HBoxes(0, 0, 0, oppName);
+      return;
+    }
+
+    const history = snap.val();
+    let wins = 0, draws = 0, losses = 0;
+
+    for (const gid in history) {
+      const game = history[gid];
+      // จับคู่ด้วย opponentId ก่อน (แม่นยำสุด) ถ้าไม่มีค่อย fallback เป็นชื่อ
+      const matchById = game.opponentId && getSafeId(game.opponentId) === oppSafeId;
+      const matchByName = !game.opponentId && game.opponentName === oppName;
+      if (matchById || matchByName) {
+        if (game.result === 'win') wins++;
+        else if (game.result === 'draw') draws++;
+        else if (game.result === 'loss') losses++;
+      }
+    }
+
+    updateH2HBoxes(wins, draws, losses, oppName);
+
+  } catch (e) {
+    console.error('โหลดประวัติการเล่นด้วยกันไม่สำเร็จ:', e);
+    updateH2HBoxes(0, 0, 0, oppName);
+  }
+}
+
+function updateH2HBoxes(wins, draws, losses, oppName) {
+  const total = wins + draws + losses;
+  document.getElementById('h2h-total').textContent  = total;
+  document.getElementById('h2h-wins').textContent   = wins;
+  document.getElementById('h2h-draws').textContent  = draws;
+  document.getElementById('h2h-losses').textContent = losses;
+
+  const summary = document.getElementById('h2h-summary');
+  if (total === 0) {
+    summary.textContent = `คุณยังไม่เคยเล่นกับ ${oppName} มาก่อน`;
+  } else {
+    summary.textContent = `เล่นด้วยกันมาแล้ว ${total} กระดาน — ชนะ ${wins} · เสมอ ${draws} · แพ้ ${losses}`;
+  }
+}
 </script>
 </body>
 </html>

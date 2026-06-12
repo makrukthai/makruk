@@ -1,6 +1,6 @@
 // 📌 1. นำเข้า getApps และ getApp เพิ่มเข้ามา
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, update, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 import { createProfileModal, openProfileModal, renderProfileMenu, setProfileSubmitHandler, closeProfileDropdown, closeProfileModal } from "./profile.js";
 import { createNotificationButton } from "./notification.js";
@@ -21,15 +21,31 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const db = getDatabase(app);
 
+// 📌 ตรวจสอบว่ารูปนี้เป็นรูปจาก Google/Gmail หรือไม่
+// รูปที่ผู้ใช้ตั้งเองจะเป็น data: URL (อัปโหลด) หรือ URL อื่น ๆ ที่ผู้ใช้กรอกเอง
+function isGoogleAvatar(url) {
+  if (!url || typeof url !== "string") return false;
+  return url.includes("googleusercontent.com") || url.includes("google.com/");
+}
+
 // 📌 ฟังก์ชันช่วยอัปเดตข้อมูลผู้ใช้ขึ้น Firebase (โดยตัดรหัสผ่านออกเพื่อความปลอดภัย)
 function syncUserToFirebase(user) {
   if (!user || !user.id) return;
   // Firebase ไม่ยอมให้ใช้จุด (.) เป็นชื่อ key เลยต้องแปลง ID ให้ปลอดภัย
   const safeId = user.id.replace(/[.#$\[\]]/g, '_');
-  
+
   const { password, ...safeUserData } = user;
-  safeUserData.id = safeId; 
-  
+  safeUserData.id = safeId;
+
+  // ❗ อย่าเขียนทับ avatar/name ใน Firebase ด้วยค่าว่าง
+  // (กันกรณีที่ผู้ใช้ตั้งรูป/ชื่อเองไว้แล้ว แต่ localStorage ยังไม่มีค่านั้น)
+  if (!safeUserData.avatar) {
+    delete safeUserData.avatar;
+  }
+  if (!safeUserData.name) {
+    delete safeUserData.name;
+  }
+
   update(ref(db, `users/${safeId}`), safeUserData).catch(e => console.error("Firebase sync error:", e));
 }
 // Global function to close ALL dropdowns
@@ -734,7 +750,7 @@ function initializeGoogleIdentity() {
   }
 }
 
-function handleGoogleCredentialResponse(response) {
+async function handleGoogleCredentialResponse(response) {
   if (!response.credential) {
     // REMOVED ALERT: "ไม่สามารถเข้าสู่ระบบด้วย Google ได้ในขณะนี้"
     console.log("[Google] Cannot login with Google at this moment");
@@ -751,19 +767,56 @@ function handleGoogleCredentialResponse(response) {
   const picture = userData.picture || "";
 
   let user = authState.users.find((item) => item.email === email);
+
+  // 📌 ดึง "โปรไฟล์เดิมทั้งหมด" จาก Firebase ก่อน (ชื่อ + รูป)
+  // เพื่อให้ชื่อ/รูปที่ผู้ใช้ตั้งเองเป็นค่าหลักเสมอ ไม่ถูกชื่อ/รูปจาก Gmail ทับ
+  let existingProfile = {};
+  try {
+    const safeId = (user?.id || email).replace(/[.#$\[\]]/g, '_');
+    const snap = await get(ref(db, `users/${safeId}`));
+    if (snap.exists()) existingProfile = snap.val() || {};
+  } catch (e) {
+    console.warn("[Google] ไม่สามารถอ่านโปรไฟล์เดิมได้:", e);
+  }
+
+  // ชื่อที่บันทึกไว้ใน Firebase ถือเป็นชื่อหลักเสมอ (ถ้ามี) มิฉะนั้นค่อยใช้ชื่อ Gmail
+  const finalName = (existingProfile.name && existingProfile.name.trim())
+    ? existingProfile.name
+    : name;
+
+  // รูปที่ตั้งเอง (ไม่ใช่รูป Google) ถือเป็นรูปหลักเสมอ
+  const existingAvatar = existingProfile.avatar || "";
+  const customAvatar = (existingAvatar && !isGoogleAvatar(existingAvatar)) ? existingAvatar : "";
+
   if (!user) {
-    user = { id: email, name, email, password: "", avatar: picture };
+    // ผู้ใช้ใหม่: ใช้ชื่อ/รูปที่ตั้งเอง (ถ้ามีใน Firebase) ไม่งั้นใช้ของ Gmail
+    user = {
+      id: email,
+      name: finalName,
+      email,
+      password: "",
+      avatar: customAvatar || picture
+    };
     authState.users.push(user);
     saveUsers(authState.users);
   } else {
     if (!user.id) {
       user.id = email;
     }
-    if (!user.avatar && picture) {
+    // ชื่อ: ใช้ชื่อที่ตั้งเองจาก Firebase เสมอ
+    user.name = finalName;
+    // รูป: เก็บรูปที่ตั้งเองไว้ก่อน ถ้ายังไม่เคยตั้งเลยค่อยใช้รูป Gmail
+    if (customAvatar) {
+      user.avatar = customAvatar;
+    } else if (!user.avatar && picture) {
       user.avatar = picture;
     }
     saveUsers(authState.users);
   }
+
+  // เก็บข้อมูลจาก Gmail แยกไว้เป็นข้อมูลสำรอง (ไม่นำมาแสดงทับของที่ตั้งเอง)
+  if (picture) user.googleAvatar = picture;
+  user.googleName = name;
 
   saveCurrentUser(user);
   syncUserToFirebase(user);

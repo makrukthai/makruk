@@ -215,6 +215,241 @@ html[data-background-mode="light"] .chat-panel {
 }
 .conn-dot.online { background: #22c55e; }
 
+/* ═══════════════════════════════════════════════════════════
+   OPPONENT PROFILE MODAL STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+.opp-profile-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9500;
+}
+.opp-profile-overlay.hidden { display: none; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.opp-profile-modal {
+  width: min(520px, 92vw);
+  background: var(--bg2);
+  border: 1px solid rgba(128,128,128,0.18);
+  border-radius: 28px;
+  padding: 40px 36px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  position: relative;
+  animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.opp-profile-modal::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(128,128,128,0.55), transparent);
+  border-radius: 28px 28px 0 0;
+}
+
+.opp-modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  width: 32px; height: 32px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.opp-modal-close:hover { background: rgba(255,255,255,0.09); color: var(--text); }
+
+.opp-modal-header {
+  text-align: center;
+  margin-bottom: 28px;
+  padding-top: 8px;
+}
+
+.opp-modal-avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #555, #888);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  margin: 0 auto 12px;
+  overflow: hidden;
+}
+
+.opp-modal-avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+.opp-modal-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.opp-modal-rank {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.opp-modal-section {
+  margin-bottom: 24px;
+}
+
+.opp-modal-section-title {
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.opp-modal-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.opp-stat-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+.opp-stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.opp-stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.opp-modal-h2h {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.h2h-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.9rem;
+}
+
+.h2h-row:last-child { border-bottom: none; }
+
+.h2h-label {
+  color: var(--muted);
+}
+
+.h2h-value {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.opp-modal-games {
+  margin-top: 20px;
+}
+
+.game-history-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.game-result-win {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.game-result-loss {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.game-result-draw {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.opp-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.opp-action-btn {
+  padding: 12px;
+  border: 1px solid rgba(128,128,128,0.2);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+
+.opp-action-btn:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(128,128,128,0.35);
+}
+
+.opp-action-btn.add-friend {
+  background: linear-gradient(135deg, #555, #888);
+  border: none;
+  color: #fff;
+}
+
+.opp-action-btn.add-friend:hover {
+  background: linear-gradient(135deg, #666, #999);
+  border: none;
+}
+
+.opp-action-btn.danger {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.opp-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.opp-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .mm-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.82);
@@ -225,10 +460,6 @@ html[data-background-mode="light"] .chat-panel {
 .mm-overlay.hidden { display: none; }
 
 @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(28px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
@@ -420,6 +651,17 @@ html[data-background-mode="light"] .chat-panel {
 }
 .dc-notice.hidden { display: none; }
 
+/* ─── Opponent Card Clickable ─── */
+.player-card {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.player-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(128,128,128,0.35) !important;
+}
+
 @media screen and (max-width: 800px) {
   .online-layout {
     grid-template-columns: 1fr;
@@ -578,6 +820,72 @@ html[data-background-mode="light"] .chat-panel {
   </section>
 </main>
 
+<!-- ════════════════════════════════════════════════════════════
+     OPPONENT PROFILE MODAL
+     ════════════════════════════════════════════════════════════ -->
+<div class="opp-profile-overlay hidden" id="opp-profile-overlay">
+  <div class="opp-profile-modal">
+    <button class="opp-modal-close" id="opp-modal-close">✕</button>
+    
+    <div class="opp-modal-header">
+      <div class="opp-modal-avatar" id="opp-profile-avatar">👤</div>
+      <div class="opp-modal-name" id="opp-profile-name">โปรไฟล์คู่ต่อสู้</div>
+      <div class="opp-modal-rank" id="opp-profile-rank"></div>
+    </div>
+
+    <div class="opp-modal-section">
+      <div class="opp-modal-section-title">📊 สถิติ</div>
+      <div class="opp-modal-stats">
+        <div class="opp-stat-item">
+          <div class="opp-stat-label">ทั้งหมด</div>
+          <div class="opp-stat-value" id="stat-total">0</div>
+        </div>
+        <div class="opp-stat-item">
+          <div class="opp-stat-label">ชนะ</div>
+          <div class="opp-stat-value" id="stat-wins">0</div>
+        </div>
+        <div class="opp-stat-item">
+          <div class="opp-stat-label">แพ้</div>
+          <div class="opp-stat-value" id="stat-losses">0</div>
+        </div>
+        <div class="opp-stat-item">
+          <div class="opp-stat-label">อัตราชนะ</div>
+          <div class="opp-stat-value" id="stat-winrate">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opp-modal-section">
+      <div class="opp-modal-section-title">🏁 ผลการเล่นกับคุณ</div>
+      <div class="opp-modal-h2h">
+        <div class="h2h-row">
+          <span class="h2h-label">คุณชนะ</span>
+          <span class="h2h-value" id="h2h-wins">0</span>
+        </div>
+        <div class="h2h-row">
+          <span class="h2h-label">เสมอ</span>
+          <span class="h2h-value" id="h2h-draws">0</span>
+        </div>
+        <div class="h2h-row">
+          <span class="h2h-label">คุณแพ้</span>
+          <span class="h2h-value" id="h2h-losses">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="opp-modal-section">
+      <div class="opp-modal-section-title">🎮 เกมล่าสุด</div>
+      <div class="opp-modal-games" id="recent-games"></div>
+    </div>
+
+    <div class="opp-modal-actions" id="opp-modal-actions">
+      <button class="opp-action-btn add-friend" id="btn-add-friend">➕ เพิ่มเพื่อน</button>
+      <button class="opp-action-btn" id="btn-view-profile">👤 ดูโปรไฟล์เต็ม</button>
+      <button class="opp-action-btn danger" id="btn-report">⚠️ รายงาน</button>
+    </div>
+  </div>
+</div>
+
 <div class="dc-notice hidden" id="dc-notice">⚠ คู่ต่อสู้ขาดการเชื่อมต่อ…</div>
 
 <div class="mm-overlay" id="mm-overlay">
@@ -660,7 +968,7 @@ const db = getDatabase(app);
 //   STATE VARIABLES
 // ════════════════════════════════════════════════
 let myUid = null, myName = 'คุณ', myAvatar = '';
-let oppName = '', oppAvatar = '';
+let oppUid = null, oppName = '', oppAvatar = '';
 let gameId = null, queueRef = null;
 let myColor = 'w';         
 let flipped = false;       
@@ -690,6 +998,319 @@ let sakdiMakFleeColor = null;
 
 let drawOfferPending = false;
 let opponentDrawOffer = false;
+
+// ════════════════════════════════════════════════
+//   OPPONENT PROFILE MODAL LOGIC
+// ════════════════════════════════════════════════
+
+function getSafeId(id) {
+  return id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+}
+
+function loadCurrentUser() {
+  try {
+    return JSON.parse(localStorage.getItem("rukthai_current_user")) || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function openOppProfileModal() {
+  document.getElementById('opp-profile-overlay').classList.remove('hidden');
+  loadOppProfileData();
+}
+
+function closeOppProfileModal() {
+  document.getElementById('opp-profile-overlay').classList.add('hidden');
+}
+
+async function loadOppProfileData() {
+  if (!oppUid) return;
+  
+  try {
+    const safeOppId = getSafeId(oppUid);
+    const userSnap = await get(ref(db, `users/${safeOppId}`));
+    
+    if (!userSnap.exists()) {
+      // Show basic info if user not found
+      document.getElementById('opp-profile-name').textContent = oppName;
+      document.getElementById('opp-profile-avatar').textContent = oppName[0]?.toUpperCase() || '?';
+      return;
+    }
+
+    const userData = userSnap.val();
+    
+    // Update header
+    document.getElementById('opp-profile-name').textContent = userData.name || oppName;
+    const avatarEl = document.getElementById('opp-profile-avatar');
+    if (userData.avatar) {
+      avatarEl.innerHTML = `<img src="${userData.avatar}" alt="">`;
+    } else {
+      avatarEl.textContent = userData.name?.[0]?.toUpperCase() || '?';
+    }
+    
+    // 📊 คำนวณสถิติจากประวัติการเล่นจริงของคู่ต่อสู้ (user_history)
+    // เหมือนที่หน้าโปรไฟล์ทำ เพราะ users/{uid}/stats มักไม่ถูกอัปเดต
+    let total = 0, wins = 0, losses = 0;
+    try {
+      const histSnap = await get(ref(db, `user_history/${safeOppId}`));
+      if (histSnap.exists()) {
+        const games = Object.values(histSnap.val());
+        total = games.length;
+        games.forEach(g => {
+          if (g.result === 'win') wins++;
+          else if (g.result === 'loss') losses++;
+        });
+      }
+    } catch (e) {
+      console.warn('คำนวณสถิติจากประวัติไม่สำเร็จ ใช้ค่าจาก stats แทน:', e);
+    }
+
+    // ถ้าไม่มีประวัติเลย ค่อย fallback ไปใช้ค่าใน users/{uid}/stats (เผื่อมีบันทึกไว้)
+    if (total === 0) {
+      const stats = userData.stats || {};
+      total  = Number(stats.total)  || 0;
+      wins   = Number(stats.wins)   || 0;
+      losses = Number(stats.losses) || 0;
+    }
+
+    const winrate = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-wins').textContent = wins;
+    document.getElementById('stat-losses').textContent = losses;
+    document.getElementById('stat-winrate').textContent = winrate + '%';
+    
+    // Load head-to-head record
+    loadH2HRecord(safeOppId);
+    
+    // Load recent games
+    loadRecentGames(safeOppId);
+    
+    // Update action buttons
+    updateActionButtons(safeOppId);
+    
+  } catch (error) {
+    console.error('Error loading opponent profile:', error);
+  }
+}
+
+async function loadH2HRecord(oppId) {
+  try {
+    const currentUser = loadCurrentUser();
+    if (!currentUser) return;
+    
+    const safeMyId = getSafeId(currentUser.id);
+    const historySnap = await get(ref(db, `user_history/${safeMyId}`));
+    
+    if (!historySnap.exists()) {
+      return;
+    }
+
+    const history = historySnap.val();
+    let myWins = 0, draws = 0, myLosses = 0;
+    
+    for (const gameId in history) {
+      const game = history[gameId];
+      const matchById = game.opponentId && getSafeId(game.opponentId) === getSafeId(oppUid);
+      const matchByName = !game.opponentId && game.opponentName === oppName;
+      if (matchById || matchByName) {
+        if (game.result === 'win') myWins++;
+        else if (game.result === 'draw') draws++;
+        else if (game.result === 'loss') myLosses++;
+      }
+    }
+    
+    document.getElementById('h2h-wins').textContent = myWins;
+    document.getElementById('h2h-draws').textContent = draws;
+    document.getElementById('h2h-losses').textContent = myLosses;
+    
+  } catch (error) {
+    console.error('Error loading H2H record:', error);
+  }
+}
+
+async function loadRecentGames(oppId) {
+  try {
+    const currentUser = loadCurrentUser();
+    if (!currentUser) return;
+    
+    const safeMyId = getSafeId(currentUser.id);
+    const historySnap = await get(ref(db, `user_history/${safeMyId}`));
+    
+    const container = document.getElementById('recent-games');
+    container.innerHTML = '';
+    
+    if (!historySnap.exists()) {
+      container.innerHTML = '<p style="color: var(--muted); font-size: 0.9rem;">ยังไม่มีเกมด้วยกัน</p>';
+      return;
+    }
+
+    const history = historySnap.val();
+    const games = [];
+    
+    for (const gameId in history) {
+      const game = history[gameId];
+      const matchById = game.opponentId && getSafeId(game.opponentId) === getSafeId(oppUid);
+      const matchByName = !game.opponentId && game.opponentName === oppName;
+      if (matchById || matchByName) {
+        games.push({ ...game, id: gameId });
+      }
+    }
+    
+    games.sort((a, b) => (b.date || 0) - (a.date || 0));
+    
+    if (games.length === 0) {
+      container.innerHTML = '<p style="color: var(--muted); font-size: 0.9rem;">ยังไม่มีเกมด้วยกัน</p>';
+      return;
+    }
+
+    games.slice(0, 5).forEach(game => {
+      const resultClass = game.result === 'win' ? 'game-result-win' :
+                          game.result === 'loss' ? 'game-result-loss' : 'game-result-draw';
+      const resultText = game.result === 'win' ? '🏆 ชนะ' :
+                         game.result === 'loss' ? '😔 แพ้' : '🤝 เสมอ';
+      const date = new Date(game.date).toLocaleDateString('th-TH');
+      
+      const html = `
+        <div class="game-history-item">
+          <div>
+            <span class="${resultClass}">${resultText}</span>
+            <span style="color: var(--muted); margin-left: 8px;">${game.minutes}m · ${date}</span>
+          </div>
+          <span style="color: var(--muted); font-size: 0.8rem;">${game.reason || ''}</span>
+        </div>
+      `;
+      container.innerHTML += html;
+    });
+    
+  } catch (error) {
+    console.error('Error loading recent games:', error);
+  }
+}
+
+async function updateActionButtons(oppId) {
+  try {
+    const currentUser = loadCurrentUser();
+    if (!currentUser) return;
+    
+    const safeMyId = getSafeId(currentUser.id);
+    const friendsSnap = await get(ref(db, `friends/${safeMyId}`));
+    
+    const isFriend = friendsSnap.exists() && getSafeId(oppId) in friendsSnap.val();
+    
+    const addFriendBtn = document.getElementById('btn-add-friend');
+    const reportBtn = document.getElementById('btn-report');
+    
+    if (isFriend) {
+      addFriendBtn.style.display = 'none';
+      reportBtn.style.display = 'none';
+    } else {
+      addFriendBtn.style.display = 'block';
+      reportBtn.style.display = 'block';
+    }
+    
+  } catch (error) {
+    console.error('Error updating action buttons:', error);
+  }
+}
+
+async function sendFriendRequest() {
+  const currentUser = loadCurrentUser();
+  if (!currentUser) {
+    alert('กรุณาเข้าสู่ระบบก่อน');
+    return;
+  }
+  
+  if (!oppUid) {
+    alert('ไม่มีข้อมูลคู่ต่อสู้');
+    return;
+  }
+  
+  const safeMyId = getSafeId(currentUser.id);
+  const safeOppId = getSafeId(oppUid);
+  
+  if (safeMyId === safeOppId) {
+    alert('ไม่สามารถเพิ่มตัวเองเป็นเพื่อนได้');
+    return;
+  }
+  
+  try {
+    const requestRef = push(ref(db, `friend_requests/${safeOppId}`));
+    await set(requestRef, {
+      from: safeMyId,
+      fromName: currentUser.name || currentUser.email,
+      fromAvatar: currentUser.avatar || '',
+      to: safeOppId,
+      toName: oppName,
+      status: "pending",
+      timestamp: Date.now()
+    });
+    
+    alert('ส่งคำขอเพิ่มเพื่อนแล้ว ✓');
+    
+    // Update button visibility
+    updateActionButtons(safeOppId);
+    
+    // Show notification in friend dropdown if friend.js is loaded
+    if (window.renderFriendRequests) {
+      window.renderFriendRequests();
+    }
+    
+  } catch (error) {
+    console.error('Error sending friend request:', error);
+    alert('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+  }
+}
+
+function reportUser() {
+  const reason = prompt('โปรดระบุเหตุผลในการรายงาน:\n\n- ค่อยขาด (lag/delay)\n- พฤติกรรมไม่สุภาพ\n- ความโกง\n- อื่นๆ');
+  
+  if (!reason) return;
+  
+  const currentUser = loadCurrentUser();
+  if (!currentUser) {
+    alert('กรุณาเข้าสู่ระบบก่อน');
+    return;
+  }
+  
+  const report = {
+    reportedBy: currentUser.id,
+    reportedUser: oppUid,
+    reportedName: oppName,
+    reason: reason,
+    timestamp: Date.now(),
+    gameId: gameId
+  };
+  
+  try {
+    const reportRef = push(ref(db, 'reports'));
+    set(reportRef, report);
+    alert('ขอบคุณสำหรับการรายงาน เราจะตรวจสอบโดยเร็วที่สุด');
+  } catch (error) {
+    console.error('Error reporting user:', error);
+    alert('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง');
+  }
+}
+
+// Setup opponent card click handler
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('opp-card').addEventListener('click', openOppProfileModal);
+  document.getElementById('opp-modal-close').addEventListener('click', closeOppProfileModal);
+  document.getElementById('btn-add-friend').addEventListener('click', sendFriendRequest);
+  document.getElementById('btn-report').addEventListener('click', reportUser);
+  document.getElementById('btn-view-profile').addEventListener('click', () => {
+    // Open full profile page
+    window.location.href = `/pages/profile.html?user=${oppUid}`;
+  });
+  
+  // Close modal when clicking overlay
+  document.getElementById('opp-profile-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'opp-profile-overlay') {
+      closeOppProfileModal();
+    }
+  });
+});
 
 // ════════════════════════════════════════════════
 //   HELPERS & UI SYNC
@@ -1122,6 +1743,7 @@ async function endGame(reason, winner) {
         gameId: gameId,
         opponentName: oppName,
         opponentAvatar: oppAvatar,
+        opponentId: oppUid || '',
         result: winner === myColor ? 'win' : winner === null ? 'draw' : 'loss',
         reason: reason,
         date: Date.now(),
@@ -1224,7 +1846,7 @@ async function enterQueue() {
     const wData = wSnap.exists() ? wSnap.val() : {};
     oppName   = wData.name   || slotSnapshot.name   || 'คู่ต่อสู้';
     oppAvatar = wData.avatar || slotSnapshot.avatar || '';
-    const oppUid      = wData.uid      || slotSnapshot.uid || '';
+    oppUid    = wData.uid    || slotSnapshot.uid || '';
     const oppQueueKey = wData.queueKey || '';
 
     const newGameRef = push(ref(db, 'games'));
@@ -1272,6 +1894,7 @@ async function enterQueue() {
       const d = snap2.val();
       oppName   = d.oppName   || 'คู่ต่อสู้';
       oppAvatar = d.oppAvatar || '';
+      oppUid    = d.oppUid || '';
       gameId    = d.gameId;
       off(notifRef);
       await remove(notifRef);
@@ -1323,9 +1946,38 @@ async function startGame(gid) {
   if (myColor === 'w') {
     oppName   = bPlayer.name   || 'คู่ต่อสู้';
     oppAvatar = bPlayer.avatar || '';
+    oppUid    = bPlayer.uid || '';
   } else {
     oppName   = wPlayer.name   || 'คู่ต่อสู้';
     oppAvatar = wPlayer.avatar || '';
+    oppUid    = wPlayer.uid || '';
+  }
+
+  // 📌 ดึงชื่อ/รูป "ล่าสุด" ของคู่ต่อสู้จาก users/{uid} ใน Firebase
+  // เพื่อให้แสดงชื่อที่เขาตั้งเองเสมอ (ไม่ใช่ชื่อ/รูปเก่าที่ค้างอยู่ในข้อมูลเกม)
+  if (oppUid) {
+    try {
+      const safeOppId = String(oppUid).replace(/[.#$\[\]]/g, '_');
+      const oppSnap = await get(ref(db, `users/${safeOppId}`));
+      if (oppSnap.exists()) {
+        const oppProfile = oppSnap.val();
+        if (oppProfile.name && oppProfile.name.trim()) oppName = oppProfile.name;
+        if (oppProfile.avatar) oppAvatar = oppProfile.avatar;
+      }
+    } catch (e) { console.warn('โหลดชื่อล่าสุดของคู่ต่อสู้ไม่สำเร็จ:', e); }
+  }
+
+  // ดึงชื่อ/รูปล่าสุดของตัวเองด้วย (เผื่อเพิ่งเปลี่ยนชื่อ)
+  if (myUid) {
+    try {
+      const safeMyId = String(myUid).replace(/[.#$\[\]]/g, '_');
+      const meSnap = await get(ref(db, `users/${safeMyId}`));
+      if (meSnap.exists()) {
+        const meProfile = meSnap.val();
+        if (meProfile.name && meProfile.name.trim()) myName = meProfile.name;
+        if (meProfile.avatar) myAvatar = meProfile.avatar;
+      }
+    } catch (e) {}
   }
 
   document.getElementById('opp-name').textContent   = oppName;
