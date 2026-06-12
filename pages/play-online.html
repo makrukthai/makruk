@@ -856,6 +856,24 @@ html[data-background-mode="light"] .chat-panel {
     </div>
 
     <div class="opp-modal-section">
+      <div class="opp-modal-section-title">🏅 คะแนน ELO</div>
+      <div class="opp-modal-stats" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="opp-stat-item">
+          <div class="opp-stat-label">⚡ Blitz</div>
+          <div class="opp-stat-value" id="elo-blitz">200</div>
+        </div>
+        <div class="opp-stat-item">
+          <div class="opp-stat-label">♟ Rapid</div>
+          <div class="opp-stat-value" id="elo-rapid">200</div>
+        </div>
+        <div class="opp-stat-item">
+          <div class="opp-stat-label">🏛 Standard</div>
+          <div class="opp-stat-value" id="elo-standard">200</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opp-modal-section">
       <div class="opp-modal-section-title">🏁 ผลการเล่นกับคุณ</div>
       <div class="opp-modal-h2h">
         <div class="h2h-row">
@@ -913,7 +931,7 @@ html[data-background-mode="light"] .chat-panel {
         <button class="time-option" data-minutes="30">
           <span class="time-option-emoji">🏛</span>
           <span class="time-option-label">30 นาที</span>
-          <span class="time-option-desc">Classical</span>
+          <span class="time-option-desc">Standard</span>
         </button>
       </div>
 
@@ -951,6 +969,10 @@ import {
   getDatabase, ref, set, get, update, push, onValue, off,
   onDisconnect, serverTimestamp, remove, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import {
+  modeFromMinutes, computeRatingChange, scoreFromResult,
+  dateKey, rollDailyDelta, START_ELO
+} from "../elo.js";
 
 const app = initializeApp({
   apiKey:            "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
@@ -1080,6 +1102,12 @@ async function loadOppProfileData() {
     document.getElementById('stat-wins').textContent = wins;
     document.getElementById('stat-losses').textContent = losses;
     document.getElementById('stat-winrate').textContent = winrate + '%';
+
+    // 🏅 แสดงคะแนน Elo ของคู่ต่อสู้ (เริ่มต้น 200 ถ้ายังไม่มี)
+    const eloData = userData.elo || {};
+    document.getElementById('elo-blitz').textContent    = (eloData.blitz    != null) ? eloData.blitz    : START_ELO;
+    document.getElementById('elo-rapid').textContent    = (eloData.rapid    != null) ? eloData.rapid    : START_ELO;
+    document.getElementById('elo-standard').textContent = (eloData.standard != null) ? eloData.standard : START_ELO;
     
     // Load head-to-head record
     loadH2HRecord(safeOppId);
@@ -1732,6 +1760,76 @@ function listenToGame(gid) {
 // ════════════════════════════════════════════════
 //   GAME END TERMINATION
 // ════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+//   ELO RATING UPDATE (ฝ่ายขาวเป็นผู้คำนวณและเขียน)
+// ════════════════════════════════════════════════
+let eloApplied = false;
+
+async function updateEloRatings(whiteUid, blackUid, winner, minutes) {
+  if (eloApplied) return;            // กันการนับซ้ำหาก endGame ถูกเรียกหลายครั้ง
+  eloApplied = true;
+
+  try {
+    const mode  = modeFromMinutes(minutes);
+    const safeW = String(whiteUid).replace(/[.#$\[\]]/g, '_');
+    const safeB = String(blackUid).replace(/[.#$\[\]]/g, '_');
+
+    // อ่านคะแนนปัจจุบัน + จำนวนเกมของทั้งสองฝ่าย (ก่อนแข่ง)
+    const [wEloSnap, bEloSnap, wGamesSnap, bGamesSnap, wDailySnap, bDailySnap] = await Promise.all([
+      get(ref(db, `users/${safeW}/elo/${mode}`)),
+      get(ref(db, `users/${safeB}/elo/${mode}`)),
+      get(ref(db, `users/${safeW}/eloGames/${mode}`)),
+      get(ref(db, `users/${safeB}/eloGames/${mode}`)),
+      get(ref(db, `users/${safeW}/eloDaily/${mode}`)),
+      get(ref(db, `users/${safeB}/eloDaily/${mode}`)),
+    ]);
+
+    const rW = wEloSnap.exists() ? Number(wEloSnap.val()) : START_ELO;
+    const rB = bEloSnap.exists() ? Number(bEloSnap.val()) : START_ELO;
+    const gW = wGamesSnap.exists() ? Number(wGamesSnap.val()) : 0;
+    const gB = bGamesSnap.exists() ? Number(bGamesSnap.val()) : 0;
+
+    // คะแนนผลการแข่งของฝ่ายขาว: ชนะ=1, เสมอ=0.5, แพ้=0
+    const scoreW = winner === 'w' ? 1 : winner === null ? 0.5 : 0;
+    const scoreB = 1 - scoreW;
+
+    const resW = computeRatingChange(rW, rB, scoreW, gW);
+    const resB = computeRatingChange(rB, rW, scoreB, gB);
+
+    const today = dateKey(Date.now());
+    const wDaily = rollDailyDelta(wDailySnap.exists() ? wDailySnap.val() : null, resW.delta, today);
+    const bDaily = rollDailyDelta(bDailySnap.exists() ? bDailySnap.val() : null, resB.delta, today);
+
+    await Promise.all([
+      update(ref(db, `users/${safeW}`), {
+        [`elo/${mode}`]:      resW.newRating,
+        [`eloGames/${mode}`]: gW + 1,
+        [`eloDaily/${mode}`]: wDaily,
+      }),
+      update(ref(db, `users/${safeB}`), {
+        [`elo/${mode}`]:      resB.newRating,
+        [`eloGames/${mode}`]: gB + 1,
+        [`eloDaily/${mode}`]: bDaily,
+      }),
+    ]);
+
+    // อัปเดต localStorage ของฝ่ายขาว (ตัวเรา) ให้ตรงกับคะแนนใหม่
+    try {
+      const raw = localStorage.getItem('rukthai_current_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        u.elo = u.elo || {};
+        u.elo[mode] = resW.newRating;
+        localStorage.setItem('rukthai_current_user', JSON.stringify(u));
+      }
+    } catch (e) {}
+
+    console.log(`[Elo] ${mode}: ขาว ${rW}→${resW.newRating} (${resW.delta>=0?'+':''}${resW.delta}), ดำ ${rB}→${resB.newRating} (${resB.delta>=0?'+':''}${resB.delta})`);
+  } catch (e) {
+    console.error('อัปเดต Elo ไม่สำเร็จ:', e);
+  }
+}
+
 async function endGame(reason, winner) {
   if (myUid && gameId) {
     try {
@@ -1763,6 +1861,11 @@ async function endGame(reason, winner) {
           gameData.endedAt = serverTimestamp();
           gameData.moves = movesData; 
           await set(ref(db, `game_history/${gameId}`), gameData);
+        }
+
+        // 📈 อัปเดตคะแนน Elo ของทั้งสองฝ่าย (ฝ่ายขาวเป็นผู้เขียนเพื่อกันการนับซ้ำ)
+        if (oppUid) {
+          await updateEloRatings(myUid, oppUid, winner, selectedMinutes || 10);
         }
       }
     } catch (err) {
@@ -2017,6 +2120,7 @@ async function startGame(gid) {
   sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
   sakdiMakActive = false; sakdiMakCount = 0; sakdiMakLimit = 0; sakdiMakFleeColor = null;
   drawOfferPending = false;
+  eloApplied = false;
   updateSpecialRulesUI();
 
   flipped = (myColor === 'b');
@@ -2084,7 +2188,7 @@ document.getElementById('btn-cancel-mm').addEventListener('click', () => {
 
 document.getElementById('btn-find').addEventListener('click', () => {
   if (!selectedMinutes || !myUid) return;
-  const labels = {5:'5 นาที · Blitz', 10:'10 นาที · Rapid', 30:'30 นาที · Classical'};
+  const labels = {5:'5 นาที · Blitz', 10:'10 นาที · Rapid', 30:'30 นาที · Standard'};
   document.getElementById('mm-time-label').textContent = labels[selectedMinutes] + ' · Ranked';
   showStep('mm-searching');
   startSearch();

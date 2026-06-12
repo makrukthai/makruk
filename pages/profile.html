@@ -299,7 +299,7 @@
 
   .elo-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
   }
 
@@ -763,27 +763,21 @@
       <div class="elo-grid">
         <div class="elo-card">
           <span class="elo-icon">⚡</span>
-          <div class="elo-mode">เกมส์ไว (Bullet)</div>
-          <div class="elo-value" id="elo-bullet">—</div>
-          <span class="elo-trend trend-up">↑ +12</span>
+          <div class="elo-mode">เกมส์เร็ว (Blitz) · 5 นาที</div>
+          <div class="elo-value" id="elo-blitz">—</div>
+          <span class="elo-trend trend-flat" id="trend-blitz">—</span>
         </div>
         <div class="elo-card">
           <span class="elo-icon">♟</span>
-          <div class="elo-mode">เกมส์ปกติ (Rapid)</div>
+          <div class="elo-mode">เกมส์ปกติ (Rapid) · 10 นาที</div>
           <div class="elo-value" id="elo-rapid">—</div>
-          <span class="elo-trend trend-up">↑ +24</span>
+          <span class="elo-trend trend-flat" id="trend-rapid">—</span>
         </div>
         <div class="elo-card">
-          <span class="elo-icon">🔥</span>
-          <div class="elo-mode">เกมส์ยาว (Blitz)</div>
-          <div class="elo-value" id="elo-blitz">—</div>
-          <span class="elo-trend trend-down">↓ -8</span>
-        </div>
-        <div class="elo-card">
-          <span class="elo-icon">📅</span>
-          <div class="elo-mode">เกมส์รายวัน (Daily)</div>
-          <div class="elo-value" id="elo-daily">—</div>
-          <span class="elo-trend trend-flat">— 0</span>
+          <span class="elo-icon">🏛</span>
+          <div class="elo-mode">เกมส์ยาว (Standard) · 30 นาที</div>
+          <div class="elo-value" id="elo-standard">—</div>
+          <span class="elo-trend trend-flat" id="trend-standard">—</span>
         </div>
       </div>
     </div>
@@ -845,6 +839,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { START_ELO, getDisplayDelta, dateKey, ELO_MODES } from "../elo.js";
 
 // ── Firebase Config ──
 const firebaseConfig = {
@@ -921,11 +916,8 @@ async function initViewOtherProfile(targetSafeId, current, mySafeUid) {
   const preview = document.getElementById('profile-avatar-preview');
   preview.src = targetUser.avatar || '/Images/LOGO.png';
 
-  const stats = targetUser.stats || { bullet: 0, rapid: 0, blitz: 0, daily: 0 };
-  document.getElementById('elo-bullet').textContent = stats.bullet || 0;
-  document.getElementById('elo-rapid').textContent  = stats.rapid  || 0;
-  document.getElementById('elo-blitz').textContent  = stats.blitz  || 0;
-  document.getElementById('elo-daily').textContent  = stats.daily  || 0;
+  // แสดงคะแนน Elo + ป้ายบวก/ลบรายวันของคู่ต่อสู้
+  await renderElo(targetSafeId);
 
   // 5. โหลดประวัติการเล่นย้อนหลังของคู่ต่อสู้ (จาก user_history ของเขา)
   await loadGameHistory(targetSafeId, targetName, false);
@@ -945,11 +937,8 @@ async function initOwnProfile(current, safeUid) {
   const preview = document.getElementById('profile-avatar-preview');
   preview.src = current.avatar || '/Images/LOGO.png';
 
-  const stats = current.stats || { bullet: 0, rapid: 0, blitz: 0, daily: 0 };
-  document.getElementById('elo-bullet').textContent = stats.bullet || 0;
-  document.getElementById('elo-rapid').textContent  = stats.rapid  || 0;
-  document.getElementById('elo-blitz').textContent  = stats.blitz  || 0;
-  document.getElementById('elo-daily').textContent  = stats.daily  || 0;
+  // แสดงคะแนน Elo + ป้ายบวก/ลบรายวันของตัวเอง (อ่านจาก Firebase)
+  await renderElo(safeUid);
 
   // โหลดประวัติของตัวเอง
   await loadGameHistory(safeUid, current.name || 'คุณ', true);
@@ -1152,6 +1141,57 @@ function updateH2HBoxes(wins, draws, losses, oppName) {
     summary.textContent = `คุณยังไม่เคยเล่นกับ ${oppName} มาก่อน`;
   } else {
     summary.textContent = `เล่นด้วยกันมาแล้ว ${total} กระดาน — ชนะ ${wins} · เสมอ ${draws} · แพ้ ${losses}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//   แสดงคะแนน Elo (3 ประเภท) + ป้ายบวก/ลบรายวัน
+//   อ่านจาก users/{safeId}/elo และ users/{safeId}/eloDaily
+// ═══════════════════════════════════════════════════════════
+async function renderElo(safeId) {
+  let elo = {}, daily = {};
+  try {
+    const [eSnap, dSnap] = await Promise.all([
+      get(ref(db, `users/${safeId}/elo`)),
+      get(ref(db, `users/${safeId}/eloDaily`)),
+    ]);
+    if (eSnap.exists()) elo   = eSnap.val() || {};
+    if (dSnap.exists()) daily = dSnap.val() || {};
+  } catch (e) {
+    console.warn('โหลดคะแนน Elo ไม่สำเร็จ:', e);
+  }
+
+  const today = dateKey(Date.now());
+
+  ELO_MODES.forEach(mode => {
+    // คะแนนปัจจุบัน (ถ้ายังไม่มี = คะแนนเริ่มต้น 200)
+    const valEl = document.getElementById('elo-' + mode);
+    if (valEl) valEl.textContent = (elo[mode] != null) ? elo[mode] : START_ELO;
+
+    // ป้ายบวก/ลบรายวัน (ของวันก่อนหน้าล่าสุด)
+    const delta = getDisplayDelta(daily[mode], today);
+    setEloTrend(mode, delta);
+  });
+}
+
+// กำหนดสี/ข้อความป้ายแนวโน้มรายวัน
+function setEloTrend(mode, delta) {
+  const el = document.getElementById('trend-' + mode);
+  if (!el) return;
+  el.classList.remove('trend-up', 'trend-down', 'trend-flat');
+
+  if (delta === null || delta === undefined) {
+    el.classList.add('trend-flat');
+    el.textContent = '—';
+  } else if (delta > 0) {
+    el.classList.add('trend-up');
+    el.textContent = '↑ +' + delta;
+  } else if (delta < 0) {
+    el.classList.add('trend-down');
+    el.textContent = '↓ ' + delta; // delta เป็นค่าลบอยู่แล้ว
+  } else {
+    el.classList.add('trend-flat');
+    el.textContent = '— 0';
   }
 }
 </script>
