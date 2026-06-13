@@ -1817,6 +1817,8 @@ function listenToGame(gid) {
 
   onDisconnect(ref(db, `games/${gid}/conn_${myColor}`)).set(false);
 
+  startHeartbeat();   // เริ่มส่งสัญญาณ "ยังเล่นอยู่"
+
   gameListener = onValue(gameRef, snap => {
     if (!snap.exists()) return;
     const data = snap.val();
@@ -1982,8 +1984,12 @@ function abortGame(fromOpponent = false, customSub = '') {
   if (gameOver) return;
   eloApplied = true;            // กันการคิด ELO
   cancelDisconnectCountdown();
+  stopHeartbeat();
   stopClock();
   gameOver = true;
+
+  // ทำเครื่องหมายว่าเกมจบแล้ว → หน้า "ดูเกม" จะเอากระดานนี้ออก
+  if (gameRef) { try { update(gameRef, { status: 'ended', beat_w: 0, beat_b: 0 }); } catch (e) {} }
 
   if (typeof window.setCurrentUserStatus === "function") {
     window.setCurrentUserStatus("online");
@@ -2023,6 +2029,21 @@ let preMyElo = START_ELO, preOppElo = START_ELO, preMyGames = 0, preOppGames = 0
 let dcInterval = null;
 let dcSecondsLeft = 0;
 const DC_TIMEOUT_SECONDS = 120; // 2 นาที
+
+// ── Heartbeat: บอกว่า "ยังเล่นอยู่จริง" ทุก ๆ 5 วินาที (ให้หน้า watch รู้ว่าเกมยังสด) ──
+let heartbeatTimer = null;
+function startHeartbeat() {
+  stopHeartbeat();
+  const beat = () => {
+    if (gameOver || !gameRef || !myColor) return;
+    try { update(gameRef, { [`beat_${myColor}`]: serverTimestamp() }); } catch (e) {}
+  };
+  beat();                                  // เต้นทันที 1 ครั้ง
+  heartbeatTimer = setInterval(beat, 5000); // แล้วเต้นทุก 5 วิ
+}
+function stopHeartbeat() {
+  if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+}
 
 // เขียนคะแนน ELO ของผู้เล่นคนหนึ่ง (ใช้คะแนนก่อนเกมที่เก็บไว้ กัน race)
 // uid = ใคร, myRating/oppRating = คะแนนก่อนเกมของคนนั้นและคู่ต่อสู้, score = ผล (1/0.5/0), games = จำนวนเกมก่อนเกมนี้
@@ -2139,9 +2160,13 @@ async function endGame(reason, winner) {
     window.setCurrentUserStatus("online");
   }
   cancelDisconnectCountdown();
+  stopHeartbeat();
   stopClock();
   gameOver = true;
   updateAbortVisibility();
+
+  // ทำเครื่องหมายว่าเกมจบแล้ว → หน้า "ดูเกม" จะเอากระดานนี้ออก
+  if (gameRef) { try { update(gameRef, { status: 'ended', beat_w: 0, beat_b: 0 }); } catch (e) {} }
 
   const emoji = document.getElementById('go-emoji');
   const title = document.getElementById('go-title');
