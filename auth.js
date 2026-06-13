@@ -484,6 +484,57 @@ function renderResumeGameButton() {
   });
 }
 
+// เพิ่มเมนู "อันดับ" (leaderboard) เข้า topbar ถ้ายังไม่มี — ใช้ทุกหน้าโดยไม่ต้องแก้ HTML
+function ensureLeaderboardNavLink() {
+  const nav = document.querySelector(".nav");
+  if (!nav) return;
+  if (nav.querySelector('a[href$="leaderboard.html"]')) return; // มีแล้ว
+
+  // อิงพาธจากลิงก์ที่มีอยู่ (รองรับทั้งหน้าใน /pages/ และ root)
+  let href = "leaderboard.html";
+  const sample = nav.querySelector("a[href]");
+  if (sample) {
+    href = sample.getAttribute("href").replace(/[^\/]*$/, "leaderboard.html");
+  }
+
+  const link = document.createElement("a");
+  link.href = href;
+  link.textContent = "อันดับ";
+
+  // วางต่อจาก "ดูเกม" (watch) ถ้าเจอ ไม่งั้นต่อท้ายเมนูสุดท้ายก่อนช่องค้นหา
+  const watchLink = nav.querySelector('a[href$="watch.html"]');
+  const searchBox = nav.querySelector(".search");
+  if (watchLink && watchLink.nextSibling) {
+    nav.insertBefore(link, watchLink.nextSibling);
+  } else if (searchBox) {
+    nav.insertBefore(link, searchBox);
+  } else {
+    nav.appendChild(link);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//   ทำตัวหนาเมนู topbar ของหน้าปัจจุบัน
+// ════════════════════════════════════════════════════════════
+function highlightCurrentNav() {
+  // ใส่สไตล์ครั้งเดียว
+  if (!document.getElementById("nav-active-style")) {
+    const style = document.createElement("style");
+    style.id = "nav-active-style";
+    style.textContent = `.nav a.nav-active { font-weight: 700; color: var(--text); }`;
+    document.head.appendChild(style);
+  }
+
+  // ชื่อไฟล์ของหน้าปัจจุบัน (เช่น "play.html")
+  let current = window.location.pathname.split("/").pop();
+  if (!current) current = "play.html"; // กรณีเป็น root/โฟลเดอร์
+
+  document.querySelectorAll(".nav a").forEach(link => {
+    const href = (link.getAttribute("href") || "").split("/").pop().split("?")[0].split("#")[0];
+    link.classList.toggle("nav-active", href !== "" && href === current);
+  });
+}
+
 function initAuth() {
   initializeTheme();
   createAuthModal();
@@ -493,6 +544,8 @@ function initAuth() {
   updateAuthUI();
   attachTopbarButtons();
   initTopbarSearch();
+  ensureLeaderboardNavLink();
+  highlightCurrentNav();
   renderResumeGameButton();
   window.addEventListener('storage', (e) => {
     if (e.key === 'rukthai_active_game') renderResumeGameButton();

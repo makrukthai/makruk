@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUKTHAI - อันดับผู้เล่น</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../styles-friend-enhanced.css">
+<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
+<script type="module" src="../auth.js"></script>
+<style>
+  .lb-wrap {
+    max-width: 1200px;
+    margin: 28px auto;
+    padding: 0 16px 60px;
+  }
+  .lb-head {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .lb-head h1 {
+    font-size: 1.9rem;
+    color: var(--text);
+    margin: 0 0 6px;
+  }
+  .lb-head p { color: var(--muted); margin: 0; font-size: 0.95rem; }
+
+  .lb-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media screen and (max-width: 900px) {
+    .lb-grid { grid-template-columns: 1fr; }
+  }
+
+  .lb-card {
+    background: var(--bg2);
+    border: 1px solid rgba(128,128,128,0.18);
+    border-radius: 18px;
+    padding: 22px 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  .lb-card-title {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .lb-card-sub {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-top: 2px;
+  }
+  .lb-count {
+    text-align: center;
+    font-weight: 700;
+    color: var(--text);
+    margin: 14px 0 6px;
+    font-size: 0.95rem;
+  }
+  .lb-count span { color: #d6b16b; }
+
+  .lb-table-head {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    padding: 8px 10px 6px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    border-bottom: 1px solid rgba(128,128,128,0.12);
+  }
+  .lb-list { display: flex; flex-direction: column; }
+
+  .lb-row {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    align-items: center;
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(128,128,128,0.08);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .lb-row:hover { background: rgba(128,128,128,0.12); }
+  .lb-row:last-child { border-bottom: none; }
+
+  .lb-rank { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .lb-rank.top1 { color: #f0c040; }
+  .lb-rank.top2 { color: #c8c8d0; }
+  .lb-rank.top3 { color: #cd853f; }
+
+  .lb-player { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .lb-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #555, #888);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; overflow: hidden;
+  }
+  .lb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .lb-name {
+    color: var(--text); font-weight: 500; font-size: 0.95rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lb-elo {
+    font-weight: 700; color: #d6b16b; font-variant-numeric: tabular-nums;
+    font-family: 'Courier New', monospace; padding-left: 10px;
+  }
+  .lb-empty { color: var(--muted); text-align: center; padding: 26px 0; font-style: italic; font-size: 0.9rem; }
+  .lb-loading { color: var(--muted); text-align: center; padding: 26px 0; font-size: 0.9rem; }
+</style>
+</head>
+<body class="watch-body">
+<header class="topbar">
+    <div class="left">
+        <a href="play.html" class="logo">
+            <div class="logo-icon">
+                <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+                <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+            </div>
+        </a>
+        <nav class="nav">
+            <a href="play.html">เล่น</a>
+            <a href="tournament.html">ทัวร์นาเมนต์</a>
+            <a href="learn.html">เรียนรู้</a>
+            <a href="watch.html">ดูเกม</a>
+            <a href="community.html">ชุมชน</a>
+            <input class="search" placeholder="ค้นหาผู้เล่น...">
+        </nav>
+    </div>
+    <div class="right">
+        <button class="register">ลงทะเบียน</button>
+        <button class="login">เข้าสู่ระบบ</button>
+    </div>
+</header>
+
+<main class="main">
+  <div class="lb-wrap">
+    <div class="lb-head">
+      <h1>🏆 อันดับผู้เล่น</h1>
+      <p>จัดอันดับผู้เล่นที่มีคะแนน ELO สูงสุดในแต่ละประเภทเกม — คลิกชื่อเพื่อดูโปรไฟล์</p>
+    </div>
+
+    <div class="lb-grid">
+      <div class="lb-card">
+        <div class="lb-card-title">⚡ เกมส์เร็ว <span style="font-weight:400;color:var(--muted);">(Blitz)</span></div>
+        <div class="lb-card-sub">5 นาที</div>
+        <div class="lb-count" id="count-blitz">— ผู้เล่น</div>
+        <div class="lb-table-head"><span>อันดับ</span><span>ผู้เล่น</span><span>ELO</span></div>
+        <div class="lb-list" id="list-blitz"><div class="lb-loading">กำลังโหลด…</div></div>
+      </div>
+
+      <div class="lb-card">
+        <div class="lb-card-title">♟ เกมส์ปกติ <span style="font-weight:400;color:var(--muted);">(Rapid)</span></div>
+        <div class="lb-card-sub">10 นาที</div>
+        <div class="lb-count" id="count-rapid">— ผู้เล่น</div>
+        <div class="lb-table-head"><span>อันดับ</span><span>ผู้เล่น</span><span>ELO</span></div>
+        <div class="lb-list" id="list-rapid"><div class="lb-loading">กำลังโหลด…</div></div>
+      </div>
+
+      <div class="lb-card">
+        <div class="lb-card-title">🏛 เกมส์ยาว <span style="font-weight:400;color:var(--muted);">(Standard)</span></div>
+        <div class="lb-card-sub">30 นาที</div>
+        <div class="lb-count" id="count-standard">— ผู้เล่น</div>
+        <div class="lb-table-head"><span>อันดับ</span><span>ผู้เล่น</span><span>ELO</span></div>
+        <div class="lb-list" id="list-standard"><div class="lb-loading">กำลังโหลด…</div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { START_ELO } from "../elo.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain:        "rukthai-b4971.firebaseapp.com",
+  databaseURL:       "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "rukthai-b4971",
+  storageBucket:     "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId:             "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const MODES = ['blitz', 'rapid', 'standard'];
+const MAX_ROWS = 50;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function rowHtml(rank, player) {
+  const rankClass = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+  const name = escapeHtml(player.name);
+  const avatar = player.avatar
+    ? `<img src="${escapeHtml(player.avatar)}" alt="">`
+    : name.charAt(0).toUpperCase();
+  return `
+    <div class="lb-row" data-uid="${escapeHtml(player.id)}">
+      <span class="lb-rank ${rankClass}">${medal}</span>
+      <span class="lb-player">
+        <span class="lb-avatar">${avatar}</span>
+        <span class="lb-name">${name}</span>
+      </span>
+      <span class="lb-elo">${player.elo}</span>
+    </div>`;
+}
+
+function renderMode(mode, players) {
+  const listEl = document.getElementById('list-' + mode);
+  const countEl = document.getElementById('count-' + mode);
+  countEl.innerHTML = `<span>${players.length}</span> ผู้เล่น`;
+
+  if (players.length === 0) {
+    listEl.innerHTML = '<div class="lb-empty">ยังไม่มีผู้เล่นในโหมดนี้</div>';
+    return;
+  }
+
+  listEl.innerHTML = players.slice(0, MAX_ROWS)
+    .map((p, i) => rowHtml(i + 1, p)).join('');
+
+  listEl.querySelectorAll('.lb-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const uid = row.dataset.uid;
+      if (uid) window.location.href = `profile.html?user=${encodeURIComponent(uid)}`;
+    });
+  });
+}
+
+async function loadLeaderboards() {
+  let users = {};
+  try {
+    const snap = await get(ref(db, 'users'));
+    if (snap.exists()) users = snap.val() || {};
+  } catch (e) {
+    console.error('โหลดข้อมูลผู้เล่นไม่สำเร็จ:', e);
+    MODES.forEach(m => {
+      document.getElementById('list-' + m).innerHTML = '<div class="lb-empty">โหลดข้อมูลไม่สำเร็จ</div>';
+    });
+    return;
+  }
+
+  MODES.forEach(mode => {
+    const players = Object.entries(users)
+      .filter(([id, u]) => u && u.elo && u.elo[mode] != null)
+      .map(([id, u]) => ({
+        id,
+        name: (u.name && String(u.name).trim()) ? u.name : 'ผู้เล่น',
+        avatar: u.avatar || '',
+        elo: Number(u.elo[mode]) || START_ELO
+      }))
+      .sort((a, b) => b.elo - a.elo);
+    renderMode(mode, players);
+  });
+}
+
+loadLeaderboards();
+</script>
+</body>
+</html>

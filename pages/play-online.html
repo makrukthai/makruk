@@ -829,6 +829,7 @@ html[data-background-mode="light"] .chat-panel {
       <a href="learn.html">เรียนรู้</a>
       <a href="watch.html">ดูเกม</a>
       <a href="community.html">ชุมชน</a>
+      <a href="leader-board.html">กระดานผู้นำ</a>
       <input class="search" placeholder="ค้นหาผู้เล่น...">
     </nav>
   </div>
@@ -1808,7 +1809,10 @@ function updateSpecialRulesUI() {
 function listenToGame(gid) {
   gameRef = ref(db, `games/${gid}`);
 
-  if (typeof window.setCurrentUserStatus === "function") {
+  // ตั้งสถานะ "กำลังเล่น" และให้คงสถานะนี้แม้หลุด (จนกว่าเกมจะจบ)
+  if (typeof window.refreshPresence === "function") {
+    window.refreshPresence();
+  } else if (typeof window.setCurrentUserStatus === "function") {
     window.setCurrentUserStatus("playing");
   }
 
@@ -2012,75 +2016,35 @@ function abortGame(fromOpponent = false, customSub = '') {
 //   ELO RATING UPDATE (ฝ่ายขาวเป็นผู้คำนวณและเขียน)
 // ════════════════════════════════════════════════
 let eloApplied = false;
+let gameRanked = true;   // เกมนี้คิด ELO หรือไม่ (จาก data.ranked)
+// คะแนน/จำนวนเกม "ก่อนเริ่มเกม" ของทั้งสองฝ่าย (เก็บไว้เพื่อคำนวณ ELO ตอนจบ)
+let preMyElo = START_ELO, preOppElo = START_ELO, preMyGames = 0, preOppGames = 0, preEloMode = 'rapid';
 
 // ── สถานะนับถอยหลังเมื่อคู่ต่อสู้ขาดการเชื่อมต่อ ──
 let dcInterval = null;
 let dcSecondsLeft = 0;
 const DC_TIMEOUT_SECONDS = 120; // 2 นาที
 
-async function updateEloRatings(whiteUid, blackUid, winner, minutes) {
-  if (eloApplied) return;            // กันการนับซ้ำหาก endGame ถูกเรียกหลายครั้ง
-  eloApplied = true;
-
+// เขียนคะแนน ELO ของผู้เล่นคนหนึ่ง (ใช้คะแนนก่อนเกมที่เก็บไว้ กัน race)
+// uid = ใคร, myRating/oppRating = คะแนนก่อนเกมของคนนั้นและคู่ต่อสู้, score = ผล (1/0.5/0), games = จำนวนเกมก่อนเกมนี้
+async function applyElo(uid, myRating, oppRating, score, games, mode) {
+  if (!uid) return;
+  const safeId = String(uid).replace(/[.#$\[\]]/g, '_');
+  const res = computeRatingChange(myRating, oppRating, score, games);
+  const today = dateKey(Date.now());
+  let dailyRec = null;
   try {
-    const mode  = modeFromMinutes(minutes);
-    const safeW = String(whiteUid).replace(/[.#$\[\]]/g, '_');
-    const safeB = String(blackUid).replace(/[.#$\[\]]/g, '_');
-
-    // อ่านคะแนนปัจจุบัน + จำนวนเกมของทั้งสองฝ่าย (ก่อนแข่ง)
-    const [wEloSnap, bEloSnap, wGamesSnap, bGamesSnap, wDailySnap, bDailySnap] = await Promise.all([
-      get(ref(db, `users/${safeW}/elo/${mode}`)),
-      get(ref(db, `users/${safeB}/elo/${mode}`)),
-      get(ref(db, `users/${safeW}/eloGames/${mode}`)),
-      get(ref(db, `users/${safeB}/eloGames/${mode}`)),
-      get(ref(db, `users/${safeW}/eloDaily/${mode}`)),
-      get(ref(db, `users/${safeB}/eloDaily/${mode}`)),
-    ]);
-
-    const rW = wEloSnap.exists() ? Number(wEloSnap.val()) : START_ELO;
-    const rB = bEloSnap.exists() ? Number(bEloSnap.val()) : START_ELO;
-    const gW = wGamesSnap.exists() ? Number(wGamesSnap.val()) : 0;
-    const gB = bGamesSnap.exists() ? Number(bGamesSnap.val()) : 0;
-
-    // คะแนนผลการแข่งของฝ่ายขาว: ชนะ=1, เสมอ=0.5, แพ้=0
-    const scoreW = winner === 'w' ? 1 : winner === null ? 0.5 : 0;
-    const scoreB = 1 - scoreW;
-
-    const resW = computeRatingChange(rW, rB, scoreW, gW);
-    const resB = computeRatingChange(rB, rW, scoreB, gB);
-
-    const today = dateKey(Date.now());
-    const wDaily = rollDailyDelta(wDailySnap.exists() ? wDailySnap.val() : null, resW.delta, today);
-    const bDaily = rollDailyDelta(bDailySnap.exists() ? bDailySnap.val() : null, resB.delta, today);
-
-    await Promise.all([
-      update(ref(db, `users/${safeW}`), {
-        [`elo/${mode}`]:      resW.newRating,
-        [`eloGames/${mode}`]: gW + 1,
-        [`eloDaily/${mode}`]: wDaily,
-      }),
-      update(ref(db, `users/${safeB}`), {
-        [`elo/${mode}`]:      resB.newRating,
-        [`eloGames/${mode}`]: gB + 1,
-        [`eloDaily/${mode}`]: bDaily,
-      }),
-    ]);
-
-    // อัปเดต localStorage ของฝ่ายขาว (ตัวเรา) ให้ตรงกับคะแนนใหม่
-    try {
-      const raw = localStorage.getItem('rukthai_current_user');
-      if (raw) {
-        const u = JSON.parse(raw);
-        u.elo = u.elo || {};
-        u.elo[mode] = resW.newRating;
-        localStorage.setItem('rukthai_current_user', JSON.stringify(u));
-      }
-    } catch (e) {}
-
-    console.log(`[Elo] ${mode}: ขาว ${rW}→${resW.newRating} (${resW.delta>=0?'+':''}${resW.delta}), ดำ ${rB}→${resB.newRating} (${resB.delta>=0?'+':''}${resB.delta})`);
-  } catch (e) {
-    console.error('อัปเดต Elo ไม่สำเร็จ:', e);
-  }
+    const dSnap = await get(ref(db, `users/${safeId}/eloDaily/${mode}`));
+    if (dSnap.exists()) dailyRec = dSnap.val();
+  } catch (e) {}
+  const daily = rollDailyDelta(dailyRec, res.delta, today);
+  await update(ref(db, `users/${safeId}`), {
+    [`elo/${mode}`]:      res.newRating,
+    [`eloGames/${mode}`]: (Number(games) || 0) + 1,
+    [`eloDaily/${mode}`]: daily,
+  });
+  console.log(`[Elo] ${mode}: ${uid} ${myRating}→${res.newRating} (${res.delta>=0?'+':''}${res.delta})`);
+  return res.newRating;
 }
 
 async function endGame(reason, winner) {
@@ -2105,7 +2069,7 @@ async function endGame(reason, winner) {
 
       await set(ref(db, `user_history/${safeMyUid}/${gameId}`), historySummary);
 
-      // ปกติฝ่ายขาวเป็นผู้เขียนผลรวม (กันการนับซ้ำ)
+      // ปกติฝ่ายขาวเป็นผู้เขียน game_history (กันการนับซ้ำ)
       // กรณี 'disconnect' เฉพาะผู้ชนะ (ฝ่ายที่ยังเชื่อมต่อ) เป็นผู้เขียน
       const writeShared = (reason === 'disconnect')
         ? (winner === myColor)
@@ -2121,10 +2085,51 @@ async function endGame(reason, winner) {
           await set(ref(db, `game_history/${gameId}`), gameData);
         }
 
-        // 📈 อัปเดตคะแนน Elo ของทั้งสองฝ่าย
-        const whiteUid = (myColor === 'w') ? myUid : oppUid;
-        const blackUid = (myColor === 'w') ? oppUid : myUid;
-        await updateEloRatings(whiteUid, blackUid, winner, selectedMinutes || 10);
+        // กรณีแพ้/ชนะจากการขาดการเชื่อมต่อ: ผู้ชนะเขียนประวัติ "แพ้" ให้ฝ่ายที่หลุดด้วย
+        if (reason === 'disconnect' && winner === myColor && oppUid) {
+          const safeOppUid = String(oppUid).replace(/[.#$\[\]]/g, '_');
+          const loserHistory = {
+            gameId: gameId,
+            opponentName: myName,
+            opponentAvatar: myAvatar,
+            opponentId: myUid || '',
+            result: 'loss',
+            reason: 'disconnect',
+            date: Date.now(),
+            minutes: selectedMinutes || 10,
+            myColor: window.opposite(myColor),
+            moves: movesData
+          };
+          await set(ref(db, `user_history/${safeOppUid}/${gameId}`), loserHistory);
+          await set(ref(db, `status/${safeOppUid}`), { state: 'offline', last_changed: Date.now() });
+        }
+      }
+
+      // 📈 คิดคะแนน ELO (เฉพาะเกมจัดอันดับ) — ใช้คะแนนก่อนเกมที่เก็บไว้
+      if (gameRanked && oppUid && !eloApplied) {
+        eloApplied = true;
+        const scoreMe = (winner === myColor) ? 1 : (winner === null ? 0.5 : 0);
+        if (reason === 'disconnect') {
+          // ฝ่ายที่หลุดออฟไลน์เขียนเองไม่ได้ → ผู้ชนะเขียนให้ทั้งคู่ (กันนับซ้ำ)
+          if (winner === myColor) {
+            await applyElo(myUid,  preMyElo,  preOppElo, scoreMe,     preMyGames,  preEloMode);
+            await applyElo(oppUid, preOppElo, preMyElo,  1 - scoreMe, preOppGames, preEloMode);
+          }
+          // ผู้แพ้ (ฝ่ายที่หลุดแล้วกลับมา) ไม่ต้องเขียน — ผู้ชนะจัดการแล้ว
+        } else {
+          // เกมปกติ: แต่ละฝ่ายเขียนคะแนนของตัวเอง
+          const myNewElo = await applyElo(myUid, preMyElo, preOppElo, scoreMe, preMyGames, preEloMode);
+          // อัปเดต localStorage ของตัวเองให้ตรง
+          try {
+            const raw = localStorage.getItem('rukthai_current_user');
+            if (raw && myNewElo != null) {
+              const u = JSON.parse(raw);
+              u.elo = u.elo || {};
+              u.elo[preEloMode] = myNewElo;
+              localStorage.setItem('rukthai_current_user', JSON.stringify(u));
+            }
+          } catch (e) {}
+        }
       }
     } catch (err) {
       console.error("Error saving match history:", err);
@@ -2454,6 +2459,7 @@ document.getElementById('mv-last').addEventListener('click', () => { viewPointer
 // ════════════════════════════════════════════════
 async function startGame(gid) {
   document.getElementById('mm-overlay').classList.add('hidden');
+  gameId = gid;   // ⚠️ สำคัญ: ตั้ง gameId เสมอ (เกมเพื่อนเข้าผ่าน ?room= ไม่ผ่าน matchmaking)
 
   const snap = await get(ref(db, `games/${gid}`));
   if (!snap.exists()) return;
@@ -2477,7 +2483,7 @@ async function startGame(gid) {
 
   // 📌 ดึงชื่อ/รูป "ล่าสุด" ของคู่ต่อสู้จาก users/{uid} ใน Firebase
   // เพื่อให้แสดงชื่อที่เขาตั้งเองเสมอ (ไม่ใช่ชื่อ/รูปเก่าที่ค้างอยู่ในข้อมูลเกม)
-  let oppEloMap = {}, myEloMap = {};
+  let oppEloMap = {}, myEloMap = {}, oppGamesMap = {}, myGamesMap = {};
   if (oppUid) {
     try {
       const safeOppId = String(oppUid).replace(/[.#$\[\]]/g, '_');
@@ -2487,6 +2493,7 @@ async function startGame(gid) {
         if (oppProfile.name && oppProfile.name.trim()) oppName = oppProfile.name;
         if (oppProfile.avatar) oppAvatar = oppProfile.avatar;
         oppEloMap = oppProfile.elo || {};
+        oppGamesMap = oppProfile.eloGames || {};
       }
     } catch (e) { console.warn('โหลดชื่อล่าสุดของคู่ต่อสู้ไม่สำเร็จ:', e); }
   }
@@ -2501,6 +2508,7 @@ async function startGame(gid) {
         if (meProfile.name && meProfile.name.trim()) myName = meProfile.name;
         if (meProfile.avatar) myAvatar = meProfile.avatar;
         myEloMap = meProfile.elo || {};
+        myGamesMap = meProfile.eloGames || {};
       }
     } catch (e) {}
   }
@@ -2531,6 +2539,7 @@ async function startGame(gid) {
   gameOver = false; capturedByW = []; capturedByB = []; moveCount = 0;
   timeW = data.minutes * 60; timeB = data.minutes * 60;
   selectedMinutes = data.minutes;
+  gameRanked = (data.ranked !== false); // ค่าเริ่มต้น = คิด ELO (เกมจับคู่สุ่มถือว่าจัดอันดับ)
 
   document.getElementById('chat-input').disabled = false;
   document.getElementById('chat-send-btn').disabled = false;
@@ -2544,6 +2553,13 @@ async function startGame(gid) {
   const oppEloVal = (oppEloMap[eloMode] != null) ? oppEloMap[eloMode] : START_ELO;
   document.getElementById('my-elo').textContent  = `(${myEloVal})`;
   document.getElementById('opp-elo').textContent = `(${oppEloVal})`;
+
+  // เก็บคะแนน/จำนวนเกมก่อนเริ่ม ไว้คำนวณ ELO ตอนจบ (ใช้ค่าก่อนเกมเพื่อกัน race)
+  preEloMode  = eloMode;
+  preMyElo    = myEloVal;
+  preOppElo   = oppEloVal;
+  preMyGames  = Number(myGamesMap[eloMode])  || 0;
+  preOppGames = Number(oppGamesMap[eloMode]) || 0;
 
   // ปุ่มยกเลิกเกม — แสดงจนกว่าทั้งสองฝ่ายเดินคนละ 1 ตา
   const abortBtn = document.getElementById('btn-abort');
@@ -2574,7 +2590,7 @@ async function startGame(gid) {
   startClock();
 
   addChatMsg(null, `จับคู่สำเร็จ! คุณเล่นหมาก${myColor==='w'?'ขาว':'ดำ'}`, true);
-  addChatMsg(null, `เวลา ${data.minutes} นาที · Ranked`, true);
+  addChatMsg(null, `เวลา ${data.minutes} นาที · ${gameRanked ? 'จัดอันดับ (คิด ELO)' : 'ไม่จัดอันดับ'}`, true);
 
   // 💾 บันทึกเกมที่กำลังเล่น เพื่อให้กลับเข้ามาได้จากหน้าอื่น
   try {
@@ -2589,6 +2605,10 @@ async function startGame(gid) {
 // ล้างสถานะเกมที่กำลังเล่น (เรียกเมื่อเกมจบ/ยกเลิก/ออกจากเกม)
 function clearActiveGame() {
   try { localStorage.removeItem('rukthai_active_game'); } catch (e) {}
+  // เกมจบแล้ว → คืนสถานะเป็นออนไลน์ + ตั้ง onDisconnect กลับเป็นออฟไลน์
+  if (typeof window.refreshPresence === "function") {
+    window.refreshPresence();
+  }
 }
 
 // ════════════════════════════════════════════════
@@ -2655,9 +2675,7 @@ document.getElementById('btn-cancel-search').addEventListener('click', () => {
 // ยกเลิกเกม (เฉพาะช่วงต้นเกม ก่อนทั้งสองฝ่ายเดินคนละ 1 ตา)
 document.getElementById('btn-abort').addEventListener('click', () => {
   if (gameOver || moveCount >= 2) return;
-  if (confirm('ยกเลิกเกมนี้? เกมจะไม่ถูกบันทึกและไม่คิด ELO')) {
-    abortGame(false);
-  }
+  abortGame(false);
 });
 
 // ยอมแพ้

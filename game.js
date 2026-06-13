@@ -197,7 +197,14 @@ function renderBoard(boardState, selected, legalForSelected, lastMove, turn, fli
           const movingColor = colorOf(piece);
           
           if (window.myColor !== null && window.myColor !== movingColor) {
-             if (typeof currentMode === 'undefined' || currentMode !== 'setup') return;
+             if (typeof currentMode === 'undefined' || currentMode !== 'setup') {
+                // เป็นหมากของศัตรู — เลือก/ลากไม่ได้ แต่ "คลิกเพื่อกิน" ได้
+                // ส่งต่อให้หน้าเพจตัดสินใจ (ถ้ามีหมากที่เลือกไว้และช่องนี้เป็นตาเดินถูกกฎ = กิน)
+                e.preventDefault();
+                e.stopPropagation();
+                if (moveMethod !== 'drag' && onCellClick) onCellClick(row, col);
+                return;
+             }
           }
 
           e.preventDefault(); 

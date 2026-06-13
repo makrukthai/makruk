@@ -51,8 +51,32 @@ export function setCurrentUserStatus(stateStr) {
   set(ref(db, `status/${safeUid}`), { state: stateStr, last_changed: Date.now() });
 }
 
+// มีเกมค้างอยู่ (ยังไม่จบ) หรือไม่
+function hasActiveGame() {
+  try {
+    const a = JSON.parse(localStorage.getItem('rukthai_active_game'));
+    return !!(a && a.gameId);
+  } catch (e) { return false; }
+}
+
+// ตั้งสถานะ + onDisconnect ตามว่ากำลังอยู่ในเกมหรือไม่
+// - ถ้ามีเกมค้าง: ออนไลน์ = "กำลังเล่น", หลุด = ยังคง "กำลังเล่น" (จนกว่าเกมจะจบ)
+// - ถ้าไม่มีเกม: ออนไลน์ = "ออนไลน์", หลุด = "ออฟไลน์"
+export function refreshPresence() {
+  const currentUser = loadCurrentUser();
+  if (!currentUser) return;
+  const safeUid = getSafeId(currentUser.id);
+  const myStatusRef = ref(db, `status/${safeUid}`);
+  const playing = hasActiveGame();
+  const onlineState = playing ? 'playing' : 'online';
+  const disconnectState = playing ? 'playing' : 'offline';
+  onDisconnect(myStatusRef).set({ state: disconnectState, last_changed: Date.now() });
+  set(myStatusRef, { state: onlineState, last_changed: Date.now() });
+}
+
 // แชร์ฟังก์ชันให้ไฟล์อื่น (เช่น play-online.html) เรียกใช้ได้ผ่าน window
 window.setCurrentUserStatus = setCurrentUserStatus;
+window.refreshPresence = refreshPresence;
 
 function getProfileStats(user) {
   const stats = user?.stats || {};
@@ -89,8 +113,10 @@ export function listenToFriendUpdates() {
   const myStatusRef = ref(db, `status/${safeUid}`);
   onValue(connectedRef, (snap) => {
     if (snap.val() === true) {
-      onDisconnect(myStatusRef).set({ state: 'offline', last_changed: Date.now() }).then(() => {
-        set(myStatusRef, { state: 'online', last_changed: Date.now() });
+      const playing = hasActiveGame();
+      // ถ้ากำลังอยู่ในเกม ให้หลุดแล้วยังเป็น "กำลังเล่น", ไม่งั้นหลุด = ออฟไลน์
+      onDisconnect(myStatusRef).set({ state: playing ? 'playing' : 'offline', last_changed: Date.now() }).then(() => {
+        set(myStatusRef, { state: playing ? 'playing' : 'online', last_changed: Date.now() });
       });
     }
   });
@@ -748,7 +774,7 @@ function showIncomingInvitePopup(inviteData, gameId) {
   popup.id = `invite-${gameId}`;
   popup.className = "game-invite-popup";
   popup.innerHTML = `
-    <p>⚔️ <strong>${inviteData.fromName}</strong> ท้าดวลหватьรุก <strong>(${inviteData.timeControl} นาที)</strong></p>
+    <p>⚔️ <strong>${inviteData.fromName}</strong> ท้าดวลหมากรุก <strong>(${inviteData.timeControl} นาที · ${inviteData.ranked === false ? 'ไม่จัดอันดับ' : 'จัดอันดับ'})</strong></p>
     <div class="invite-actions">
       <button class="invite-btn invite-btn-accept" id="accept-${gameId}">รับคำท้า</button>
       <button class="invite-btn invite-btn-reject" id="reject-${gameId}">ปฏิเสธ</button>
@@ -765,6 +791,7 @@ function showIncomingInvitePopup(inviteData, gameId) {
     const myColor = Math.random() > 0.5 ? 'w' : 'b';
     const challengerColor = myColor === 'w' ? 'b' : 'w';
     const minutes = parseInt(inviteData.timeControl) || 10;
+    const ranked = inviteData.ranked !== false; // ค่าเริ่มต้น = จัดอันดับ
     
     const friendSnap = await get(ref(db, `users/${inviteData.from}`));
     const friendAvatar = friendSnap.exists() ? (friendSnap.val().avatar || '') : '';
@@ -788,6 +815,7 @@ function showIncomingInvitePopup(inviteData, gameId) {
        w: myColor === 'w' ? meData : oppData,
        b: myColor === 'b' ? meData : oppData,
        minutes: minutes,
+       ranked: ranked,
        timeW: minutes * 60,
        timeB: minutes * 60,
        turn: 'w',
@@ -817,24 +845,68 @@ function showIncomingInvitePopup(inviteData, gameId) {
 function showTimeSelectionModal(friend) {
   if (document.getElementById('time-select-overlay')) return;
 
+  // สไตล์ toggle (ใส่ครั้งเดียว)
+  if (!document.getElementById('rating-toggle-style')) {
+    const st = document.createElement('style');
+    st.id = 'rating-toggle-style';
+    st.textContent = `
+      .rating-toggle-row {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; margin: 6px 0 12px; padding: 10px 12px;
+        background: rgba(214,177,107,0.1);
+        border: 1px solid rgba(214,177,107,0.25);
+        border-radius: 10px;
+      }
+      .rating-toggle-label { font-size: 0.9rem; color: var(--text); font-weight: 600; }
+      .rating-toggle-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+      .rt-switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+      .rt-switch input { opacity: 0; width: 0; height: 0; }
+      .rt-slider {
+        position: absolute; inset: 0; cursor: pointer;
+        background: rgba(128,128,128,0.35); border-radius: 26px; transition: 0.2s;
+      }
+      .rt-slider::before {
+        content: ''; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px;
+        background: #fff; border-radius: 50%; transition: 0.2s;
+      }
+      .rt-switch input:checked + .rt-slider { background: #d6b16b; }
+      .rt-switch input:checked + .rt-slider::before { transform: translateX(20px); }
+    `;
+    document.head.appendChild(st);
+  }
+
   const overlay = document.createElement('div');
   overlay.id = 'time-select-overlay';
   overlay.className = 'time-select-overlay';
   overlay.innerHTML = `
     <div class="time-select-modal">
       <div class="time-select-title">ท้าดวล ${friend.name || friend.email}</div>
+
+      <div class="rating-toggle-row">
+        <div>
+          <div class="rating-toggle-label">คิด Rating (ELO)</div>
+          <div class="rating-toggle-sub">เปิด = คิดคะแนนหลังจบเกม · ปิด = เล่นสบาย ๆ ไม่คิด</div>
+        </div>
+        <label class="rt-switch">
+          <input type="checkbox" id="rating-toggle" checked>
+          <span class="rt-slider"></span>
+        </label>
+      </div>
+
       <button class="time-option-btn" data-time="5">⏱️ 5 นาที (Blitz)</button>
       <button class="time-option-btn" data-time="10">⏱️ 10 นาที (Rapid)</button>
-      <button class="time-option-btn" data-time="30">⏱️ 30 นาที (Classic)</button>
+      <button class="time-option-btn" data-time="30">⏱️ 30 นาที (Standard)</button>
       <button class="time-cancel-btn">ยกเลิก</button>
     </div>
   `;
   document.body.appendChild(overlay);
 
+  const rankedToggle = overlay.querySelector('#rating-toggle');
   overlay.querySelectorAll('.time-option-btn').forEach(btn => {
     btn.onclick = () => {
       const time = parseInt(btn.dataset.time);
-      handleSendGameInvite(friend.id, friend.name || friend.email, time);
+      const ranked = rankedToggle.checked;
+      handleSendGameInvite(friend.id, friend.name || friend.email, time, ranked);
       overlay.remove();
     };
   });
@@ -843,7 +915,7 @@ function showTimeSelectionModal(friend) {
 }
 
 // 4. ฟังก์ชันส่งคำท้าไปหาเพื่อน
-async function handleSendGameInvite(friendId, friendName, timeControl) {
+async function handleSendGameInvite(friendId, friendName, timeControl, ranked = true) {
   const currentUser = loadCurrentUser();
   if (!currentUser) return;
   
@@ -856,12 +928,13 @@ async function handleSendGameInvite(friendId, friendName, timeControl) {
       from: safeMyId,
       fromName: currentUser.name || currentUser.email,
       gameId: gameId,
-      timeControl: timeControl, 
+      timeControl: timeControl,
+      ranked: ranked,
       status: 'pending',
       timestamp: Date.now()
     });
 
-    showFriendAlert(`ส่งคำท้าหา ${friendName} (${timeControl} นาที) แล้ว...`);
+    showFriendAlert(`ส่งคำท้าหา ${friendName} (${timeControl} นาที · ${ranked ? 'จัดอันดับ' : 'ไม่จัดอันดับ'}) แล้ว...`);
 
     const mySentInviteRef = ref(db, `game_invites/${safeFriendId}/${gameId}`);
     const unsub = onValue(mySentInviteRef, (snap) => {
@@ -1109,7 +1182,7 @@ function ensureTopbarSearchStyles() {
       position: fixed; z-index: 10050;
       background: var(--bg2);
       border: 1px solid rgba(128,128,128,0.22);
-      border-radius: 4px;
+      border-radius: 14px;
       box-shadow: 0 18px 50px rgba(0,0,0,0.5);
       padding: 6px;
       max-height: 60vh; overflow-y: auto;
