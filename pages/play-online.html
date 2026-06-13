@@ -100,6 +100,107 @@
   flex-shrink: 0;
 }
 
+/* ── Tabs: แชท / ตาเดิน ── */
+.cp-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.cp-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 10px 8px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s, background 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.cp-tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+.cp-tab.active { color: var(--text); }
+.cp-tab.active::after {
+  content: '';
+  position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(214,177,107,0.8), transparent);
+}
+html[data-background-mode="light"] .cp-tabs { border-bottom-color: rgba(0,0,0,0.1); }
+
+.cp-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cp-view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.cp-view.hidden { display: none; }
+
+/* ── Move log (ตาเดิน) ── */
+.move-log-head {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.move-log-head span:not(:first-child) { text-align: left; }
+
+.move-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px;
+  min-height: 0;
+}
+.move-log::-webkit-scrollbar { width: 3px; }
+.move-log::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); border-radius: 2px; }
+.move-log-empty { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0; font-style: italic; }
+
+.mv-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr;
+  font-size: 12.5px;
+  border-radius: 6px;
+}
+.mv-row .mv-no { color: var(--muted); font-family: monospace; padding: 5px 4px; }
+.mv-ply {
+  padding: 5px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text);
+  font-family: 'Noto Sans Thai', sans-serif;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.mv-ply:hover { background: rgba(128,128,128,0.14); }
+.mv-ply.active { font-weight: 700; }
+.mv-ply.empty { cursor: default; color: var(--muted); }
+.mv-ply.empty:hover { background: transparent; }
+
+.move-nav {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.move-nav button {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  padding: 7px 0;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.move-nav button:hover:not(:disabled) { background: rgba(128,128,128,0.2); }
+.move-nav button:disabled { opacity: 0.35; cursor: default; }
+html[data-background-mode="light"] .move-nav { border-top-color: rgba(0,0,0,0.08); }
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -781,15 +882,34 @@ html[data-background-mode="light"] .chat-panel {
           <div class="status-bar" id="game-status">รอผู้เล่น…</div>
 
           <div class="chat-panel">
-            <div class="chat-title">
-              <span class="conn-dot" id="conn-dot"></span>แชท
+            <div class="cp-tabs">
+              <button type="button" class="cp-tab active" id="tab-chat"><span class="conn-dot" id="conn-dot"></span>แชท</button>
+              <button type="button" class="cp-tab" id="tab-moves">ตาเดิน</button>
             </div>
-            <div class="chat-messages" id="chat-messages">
-              <div class="chat-msg system">— ยินดีต้อนรับสู่ RUKTHAI Online —</div>
-            </div>
-            <div class="chat-input-row">
-              <input class="chat-input" id="chat-input" placeholder="พิมพ์ข้อความ…" maxlength="120" disabled>
-              <button class="chat-send" id="chat-send-btn" disabled>➤</button>
+
+            <div class="cp-body">
+              <div class="cp-view" id="chat-view">
+                <div class="chat-messages" id="chat-messages">
+                  <div class="chat-msg system">— ยินดีต้อนรับสู่ RUKTHAI Online —</div>
+                </div>
+                <div class="chat-input-row">
+                  <input class="chat-input" id="chat-input" placeholder="พิมพ์ข้อความ…" maxlength="120" disabled>
+                  <button class="chat-send" id="chat-send-btn" disabled>➤</button>
+                </div>
+              </div>
+
+              <div class="cp-view hidden" id="moves-view">
+                <div class="move-log-head"><span>#</span><span>ขาว</span><span>ดำ</span></div>
+                <div class="move-log" id="move-log">
+                  <div class="move-log-empty">ยังไม่มีตาเดิน</div>
+                </div>
+                <div class="move-nav">
+                  <button type="button" id="mv-first" title="ตาแรก">⏮</button>
+                  <button type="button" id="mv-prev"  title="ย้อนกลับ">◀</button>
+                  <button type="button" id="mv-next"  title="เดินหน้า">▶</button>
+                  <button type="button" id="mv-last"  title="ตาล่าสุด">⏭</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1009,6 +1129,12 @@ let clockInterval = null;
 let gameRef = null, gameListener = null;
 
 let positionHistory = [];
+
+// ── ระบบดูตาเดินย้อนหลัง (move log / review) ──
+let moveLog = [];          // moveLog[0] = ตั้งต้น, moveLog[n] = สถานะหลังเดินตาที่ n
+let viewPointer = 0;       // index ที่กำลังแสดงบนกระดาน
+let activeTab = 'chat';    // 'chat' | 'moves'
+
 let sakdiKradanActive = false;
 let sakdiKradanCount = 0;
 let sakdiKradanFleeColor = null;
@@ -1432,6 +1558,7 @@ function stopClock() {
 // ════════════════════════════════════════════════
 function handleCellClick(row, col) {
   if (gameOver || turn !== myColor) return;
+  if (isReviewing()) { viewPointer = moveLog.length - 1; renderByPointer(); return; }
   const piece = boardState[row][col];
 
   if (selected) {
@@ -1450,6 +1577,7 @@ function handleCellClick(row, col) {
 
 function attemptMove(from, to) {
   if (gameOver || turn !== myColor) return;
+  if (isReviewing()) { viewPointer = moveLog.length - 1; renderByPointer(); return; }
   const piece = boardState[from.row]?.[from.col];
   if (!piece || window.colorOf(piece) !== turn) return;
   const moves = window.getLegalMoves(boardState, from.row, from.col);
@@ -1474,6 +1602,9 @@ function doMove(move) {
 
   lastMove = move; selected = null; legalForSelected = [];
   moveCount++;
+
+  // บันทึกตาเดินลง move log (ตาเรา)
+  recordPly(moveCount, move, boardToFB(boardState), movingColor, captured);
 
   if (opponentDrawOffer) {
     if (gameRef) update(gameRef, { drawOffer: null });
@@ -1739,6 +1870,10 @@ function listenToGame(gid) {
     capturedByW = lm.capturedByW || [];
     capturedByB = lm.capturedByB || [];
     selected = null; legalForSelected = [];
+
+    // บันทึกตาเดินของคู่ต่อสู้ + ดีดกระดานกลับมาตาปัจจุบันทันที
+    const oppMover = window.colorOf(boardState[lm.to.row]?.[lm.to.col]) || window.opposite(lm.turn);
+    recordPly(lm.moveCount, { from: lm.from, to: lm.to }, lm.board, oppMover, lm.captured);
 
     syncSharedStateAndRender();
     updateClocks();
@@ -2034,6 +2169,160 @@ function updateWaitTimer() {
 }
 
 // ════════════════════════════════════════════════
+//   MOVE LOG & REVIEW (ดูตาเดินย้อนหลัง)
+// ════════════════════════════════════════════════
+
+// แปลงตำแหน่งเป็นชื่อช่อง (เหมือน history.html)
+function mlPosName(r, c) {
+  const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ญ'];
+  const rows = ['8','7','6','5','4','3','2','1'];
+  return cols[c] + rows[r];
+}
+function mlPieceName(p) {
+  const names = {'K':'ข','Q':'ม็','B':'ค','N':'ม','R':'ร','P':'บ'};
+  return p ? (names[window.typeOf(p)] || '') : '';
+}
+
+// สร้างสัญกรณ์ของตาเดินจากสถานะกระดานหลังเดิน
+function mlNotation(entry) {
+  if (!entry || !entry.from || !entry.to) return '';
+  const board = fbToBoard(entry.board);
+  const piece = board[entry.to.row]?.[entry.to.col] || null;
+  let s = `${mlPieceName(piece)}${mlPosName(entry.from.row, entry.from.col)}-${mlPosName(entry.to.row, entry.to.col)}`;
+  // เครื่องหมาย + ถ้ารุกขุนฝ่ายตรงข้าม
+  try {
+    const enemy = window.opposite(entry.mover);
+    if (window.isInCheck(board, enemy)) s += '+';
+  } catch (e) {}
+  return s;
+}
+
+function isReviewing() {
+  return moveLog.length > 1 && viewPointer < moveLog.length - 1;
+}
+
+// บันทึกตาเดินหนึ่งตา (เรียกได้ทั้งตาเราและตาคู่ต่อสู้ — กันซ้ำด้วย moveCount)
+function recordPly(mc, move, boardFB, mover, captured) {
+  if (mc == null || mc < 1) return;
+  moveLog[mc] = {
+    moveCount: mc,
+    from: move.from, to: move.to,
+    board: boardFB,
+    mover,
+    captured: captured || ''
+  };
+  // ตามตาล่าสุดเสมอ (ดีดกลับมาตาปัจจุบัน)
+  viewPointer = moveLog.length - 1;
+  renderMoveLog();
+  updateMoveNavButtons();
+}
+
+// เรนเดอร์รายการตาเดิน (จับคู่ขาว/ดำ)
+function renderMoveLog() {
+  const body = document.getElementById('move-log');
+  if (!body) return;
+  if (moveLog.length <= 1) {
+    body.innerHTML = '<div class="move-log-empty">ยังไม่มีตาเดิน</div>';
+    return;
+  }
+  const rows = [];
+  for (let i = 1; i < moveLog.length; i += 2) {
+    const w = moveLog[i];
+    const b = moveLog[i + 1];
+    const wActive = (viewPointer === i) ? ' active' : '';
+    const bActive = (b && viewPointer === i + 1) ? ' active' : '';
+    const wCell = w ? `<span class="mv-ply${wActive}" data-idx="${i}">${mlNotation(w)}</span>` : `<span class="mv-ply empty">–</span>`;
+    const bCell = b ? `<span class="mv-ply${bActive}" data-idx="${i + 1}">${mlNotation(b)}</span>` : `<span class="mv-ply empty">–</span>`;
+    rows.push(`<div class="mv-row"><span class="mv-no">${Math.ceil(i / 2)}.</span>${wCell}${bCell}</div>`);
+  }
+  body.innerHTML = rows.join('');
+
+  body.querySelectorAll('.mv-ply[data-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      viewPointer = parseInt(el.dataset.idx, 10);
+      renderByPointer();
+    });
+  });
+
+  // เลื่อนไปยังตาที่กำลังดู
+  const activeEl = body.querySelector('.mv-ply.active');
+  if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+}
+
+// แสดงกระดานตาม viewPointer (live = ตาล่าสุด, ไม่งั้น = สถานะย้อนหลัง)
+function renderByPointer() {
+  if (!isReviewing()) {
+    syncSharedStateAndRender();
+  } else {
+    const entry = moveLog[viewPointer];
+    if (!entry || !entry.board) { viewPointer = moveLog.length - 1; syncSharedStateAndRender(); updateMoveNavButtons(); return; }
+    const b = fbToBoard(entry.board);
+    const hl = (entry.from && entry.to) ? { from: entry.from, to: entry.to } : null;
+    window.myColor = myColor;
+    window.gameOver = gameOver;
+    // เรนเดอร์แบบดูอย่างเดียว (คลิกไม่ได้)
+    window.renderBoard(b, null, [], hl, turn, flipped, () => {}, () => {});
+  }
+  updateMoveNavButtons();
+  // อัปเดตไฮไลต์ในรายการ
+  document.querySelectorAll('#move-log .mv-ply[data-idx]').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.idx, 10) === viewPointer);
+  });
+}
+
+function updateMoveNavButtons() {
+  const first = document.getElementById('mv-first');
+  const prev  = document.getElementById('mv-prev');
+  const next  = document.getElementById('mv-next');
+  const last  = document.getElementById('mv-last');
+  if (!first) return;
+  const atStart = viewPointer <= 1 || moveLog.length <= 1;
+  const atEnd   = viewPointer >= moveLog.length - 1;
+  first.disabled = atStart;
+  prev.disabled  = atStart;
+  next.disabled  = atEnd;
+  last.disabled  = atEnd;
+}
+
+function gotoPointer(idx) {
+  const maxIdx = moveLog.length - 1;
+  viewPointer = Math.max(1, Math.min(idx, maxIdx));
+  if (moveLog.length <= 1) viewPointer = 0;
+  renderByPointer();
+}
+
+function setChatTab(tab) {
+  activeTab = tab;
+  const chatView = document.getElementById('chat-view');
+  const movesView = document.getElementById('moves-view');
+  const tabChat = document.getElementById('tab-chat');
+  const tabMoves = document.getElementById('tab-moves');
+  if (tab === 'moves') {
+    chatView.classList.add('hidden');
+    movesView.classList.remove('hidden');
+    tabChat.classList.remove('active');
+    tabMoves.classList.add('active');
+    renderMoveLog();
+    updateMoveNavButtons();
+  } else {
+    movesView.classList.add('hidden');
+    chatView.classList.remove('hidden');
+    tabMoves.classList.remove('active');
+    tabChat.classList.add('active');
+    // กลับมาแชท → ดีดกระดานกลับตาปัจจุบัน
+    if (isReviewing()) { viewPointer = moveLog.length - 1; renderByPointer(); }
+  }
+}
+
+// ผูกปุ่ม/แท็บ
+document.getElementById('tab-chat').addEventListener('click', () => setChatTab('chat'));
+document.getElementById('tab-moves').addEventListener('click', () => setChatTab('moves'));
+document.getElementById('mv-first').addEventListener('click', () => gotoPointer(1));
+document.getElementById('mv-prev').addEventListener('click', () => gotoPointer(viewPointer - 1));
+document.getElementById('mv-next').addEventListener('click', () => gotoPointer(viewPointer + 1));
+document.getElementById('mv-last').addEventListener('click', () => { viewPointer = moveLog.length - 1; renderByPointer(); });
+
+// ════════════════════════════════════════════════
 //   INITIALIZE MATCHED ROOM
 // ════════════════════════════════════════════════
 async function startGame(gid) {
@@ -2117,6 +2406,12 @@ async function startGame(gid) {
   document.getElementById('conn-dot').classList.add('online');
   
   positionHistory = [];
+  // เริ่มต้น move log ด้วยสถานะกระดานตั้งต้น
+  moveLog = [{ board: boardToFB(window.INITIAL_BOARD), moveCount: 0 }];
+  viewPointer = 0;
+  setChatTab('chat');
+  renderMoveLog();
+  updateMoveNavButtons();
   sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
   sakdiMakActive = false; sakdiMakCount = 0; sakdiMakLimit = 0; sakdiMakFleeColor = null;
   drawOfferPending = false;
