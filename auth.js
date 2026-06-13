@@ -402,6 +402,88 @@ function createMobileNav() {
   checkSize();
 }
 
+// ════════════════════════════════════════════════════════════
+//   ปุ่มลอย "กลับเข้าสู่เกม" — แสดงทุกหน้าเมื่อมีเกมค้างอยู่
+// ════════════════════════════════════════════════════════════
+function ensureResumeGameStyles() {
+  if (document.getElementById("resume-game-styles")) return;
+  const style = document.createElement("style");
+  style.id = "resume-game-styles";
+  style.textContent = `
+    #resume-game-fab {
+      position: fixed;
+      top: 74px; right: 16px;
+      z-index: 10050;
+      display: flex; align-items: stretch; gap: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      animation: rgfPop 0.25s ease;
+      font-family: 'Noto Sans Thai', sans-serif;
+    }
+    @keyframes rgfPop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .resume-game-btn {
+      background: linear-gradient(135deg, #b88a2e, #e0c070);
+      color: #1a1a1a;
+      border: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 10px 16px;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'Noto Sans Thai', sans-serif;
+      transition: filter 0.2s;
+    }
+    .resume-game-btn:hover { filter: brightness(1.08); }
+    .resume-game-dismiss {
+      background: rgba(0,0,0,0.25);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      padding: 0 12px;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+    .resume-game-dismiss:hover { background: rgba(0,0,0,0.4); }
+    @media screen and (max-width: 600px) {
+      #resume-game-fab { top: 64px; right: 8px; }
+      .resume-game-btn { font-size: 0.82rem; padding: 8px 12px; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function renderResumeGameButton() {
+  // ลบปุ่มเดิมถ้ามี
+  const old = document.getElementById("resume-game-fab");
+  if (old) old.remove();
+
+  let active = null;
+  try { active = JSON.parse(localStorage.getItem("rukthai_active_game")); } catch (e) {}
+  if (!active || !active.gameId) return;
+
+  // ไม่ต้องแสดงบนหน้า play-online เอง
+  const path = window.location.pathname;
+  if (path.endsWith("play-online.html")) return;
+
+  ensureResumeGameStyles();
+
+  const fab = document.createElement("div");
+  fab.id = "resume-game-fab";
+  fab.innerHTML = `
+    <button class="resume-game-btn" type="button">▶ กลับเข้าสู่เกม</button>
+    <button class="resume-game-dismiss" type="button" title="ซ่อน">✕</button>
+  `;
+  document.body.appendChild(fab);
+
+  fab.querySelector(".resume-game-btn").addEventListener("click", () => {
+    window.location.href = `/pages/play-online.html?room=${encodeURIComponent(active.gameId)}&color=${encodeURIComponent(active.color)}`;
+  });
+  fab.querySelector(".resume-game-dismiss").addEventListener("click", () => {
+    fab.remove();
+  });
+}
+
 function initAuth() {
   initializeTheme();
   createAuthModal();
@@ -411,6 +493,10 @@ function initAuth() {
   updateAuthUI();
   attachTopbarButtons();
   initTopbarSearch();
+  renderResumeGameButton();
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'rukthai_active_game') renderResumeGameButton();
+  });
   document.addEventListener("click", handleDocumentClick);
   if (authState.currentUser) {
     // ผู้ใช้ที่ล็อกอินค้างอยู่แล้ว — แจกรหัสผู้เล่นให้ถ้ายังไม่มี

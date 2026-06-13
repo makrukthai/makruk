@@ -751,6 +751,16 @@ html[data-background-mode="light"] .chat-panel {
   animation: fadeIn 0.3s ease;
 }
 .dc-notice.hidden { display: none; }
+.dc-notice .dc-timer { font-weight: 700; font-variant-numeric: tabular-nums; font-family: 'Courier New', monospace; }
+
+.player-elo {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #d6b16b;
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.player-elo:empty { display: none; }
 
 /* ─── Opponent Card Clickable ─── */
 .player-card {
@@ -837,7 +847,7 @@ html[data-background-mode="light"] .chat-panel {
           <div class="player-card" id="opp-card">
             <div class="player-avatar" id="opp-avatar">👤</div>
             <div class="player-info">
-              <div class="player-name" id="opp-name">รอคู่ต่อสู้…</div>
+              <div class="player-name"><span id="opp-name">รอคู่ต่อสู้…</span><span class="player-elo" id="opp-elo"></span></div>
               <div class="player-rank" id="opp-rank"></div>
             </div>
             
@@ -864,7 +874,7 @@ html[data-background-mode="light"] .chat-panel {
           <div class="player-card" id="my-card">
             <div class="player-avatar" id="my-avatar">👤</div>
             <div class="player-info">
-              <div class="player-name" id="my-name">คุณ</div>
+              <div class="player-name"><span id="my-name">คุณ</span><span class="player-elo" id="my-elo"></span></div>
               <div class="player-rank" id="my-rank"></div>
             </div>
             
@@ -932,6 +942,7 @@ html[data-background-mode="light"] .chat-panel {
             <button class="btn-action danger" id="btn-resign" disabled>🏳 ยอมแพ้</button>
             <button class="btn-action" id="btn-draw" disabled>🤝 ขอเสมอ</button>
           </div>
+          <button class="btn-action" id="btn-abort" disabled style="display:none; width:100%; flex:0 0 auto;">✖ ยกเลิกเกม</button>
           <div id="special-rules-info" style="display:none; font-size:12px; color:var(--muted); padding:8px 12px; background:rgba(255,200,0,0.08); border:1px solid rgba(255,200,0,0.2); border-radius:10px; line-height:1.5; margin-top:4px;"></div>
         </div>
 
@@ -1534,6 +1545,7 @@ function updateStatus() {
 function updateMoveBadge() {
   document.getElementById('move-badge').textContent =
     moveCount === 0 ? 'ตาที่ 1' : `ตาที่ ${Math.ceil(moveCount/2)}`;
+  updateAbortVisibility();
 }
 
 // ════════════════════════════════════════════════
@@ -1807,10 +1819,10 @@ function listenToGame(gid) {
     const data = snap.val();
 
     const oppColor = window.opposite(myColor);
-    if (data[`conn_${oppColor}`] === false) {
-      document.getElementById('dc-notice').classList.remove('hidden');
+    if (data[`conn_${oppColor}`] === false && !gameOver) {
+      startDisconnectCountdown();
     } else {
-      document.getElementById('dc-notice').classList.add('hidden');
+      cancelDisconnectCountdown();
     }
 
     if (data.chat) {
@@ -1856,6 +1868,8 @@ function listenToGame(gid) {
       else if (lm.endReason === 'draw-offer') endGame('draw-offer', null);
       else if (lm.endReason === 'draw-threefold') endGame('draw-threefold', null);
       else if (lm.endReason === 'draw-sakdimak') endGame('draw-sakdimak', null);
+      else if (lm.endReason === 'abort') abortGame(true);
+      else if (lm.endReason === 'disconnect') endGame('disconnect', lm.winner || window.opposite(myColor));
       return;
     }
 
@@ -1896,9 +1910,113 @@ function listenToGame(gid) {
 //   GAME END TERMINATION
 // ════════════════════════════════════════════════
 // ════════════════════════════════════════════════
+//   DISCONNECT COUNTDOWN (คู่ต่อสู้ขาดการเชื่อมต่อ)
+// ════════════════════════════════════════════════
+function startDisconnectCountdown() {
+  if (dcInterval || gameOver) return;   // กำลังนับอยู่แล้ว หรือเกมจบแล้ว
+  const notice = document.getElementById('dc-notice');
+  dcSecondsLeft = DC_TIMEOUT_SECONDS;
+  notice.classList.remove('hidden');
+  renderDcNotice();
+  dcInterval = setInterval(() => {
+    dcSecondsLeft--;
+    if (dcSecondsLeft <= 0) {
+      cancelDisconnectCountdown();
+      if (gameOver) return;
+      // คิดคะแนนเฉพาะเมื่อทั้งสองฝ่ายเดินครบ 3 ตาแล้ว (moveCount >= 6)
+      if (moveCount >= 6) {
+        // ปรับแพ้แบบขาดการเชื่อมต่อ (เราเป็นผู้ชนะ) + คิด ELO
+        if (gameRef) {
+          update(gameRef, {
+            lastMove: { by: myUid, ts: serverTimestamp(), endReason: 'disconnect', winner: myColor, turn: myColor }
+          });
+        }
+        endGame('disconnect', myColor);
+      } else {
+        // ยังเล่นไม่ถึง 3 ตา → ไม่คิดคะแนน (ยกเลิกเกม)
+        if (gameRef) {
+          update(gameRef, {
+            lastMove: { by: myUid, ts: serverTimestamp(), endReason: 'abort', turn: myColor }
+          });
+        }
+        abortGame(false, 'คู่ต่อสู้ขาดการเชื่อมต่อ — เล่นไม่ถึง 3 ตา ไม่นับผลและ ELO');
+      }
+      return;
+    }
+    renderDcNotice();
+  }, 1000);
+}
+
+function renderDcNotice() {
+  const notice = document.getElementById('dc-notice');
+  if (!notice) return;
+  const m = Math.floor(dcSecondsLeft / 60);
+  const s = String(dcSecondsLeft % 60).padStart(2, '0');
+  notice.innerHTML = `⚠ คู่ต่อสู้ขาดการเชื่อมต่อ — ปรับแพ้ใน <span class="dc-timer">${m}:${s}</span>`;
+}
+
+function cancelDisconnectCountdown() {
+  if (dcInterval) { clearInterval(dcInterval); dcInterval = null; }
+  const notice = document.getElementById('dc-notice');
+  if (notice) notice.classList.add('hidden');
+}
+
+// ════════════════════════════════════════════════
+//   ABORT GAME (ยกเลิกเกม — ไม่บันทึกประวัติ ไม่คิด ELO)
+// ════════════════════════════════════════════════
+// แสดง/ซ่อนปุ่มยกเลิกเกม — หายไปเมื่อทั้งสองฝ่ายเดินคนละ 1 ตา (moveCount >= 2)
+function updateAbortVisibility() {
+  const btn = document.getElementById('btn-abort');
+  if (!btn) return;
+  if (!gameOver && moveCount < 2) {
+    btn.style.display = '';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function abortGame(fromOpponent = false, customSub = '') {
+  if (gameOver) return;
+  eloApplied = true;            // กันการคิด ELO
+  cancelDisconnectCountdown();
+  stopClock();
+  gameOver = true;
+
+  if (typeof window.setCurrentUserStatus === "function") {
+    window.setCurrentUserStatus("online");
+  }
+
+  // แจ้งอีกฝ่ายว่ายกเลิก (เฉพาะฝ่ายที่กดยกเลิกเอง)
+  if (!fromOpponent && gameRef) {
+    update(gameRef, {
+      lastMove: { by: myUid, ts: serverTimestamp(), endReason: 'abort', turn: myColor }
+    });
+  }
+
+  // แสดงผลแบบไม่บันทึกประวัติ/ELO
+  document.getElementById('go-emoji').textContent = '✖';
+  document.getElementById('go-title').textContent = 'ยกเลิกเกมแล้ว';
+  document.getElementById('go-sub').textContent = customSub
+    ? customSub
+    : (fromOpponent ? 'คู่ต่อสู้ยกเลิกเกม — ไม่นับผลและ ELO' : 'เกมถูกยกเลิก — ไม่นับผลและ ELO');
+  document.getElementById('gameover-overlay').classList.remove('hidden');
+
+  document.getElementById('btn-resign').disabled = true;
+  const drawBtn = document.getElementById('btn-draw');
+  if (drawBtn) drawBtn.disabled = true;
+  updateAbortVisibility();
+  clearActiveGame();
+}
+
+// ════════════════════════════════════════════════
 //   ELO RATING UPDATE (ฝ่ายขาวเป็นผู้คำนวณและเขียน)
 // ════════════════════════════════════════════════
 let eloApplied = false;
+
+// ── สถานะนับถอยหลังเมื่อคู่ต่อสู้ขาดการเชื่อมต่อ ──
+let dcInterval = null;
+let dcSecondsLeft = 0;
+const DC_TIMEOUT_SECONDS = 120; // 2 นาที
 
 async function updateEloRatings(whiteUid, blackUid, winner, minutes) {
   if (eloApplied) return;            // กันการนับซ้ำหาก endGame ถูกเรียกหลายครั้ง
@@ -1986,22 +2104,27 @@ async function endGame(reason, winner) {
       };
 
       await set(ref(db, `user_history/${safeMyUid}/${gameId}`), historySummary);
-      
-      if (myColor === 'w') {
+
+      // ปกติฝ่ายขาวเป็นผู้เขียนผลรวม (กันการนับซ้ำ)
+      // กรณี 'disconnect' เฉพาะผู้ชนะ (ฝ่ายที่ยังเชื่อมต่อ) เป็นผู้เขียน
+      const writeShared = (reason === 'disconnect')
+        ? (winner === myColor)
+        : (myColor === 'w');
+      if (writeShared && oppUid) {
         const gameSnapshot = await get(ref(db, `games/${gameId}`));
         if (gameSnapshot.exists()) {
           const gameData = gameSnapshot.val();
           gameData.finalReason = reason;
           gameData.winnerColor = winner;
           gameData.endedAt = serverTimestamp();
-          gameData.moves = movesData; 
+          gameData.moves = movesData;
           await set(ref(db, `game_history/${gameId}`), gameData);
         }
 
-        // 📈 อัปเดตคะแนน Elo ของทั้งสองฝ่าย (ฝ่ายขาวเป็นผู้เขียนเพื่อกันการนับซ้ำ)
-        if (oppUid) {
-          await updateEloRatings(myUid, oppUid, winner, selectedMinutes || 10);
-        }
+        // 📈 อัปเดตคะแนน Elo ของทั้งสองฝ่าย
+        const whiteUid = (myColor === 'w') ? myUid : oppUid;
+        const blackUid = (myColor === 'w') ? oppUid : myUid;
+        await updateEloRatings(whiteUid, blackUid, winner, selectedMinutes || 10);
       }
     } catch (err) {
       console.error("Error saving match history:", err);
@@ -2011,8 +2134,10 @@ async function endGame(reason, winner) {
   if (typeof window.setCurrentUserStatus === "function") {
     window.setCurrentUserStatus("online");
   }
+  cancelDisconnectCountdown();
   stopClock();
   gameOver = true;
+  updateAbortVisibility();
 
   const emoji = document.getElementById('go-emoji');
   const title = document.getElementById('go-title');
@@ -2023,6 +2148,7 @@ async function endGame(reason, winner) {
     'stalemate': { emoji: '🤝', title: 'เสมอ!', sub: 'อับ — ไม่มีการเดินที่ถูกกฎ' },
     'timeout':   { emoji: winner === myColor ? '🏆' : '⏰', title: winner === myColor ? 'คุณชนะ!' : 'แพ้', sub: winner === myColor ? 'คู่ต่อสู้หมดเวลา' : 'คุณหมดเวลา' },
     'resign':    { emoji: winner === myColor ? '🏆' : '🏳', title: winner === myColor ? 'คุณชนะ!' : 'ยอมแพ้', sub: winner === myColor ? 'คู่ต่อสู้ยอมแพ้' : 'คุณยอมแพ้ในเกมนี้' },
+    'disconnect':{ emoji: winner === myColor ? '🏆' : '🔌', title: winner === myColor ? 'คุณชนะ!' : 'แพ้', sub: winner === myColor ? 'คู่ต่อสู้ขาดการเชื่อมต่อ' : 'คุณขาดการเชื่อมต่อ' },
     'draw-offer': { emoji: '🤝', title: 'เสมอ!', sub: 'ตกลงเสมอกัน' },
     'draw-threefold': { emoji: '🔁', title: 'เสมอ!', sub: 'รุกล้อซ้ำ 3 ครั้ง' },
     'draw-sakdikradan': { emoji: '📋', title: 'เสมอ!', sub: 'นับศักดิ์กระดานครบ 64 ตา' },
@@ -2039,6 +2165,7 @@ async function endGame(reason, winner) {
   const drawBtn = document.getElementById('btn-draw');
   if (drawBtn) drawBtn.disabled = true;
   updateSpecialRulesUI();
+  clearActiveGame();
 }
 
 // ════════════════════════════════════════════════
@@ -2332,6 +2459,9 @@ async function startGame(gid) {
   if (!snap.exists()) return;
   const data = snap.val();
 
+  // ✅ แจ้งว่าเชื่อมต่อแล้วทันที (เผื่อเป็นการกลับเข้ามาใหม่ → ฝั่งตรงข้ามจะหยุดนับถอยหลังทันที)
+  try { await update(ref(db, `games/${gid}`), { [`conn_${myColor}`]: true }); } catch (e) {}
+
   const wPlayer = data.w || {};
   const bPlayer = data.b || {};
 
@@ -2347,6 +2477,7 @@ async function startGame(gid) {
 
   // 📌 ดึงชื่อ/รูป "ล่าสุด" ของคู่ต่อสู้จาก users/{uid} ใน Firebase
   // เพื่อให้แสดงชื่อที่เขาตั้งเองเสมอ (ไม่ใช่ชื่อ/รูปเก่าที่ค้างอยู่ในข้อมูลเกม)
+  let oppEloMap = {}, myEloMap = {};
   if (oppUid) {
     try {
       const safeOppId = String(oppUid).replace(/[.#$\[\]]/g, '_');
@@ -2355,6 +2486,7 @@ async function startGame(gid) {
         const oppProfile = oppSnap.val();
         if (oppProfile.name && oppProfile.name.trim()) oppName = oppProfile.name;
         if (oppProfile.avatar) oppAvatar = oppProfile.avatar;
+        oppEloMap = oppProfile.elo || {};
       }
     } catch (e) { console.warn('โหลดชื่อล่าสุดของคู่ต่อสู้ไม่สำเร็จ:', e); }
   }
@@ -2368,6 +2500,7 @@ async function startGame(gid) {
         const meProfile = meSnap.val();
         if (meProfile.name && meProfile.name.trim()) myName = meProfile.name;
         if (meProfile.avatar) myAvatar = meProfile.avatar;
+        myEloMap = meProfile.elo || {};
       }
     } catch (e) {}
   }
@@ -2404,8 +2537,21 @@ async function startGame(gid) {
   document.getElementById('btn-resign').disabled = false;
   document.getElementById('btn-draw').disabled = false;
   document.getElementById('conn-dot').classList.add('online');
+
+  // แสดง ELO ตามประเภทเวลาที่กำลังเล่น ต่อท้ายชื่อ
+  const eloMode = modeFromMinutes(selectedMinutes);
+  const myEloVal  = (myEloMap[eloMode]  != null) ? myEloMap[eloMode]  : START_ELO;
+  const oppEloVal = (oppEloMap[eloMode] != null) ? oppEloMap[eloMode] : START_ELO;
+  document.getElementById('my-elo').textContent  = `(${myEloVal})`;
+  document.getElementById('opp-elo').textContent = `(${oppEloVal})`;
+
+  // ปุ่มยกเลิกเกม — แสดงจนกว่าทั้งสองฝ่ายเดินคนละ 1 ตา
+  const abortBtn = document.getElementById('btn-abort');
+  abortBtn.disabled = false;
+  updateAbortVisibility();
   
   positionHistory = [];
+  cancelDisconnectCountdown();
   // เริ่มต้น move log ด้วยสถานะกระดานตั้งต้น
   moveLog = [{ board: boardToFB(window.INITIAL_BOARD), moveCount: 0 }];
   viewPointer = 0;
@@ -2430,7 +2576,19 @@ async function startGame(gid) {
   addChatMsg(null, `จับคู่สำเร็จ! คุณเล่นหมาก${myColor==='w'?'ขาว':'ดำ'}`, true);
   addChatMsg(null, `เวลา ${data.minutes} นาที · Ranked`, true);
 
+  // 💾 บันทึกเกมที่กำลังเล่น เพื่อให้กลับเข้ามาได้จากหน้าอื่น
+  try {
+    localStorage.setItem('rukthai_active_game', JSON.stringify({
+      gameId: gid, color: myColor, minutes: selectedMinutes, ts: Date.now()
+    }));
+  } catch (e) {}
+
   listenToGame(gid);
+}
+
+// ล้างสถานะเกมที่กำลังเล่น (เรียกเมื่อเกมจบ/ยกเลิก/ออกจากเกม)
+function clearActiveGame() {
+  try { localStorage.removeItem('rukthai_active_game'); } catch (e) {}
 }
 
 // ════════════════════════════════════════════════
@@ -2494,6 +2652,14 @@ document.getElementById('btn-cancel-search').addEventListener('click', () => {
   window.location.href = 'play.html';
 });
 
+// ยกเลิกเกม (เฉพาะช่วงต้นเกม ก่อนทั้งสองฝ่ายเดินคนละ 1 ตา)
+document.getElementById('btn-abort').addEventListener('click', () => {
+  if (gameOver || moveCount >= 2) return;
+  if (confirm('ยกเลิกเกมนี้? เกมจะไม่ถูกบันทึกและไม่คิด ELO')) {
+    abortGame(false);
+  }
+});
+
 // ยอมแพ้
 document.getElementById('btn-resign').addEventListener('click', () => {
   if (gameOver) return;
@@ -2542,6 +2708,7 @@ document.getElementById('btn-rematch').addEventListener('click', () => {
   document.getElementById('gameover-overlay').classList.add('hidden');
   document.getElementById('mm-overlay').classList.remove('hidden');
   showStep('mm-select');
+  cancelDisconnectCountdown();
   boardState = window.cloneBoard(window.INITIAL_BOARD);
   turn='w'; gameOver=false; capturedByW=[]; capturedByB=[]; moveCount=0;
   lastMove=null; selected=null; legalForSelected=[];
@@ -2551,6 +2718,7 @@ document.getElementById('btn-rematch').addEventListener('click', () => {
 });
 
 document.getElementById('btn-to-menu').addEventListener('click', () => {
+  cancelDisconnectCountdown();
   stopClock(); window.location.href = 'play.html';
 });
 
