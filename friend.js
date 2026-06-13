@@ -1106,10 +1106,10 @@ function ensureTopbarSearchStyles() {
   style.id = "tps-styles";
   style.textContent = `
     .tps-panel {
-      position: fixed; z-index: 9700;
+      position: fixed; z-index: 10050;
       background: var(--bg2);
       border: 1px solid rgba(128,128,128,0.22);
-      border-radius: 14px;
+      border-radius: 4px;
       box-shadow: 0 18px 50px rgba(0,0,0,0.5);
       padding: 6px;
       max-height: 60vh; overflow-y: auto;
