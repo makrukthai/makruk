@@ -41,6 +41,11 @@
   .move-list { height: 300px; overflow-y: auto; background: var(--bg2); border-radius: 8px; padding: 10px; font-family: 'Noto Sans Thai', sans-serif; font-size: 14px; }
   .move-row { display: grid; grid-template-columns: 40px 1fr 1fr; border-bottom: 1px solid rgba(128,128,128,0.1); padding: 8px 0; }
   .move-row span { text-align: center; }
+  .hm-ply { cursor: pointer; border-radius: 6px; padding: 2px 4px; transition: background 0.15s; }
+  .hm-ply:hover { background: rgba(128,128,128,0.18); }
+  .hm-ply.active { font-weight: 700; }
+  .hm-ply.empty { cursor: default; color: var(--muted); }
+  .hm-ply.empty:hover { background: transparent; }
 </style>
 </head>
 <body class="history-body">
@@ -363,12 +368,36 @@ function updateMoveList(gameData) {
     }
 
     row.innerHTML = `
-      <span>${Math.ceil(i / 2)}.</span>
-      <span>${whiteNotation}</span>
-      <span>${blackNotation}</span>
+      <span class="hm-no">${Math.ceil(i / 2)}.</span>
+      <span class="hm-ply${whiteMove ? '' : ' empty'}" data-idx="${i}">${whiteMove ? whiteNotation : '–'}</span>
+      <span class="hm-ply${blackMove ? '' : ' empty'}" data-idx="${i + 1}">${blackMove ? blackNotation : '–'}</span>
     `;
     body.appendChild(row);
   }
+
+  // คลิกที่ตาเดินไหน → กระดานย้อนไปตานั้น
+  body.querySelectorAll('.hm-ply:not(.empty)').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx, 10);
+      if (!isNaN(idx) && idx >= 0 && idx < loadedMoves.length) {
+        currentMovePointer = idx;
+        renderReplayBoard();
+      }
+    });
+  });
+
+  highlightActiveMove();
+}
+
+// ทำตัวหนาที่ตาเดินที่กำลังดู
+function highlightActiveMove() {
+  const body = document.getElementById('move-list-body');
+  if (!body) return;
+  body.querySelectorAll('.hm-ply').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.idx, 10) === currentMovePointer);
+  });
+  const activeEl = body.querySelector('.hm-ply.active');
+  if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
 }
 
 // ─── ฟังก์ชันเรนเดอร์สีกระดานและตัวหมากตาม Pointer ตาเดินปัจจุบัน ───
@@ -404,6 +433,8 @@ function renderReplayBoard() {
   document.getElementById('btn-prev').disabled  = (currentMovePointer === 0);
   document.getElementById('btn-next').disabled  = (currentMovePointer === loadedMoves.length - 1);
   document.getElementById('btn-last').disabled  = (currentMovePointer === loadedMoves.length - 1);
+
+  highlightActiveMove();
 }
 
 // ─── เหตุการณ์เมื่อคลิกปุ่มคอนโทรลควบคุม ───
