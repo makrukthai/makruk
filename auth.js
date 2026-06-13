@@ -1,11 +1,12 @@
 // 📌 1. นำเข้า getApps และ getApp เพิ่มเข้ามา
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, update, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, update, get, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 import { createProfileModal, openProfileModal, renderProfileMenu, setProfileSubmitHandler, closeProfileDropdown, closeProfileModal } from "./profile.js";
 import { createNotificationButton } from "./notification.js";
-import { createFriendButton } from "./friend.js";
+import { createFriendButton, initTopbarSearch } from "./friend.js";
 import { handleSettingsClick, initializeTheme } from "./setting.js";
+import { ensurePlayerId } from "./playerid.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
@@ -47,6 +48,32 @@ function syncUserToFirebase(user) {
   }
 
   update(ref(db, `users/${safeId}`), safeUserData).catch(e => console.error("Firebase sync error:", e));
+}
+
+// 📌 ทำให้ผู้ใช้ปัจจุบันมีรหัสผู้เล่น 8 หลัก (ถ้ายังไม่มีจะสร้างให้)
+// แล้วเก็บลง localStorage เพื่อให้หน้าอื่นใช้ได้ทันที
+async function ensureMyPlayerId(user) {
+  if (!user || !user.id) return;
+  try {
+    const safeId = String(user.id).replace(/[.#$\[\]]/g, '_');
+    const pid = await ensurePlayerId(db, { ref, get, set }, safeId);
+    if (pid) {
+      user.playerId = pid;
+      // อัปเดต localStorage current_user ให้มี playerId
+      try {
+        const raw = localStorage.getItem(STORAGE_CURRENT_USER_KEY);
+        if (raw) {
+          const cu = JSON.parse(raw);
+          if (cu && (cu.id === user.id)) {
+            cu.playerId = pid;
+            localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(cu));
+          }
+        }
+      } catch (e) {}
+    }
+  } catch (e) {
+    console.warn("[PlayerID] สร้างรหัสผู้เล่นไม่สำเร็จ:", e);
+  }
 }
 // Global function to close ALL dropdowns
 function closeAllDropdowns() {
@@ -383,7 +410,12 @@ function initAuth() {
   setProfileSubmitHandler(handleProfileForm);
   updateAuthUI();
   attachTopbarButtons();
+  initTopbarSearch();
   document.addEventListener("click", handleDocumentClick);
+  if (authState.currentUser) {
+    // ผู้ใช้ที่ล็อกอินค้างอยู่แล้ว — แจกรหัสผู้เล่นให้ถ้ายังไม่มี
+    ensureMyPlayerId(authState.currentUser);
+  }
   if (!authState.currentUser && isProfilePage()) {
     redirectToLoginPage();
     return;
@@ -623,6 +655,8 @@ function handleRegister(form) {
   
   // 📌 ส่งข้อมูลขึ้น Firebase
   syncUserToFirebase(newUser);
+  // 📌 แจกรหัสผู้เล่น 8 หลัก
+  ensureMyPlayerId(newUser);
 
   updateAuthUI();
   closeAuthModal();
@@ -643,6 +677,7 @@ function handleLogin(form) {
 
   saveCurrentUser(user);
   syncUserToFirebase(user);
+  ensureMyPlayerId(user);
   updateAuthUI();
   closeAuthModal();
   ALERT: `ยินดีต้อนรับกลับ, ${user.name}`
@@ -820,6 +855,7 @@ async function handleGoogleCredentialResponse(response) {
 
   saveCurrentUser(user);
   syncUserToFirebase(user);
+  ensureMyPlayerId(user);
   updateAuthUI();
   closeAuthModal();
   // REMOVED ALERT: `เข้าสู่ระบบด้วย Google สำเร็จ: ${name}`

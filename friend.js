@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, update, push, onValue, off, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { START_ELO } from "./elo.js";
+import { looksLikePlayerId, findUidByPlayerId, formatPlayerId } from "./playerid.js";
 
 // ─── Firebase Config ───
 const firebaseConfig = {
@@ -339,51 +340,76 @@ function renderFriendRequests() {
   });
 }
 
-async function renderFriendSearchResult(user) {
+let lastSearchResults = [];
+
+// เรนเดอร์ผลการค้นหา (รองรับหลายผลลัพธ์)
+async function renderFriendSearchResults(users) {
   const resultContainer = friendWrapper?.querySelector(".friend-search-result");
   const currentUser = loadCurrentUser();
-  if (!resultContainer || !currentUser || !user) return;
+  if (!resultContainer || !currentUser) return;
+
+  lastSearchResults = Array.isArray(users) ? users : [];
+
+  if (lastSearchResults.length === 0) {
+    resultContainer.innerHTML = `<div style="padding:12px;color:var(--muted);font-size:0.85rem;text-align:center;">ไม่พบผู้เล่นที่ตรงกับการค้นหา</div>`;
+    return;
+  }
 
   const safeUid = getSafeId(currentUser.id);
-  const safeUserId = getSafeId(user.id);
+  const cards = [];
 
-  const alreadyFriend = onlineFriends.some(f => getSafeId(f.id) === safeUserId);
-  
-  let outgoingRequest = false;
-  const reqSnap = await get(ref(db, `friend_requests/${safeUserId}`));
-  if (reqSnap.exists()) {
-    const data = reqSnap.val();
-    outgoingRequest = Object.values(data).some(r => r.from === safeUid && r.status === 'pending');
-  }
+  for (const user of lastSearchResults) {
+    const safeUserId = getSafeId(user.id);
+    const alreadyFriend = onlineFriends.some(f => getSafeId(f.id) === safeUserId);
+    const incomingRequest = onlineFriendRequests.some(r => r.from === safeUserId);
 
-  const incomingRequest = onlineFriendRequests.some(r => r.from === safeUserId);
+    let outgoingRequest = false;
+    try {
+      const reqSnap = await get(ref(db, `friend_requests/${safeUserId}`));
+      if (reqSnap.exists()) {
+        outgoingRequest = Object.values(reqSnap.val()).some(r => r.from === safeUid && r.status === 'pending');
+      }
+    } catch (e) {}
 
-  let actionHTML = `<button type="button" class="friend-result-add" data-id="${user.id}">ADD</button>`;
+    let actionHTML = `<button type="button" class="friend-result-add" data-id="${user.id}">ADD</button>`;
+    if (alreadyFriend) {
+      actionHTML = `<button type="button" class="friend-result-add" disabled>เป็นเพื่อนแล้ว</button>`;
+    } else if (outgoingRequest) {
+      actionHTML = `<button type="button" class="friend-result-add" disabled>ส่งคำขอแล้ว</button>`;
+    } else if (incomingRequest) {
+      actionHTML = `<button type="button" class="friend-result-add" disabled>รอคุณตอบรับ</button>`;
+    }
 
-  if (alreadyFriend) {
-    actionHTML = `<button type="button" class="friend-result-add" disabled>เป็นเพื่อนแล้ว</button>`;
-  } else if (outgoingRequest) {
-    actionHTML = `<button type="button" class="friend-result-add" disabled>ส่งคำขอแล้ว</button>`;
-  } else if (incomingRequest) {
-    actionHTML = `<button type="button" class="friend-result-add" disabled>รอคุณตอบรับ</button>`;
-  }
+    const displayName = user.name || "ผู้เล่น";
+    const idText = user.playerId ? `รหัส ${formatPlayerId(user.playerId)}` : "";
+    const avatarInner = user.avatar
+      ? `<img src="${user.avatar}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : displayName.charAt(0).toUpperCase();
 
-  const displayName = user.name || user.email || "U";
-  resultContainer.innerHTML = `
-    <div class="friend-search-card">
-      <div class="friend-search-avatar">${displayName.charAt(0).toUpperCase()}</div>
-      <div class="friend-search-info">
-        <div class="friend-search-name">${displayName}</div>
-        <div class="friend-search-email">${user.email || ""}</div>
+    cards.push(`
+      <div class="friend-search-card">
+        <div class="friend-search-avatar">${avatarInner}</div>
+        <div class="friend-search-info">
+          <div class="friend-search-name">${displayName}</div>
+          <div class="friend-search-email">${idText}</div>
+        </div>
+        ${actionHTML}
       </div>
-      ${actionHTML}
-    </div>
-  `;
+    `);
+  }
+
+  resultContainer.innerHTML = cards.join("");
+}
+
+// คงไว้เพื่อความเข้ากันได้: เรนเดอร์ผลเดียว
+async function renderFriendSearchResult(user) {
+  await renderFriendSearchResults(user ? [user] : []);
 }
 
 function clearFriendSearchResult() {
   const resultContainer = friendWrapper?.querySelector(".friend-search-result");
   if (resultContainer) resultContainer.innerHTML = "";
+  lastSearchResults = [];
 }
 
 // ─── สไตล์ของหน้าต่างโปรไฟล์เพื่อน (ให้เหมือนกับ modal ใน play-online.html) ───
@@ -517,6 +543,7 @@ async function showFriendProfile(userData) {
           <div class="fp-avatar" id="fp-avatar">${friendName.charAt(0).toUpperCase()}</div>
           <div class="fp-name" id="fp-name">${friendName}</div>
           <div class="fp-rank"><span class="fp-dot ${status}"></span><span id="fp-status">${statusText}</span></div>
+          <div class="fp-rank" id="fp-playerid" style="margin-top:4px; font-family:'Courier New',monospace; letter-spacing:1px;"></div>
         </div>
 
         <div class="fp-section">
@@ -615,6 +642,10 @@ async function populateFriendProfile(safeFriendId, friendName) {
       setText('fp-elo-blitz',    (elo.blitz    != null) ? elo.blitz    : START_ELO);
       setText('fp-elo-rapid',    (elo.rapid    != null) ? elo.rapid    : START_ELO);
       setText('fp-elo-standard', (elo.standard != null) ? elo.standard : START_ELO);
+
+      // รหัสผู้เล่น
+      const pidEl = document.getElementById('fp-playerid');
+      if (pidEl) pidEl.textContent = u.playerId ? `รหัส ${formatPlayerId(u.playerId)}` : '';
     }
 
     // 2) สถิติของเพื่อน (จากประวัติจริงของเขา)
@@ -873,10 +904,10 @@ async function handleAddFriend(event) {
   if (!friendWrapper) return;
 
   const form = friendWrapper.querySelector("#friend-add-form");
-  const searchInput = form.elements.friendSearch?.value.trim().toLowerCase();
+  const rawInput = form.elements.friendSearch?.value.trim();
 
-  if (!searchInput) {
-    showFriendAlert("กรุณากรอกชื่อหรืออีเมลของเพื่อน", true);
+  if (!rawInput) {
+    showFriendAlert("กรอกรหัสผู้เล่น 8 หลัก หรือชื่อของเพื่อน", true);
     return;
   }
 
@@ -885,36 +916,47 @@ async function handleAddFriend(event) {
     showFriendAlert("กรุณาเข้าสู่ระบบก่อน", true);
     return;
   }
+  const safeUid = getSafeId(currentUser.id);
 
   try {
+    // 1) ค้นหาด้วยรหัสผู้เล่น (ตัวเลขล้วน) — แม่นยำที่สุด
+    if (looksLikePlayerId(rawInput)) {
+      const uid = await findUidByPlayerId(db, { ref, get }, rawInput);
+      if (uid && uid !== safeUid) {
+        const uSnap = await get(ref(db, `users/${uid}`));
+        if (uSnap.exists()) {
+          await renderFriendSearchResults([{ id: uid, ...uSnap.val() }]);
+          return;
+        }
+      }
+      // เป็นตัวเลขแต่หาไม่เจอ → แจ้งไม่พบ (ไม่ต้องไปค้นด้วยชื่อ)
+      await renderFriendSearchResults([]);
+      return;
+    }
+
+    // 2) ค้นหาด้วยชื่อ (substring) — แสดงได้หลายผลลัพธ์
     const usersSnap = await get(ref(db, 'users'));
     if (!usersSnap.exists()) {
-      showFriendAlert("ไม่พบข้อมูลผู้เล่นในระบบ", true);
+      await renderFriendSearchResults([]);
       return;
     }
 
     const usersData = usersSnap.val();
-    let foundUser = null;
-    const safeUid = getSafeId(currentUser.id);
+    const query = rawInput.toLowerCase();
+    const matches = [];
 
     for (const uid in usersData) {
+      if (uid === safeUid) continue;
       const u = usersData[uid];
-      if (uid !== safeUid && (
-          u.name?.toLowerCase().includes(searchInput) || 
-          u.email?.toLowerCase().includes(searchInput)
-      )) {
-        foundUser = { id: uid, ...u };
-        break;
+      if (u.name && u.name.toLowerCase().includes(query)) {
+        matches.push({ id: uid, ...u });
+        if (matches.length >= 12) break;
       }
     }
 
-    if (!foundUser) {
-      showFriendAlert("ไม่พบผู้เล่นที่ตรงกับการค้นหา", true);
-      return;
-    }
-
-    renderFriendSearchResult(foundUser);
+    await renderFriendSearchResults(matches);
   } catch (error) {
+    console.error('ค้นหาเพื่อนผิดพลาด:', error);
     showFriendAlert("เกิดข้อผิดพลาดในการค้นหา", true);
   }
 }
@@ -926,7 +968,7 @@ async function handleFriendSearchResultClick(event) {
 
   const userId = addBtn.dataset.id;
   const safeUserId = getSafeId(userId);
-  
+
   const userSnap = await get(ref(db, `users/${safeUserId}`));
   if (!userSnap.exists()) {
     showFriendAlert("ไม่พบผู้เล่นนี้แล้ว", true);
@@ -936,7 +978,8 @@ async function handleFriendSearchResultClick(event) {
 
   const foundUser = { id: userId, ...userSnap.val() };
   if (await sendFriendRequest(foundUser.id, foundUser)) {
-    renderFriendSearchResult(foundUser);
+    // เรนเดอร์รายการเดิมใหม่ เพื่ออัปเดตปุ่มของคนที่เพิ่งส่งคำขอ
+    await renderFriendSearchResults(lastSearchResults);
   }
 }
 
@@ -1020,6 +1063,230 @@ function toggleFriendDropdown() {
 }
 
 // ─── Setup Widget ───
+// ════════════════════════════════════════════════════════════
+//   ค้นหาผู้เล่น (ใช้ร่วมกัน) — รหัสผู้เล่น 8 หลัก หรือชื่อ
+// ════════════════════════════════════════════════════════════
+async function searchPlayers(rawInput) {
+  const currentUser = loadCurrentUser();
+  const safeUid = currentUser ? getSafeId(currentUser.id) : null;
+  const input = (rawInput || "").trim();
+  if (!input) return [];
+
+  // 1) ค้นด้วยรหัสผู้เล่น (ตัวเลขล้วน) — แม่นยำที่สุด
+  if (looksLikePlayerId(input)) {
+    const uid = await findUidByPlayerId(db, { ref, get }, input);
+    if (uid && uid !== safeUid) {
+      const snap = await get(ref(db, `users/${uid}`));
+      if (snap.exists()) return [{ id: uid, ...snap.val() }];
+    }
+    return [];
+  }
+
+  // 2) ค้นด้วยชื่อ (substring) — แสดงได้หลายผลลัพธ์
+  const usersSnap = await get(ref(db, "users"));
+  if (!usersSnap.exists()) return [];
+  const usersData = usersSnap.val();
+  const q = input.toLowerCase();
+  const matches = [];
+  for (const uid in usersData) {
+    if (uid === safeUid) continue;
+    const u = usersData[uid];
+    if (u.name && u.name.toLowerCase().includes(q)) {
+      matches.push({ id: uid, ...u });
+      if (matches.length >= 12) break;
+    }
+  }
+  return matches;
+}
+
+// ─── สไตล์ของผลการค้นหาบน topbar ───
+function ensureTopbarSearchStyles() {
+  if (document.getElementById("tps-styles")) return;
+  const style = document.createElement("style");
+  style.id = "tps-styles";
+  style.textContent = `
+    .tps-panel {
+      position: fixed; z-index: 9700;
+      background: var(--bg2);
+      border: 1px solid rgba(128,128,128,0.22);
+      border-radius: 14px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.5);
+      padding: 6px;
+      max-height: 60vh; overflow-y: auto;
+      font-family: 'Noto Sans Thai', sans-serif;
+      animation: tpsFade 0.15s ease;
+    }
+    @keyframes tpsFade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .tps-panel.hidden { display: none; }
+    .tps-empty { padding: 14px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+    .tps-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 10px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .tps-row:hover { background: rgba(128,128,128,0.12); }
+    .tps-avatar {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg,#555,#888);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; overflow: hidden;
+    }
+    .tps-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .tps-info { flex: 1; min-width: 0; }
+    .tps-name { font-size: 0.92rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tps-id { font-size: 0.76rem; color: var(--muted); font-family: 'Courier New', monospace; letter-spacing: 1px; }
+    .tps-add {
+      flex-shrink: 0; border: none; border-radius: 8px;
+      background: linear-gradient(135deg,#555,#888); color: #fff;
+      padding: 6px 12px; font-size: 0.8rem; cursor: pointer;
+      font-family: 'Noto Sans Thai', sans-serif; transition: opacity 0.2s;
+    }
+    .tps-add:hover { opacity: 0.88; }
+    .tps-add:disabled { background: rgba(128,128,128,0.25); color: var(--muted); cursor: default; }
+  `;
+  document.head.appendChild(style);
+}
+
+let tpsPanel = null;
+function getTopbarSearchPanel() {
+  if (tpsPanel && document.body.contains(tpsPanel)) return tpsPanel;
+  tpsPanel = document.createElement("div");
+  tpsPanel.className = "tps-panel hidden";
+  tpsPanel.addEventListener("click", (e) => e.stopPropagation());
+  document.body.appendChild(tpsPanel);
+  return tpsPanel;
+}
+
+function positionTopbarPanel(input) {
+  const panel = getTopbarSearchPanel();
+  const r = input.getBoundingClientRect();
+  panel.style.top = (r.bottom + 6) + "px";
+  panel.style.left = r.left + "px";
+  panel.style.width = Math.max(r.width, 300) + "px";
+}
+
+function hideTopbarPanel() {
+  if (tpsPanel) tpsPanel.classList.add("hidden");
+}
+
+async function runTopbarSearch(input) {
+  const q = input.value.trim();
+  const panel = getTopbarSearchPanel();
+  if (!q) { hideTopbarPanel(); return; }
+  positionTopbarPanel(input);
+  panel.classList.remove("hidden");
+  panel.innerHTML = `<div class="tps-empty">กำลังค้นหา…</div>`;
+  let results = [];
+  try { results = await searchPlayers(q); } catch (e) { console.error("ค้นหาผิดพลาด:", e); }
+  // กันกรณีผู้ใช้ลบข้อความไปแล้วระหว่างรอผล
+  if (!input.value.trim()) { hideTopbarPanel(); return; }
+  await renderTopbarResults(panel, results);
+}
+
+async function renderTopbarResults(panel, users) {
+  const currentUser = loadCurrentUser();
+  const safeUid = currentUser ? getSafeId(currentUser.id) : null;
+
+  if (!users || users.length === 0) {
+    panel.innerHTML = `<div class="tps-empty">ไม่พบผู้เล่น</div>`;
+    return;
+  }
+
+  const rows = [];
+  for (const user of users) {
+    const safeUserId = getSafeId(user.id);
+    const alreadyFriend = onlineFriends.some(f => getSafeId(f.id) === safeUserId);
+    const incoming = onlineFriendRequests.some(r => r.from === safeUserId);
+    let outgoing = false;
+    try {
+      const reqSnap = await get(ref(db, `friend_requests/${safeUserId}`));
+      if (reqSnap.exists()) {
+        outgoing = Object.values(reqSnap.val()).some(r => r.from === safeUid && r.status === "pending");
+      }
+    } catch (e) {}
+
+    let btn = `<button type="button" class="tps-add" data-id="${user.id}">เพิ่มเพื่อน</button>`;
+    if (!currentUser) btn = `<button type="button" class="tps-add" disabled>เข้าสู่ระบบก่อน</button>`;
+    else if (alreadyFriend) btn = `<button type="button" class="tps-add" disabled>เป็นเพื่อนแล้ว</button>`;
+    else if (outgoing) btn = `<button type="button" class="tps-add" disabled>ส่งคำขอแล้ว</button>`;
+    else if (incoming) btn = `<button type="button" class="tps-add" disabled>รอคุณตอบรับ</button>`;
+
+    const name = user.name || "ผู้เล่น";
+    const pid = user.playerId ? formatPlayerId(user.playerId) : "";
+    const av = user.avatar ? `<img src="${user.avatar}" alt="">` : name.charAt(0).toUpperCase();
+
+    rows.push(`
+      <div class="tps-row" data-id="${user.id}">
+        <div class="tps-avatar">${av}</div>
+        <div class="tps-info">
+          <div class="tps-name">${name}</div>
+          <div class="tps-id">${pid ? "รหัส " + pid : ""}</div>
+        </div>
+        ${btn}
+      </div>
+    `);
+  }
+  panel.innerHTML = rows.join("");
+
+  // ปุ่มเพิ่มเพื่อน
+  panel.querySelectorAll(".tps-add").forEach(b => {
+    b.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (b.disabled) return;
+      const uid = b.dataset.id;
+      const snap = await get(ref(db, `users/${getSafeId(uid)}`));
+      if (!snap.exists()) return;
+      const u = { id: uid, ...snap.val() };
+      if (await sendFriendRequest(u.id, u)) {
+        b.textContent = "ส่งคำขอแล้ว";
+        b.disabled = true;
+      }
+    });
+  });
+
+  // คลิกที่การ์ด → เปิดหน้าโปรไฟล์ผู้เล่น
+  panel.querySelectorAll(".tps-row").forEach(row => {
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".tps-add")) return;
+      window.location.href = `/pages/profile.html?user=${row.dataset.id}`;
+    });
+  });
+}
+
+// ผูกช่องค้นหาบน topbar (เรียกซ้ำได้ ไม่ผูกซ้ำ)
+export function initTopbarSearch() {
+  ensureTopbarSearchStyles();
+  const inputs = document.querySelectorAll(".nav .search, input.search");
+  inputs.forEach(input => {
+    if (input.dataset.tpsBound === "1") return;
+    input.dataset.tpsBound = "1";
+
+    let timer = null;
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => runTopbarSearch(input), 250);
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); clearTimeout(timer); runTopbarSearch(input); }
+      else if (e.key === "Escape") { hideTopbarPanel(); }
+    });
+    input.addEventListener("focus", () => { if (input.value.trim()) runTopbarSearch(input); });
+
+    const reposition = () => { if (tpsPanel && !tpsPanel.classList.contains("hidden")) positionTopbarPanel(input); };
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+  });
+
+  // ปิด panel เมื่อคลิกนอกพื้นที่
+  if (!document._tpsOutsideBound) {
+    document._tpsOutsideBound = true;
+    document.addEventListener("click", (e) => {
+      if (e.target.closest(".tps-panel") || e.target.closest(".search")) return;
+      hideTopbarPanel();
+    });
+  }
+}
+
 export function createFriendButton() {
   const currentUser = loadCurrentUser();
   const currentUserId = currentUser?.id || null;
@@ -1054,7 +1321,7 @@ export function createFriendButton() {
       <div class="profile-dropdown-info">
         <div class="profile-dropdown-text">
           <div class="profile-dropdown-name">จัดการเพื่อน</div>
-          <div class="profile-dropdown-email">ค้นหาและเพิ่มเพื่อนในรายชื่อของคุณ</div>
+          <div class="profile-dropdown-email">คำขอเพิ่มเพื่อนและรายชื่อเพื่อนของคุณ</div>
         </div>
       </div>
       <div class="profile-dropdown-items">
@@ -1063,12 +1330,6 @@ export function createFriendButton() {
           <div class="friend-requests"></div>
         </div>
 
-        <form id="friend-add-form" class="friend-search-form">
-          <input type="text" name="friendSearch" class="auth-input" placeholder="ค้นหาชื่อหรืออีเมล" required>
-          <button type="submit" class="auth-button">ค้นหา</button>
-        </form>
-        <div class="friend-search-result"></div>
-        
         <div class="friend-alert settings-message" aria-live="polite" style="display:none"></div>
 
         <div class="friend-list-section">
@@ -1096,10 +1357,11 @@ export function createFriendButton() {
     }
   });
 
-  friendWrapper.querySelector("#friend-add-form").addEventListener("submit", handleAddFriend);
-  friendWrapper.querySelector(".friend-search-result").addEventListener("click", handleFriendSearchResultClick);
   friendWrapper.querySelector(".friend-list").addEventListener("click", handleFriendListClick);
   friendWrapper.querySelector(".friend-requests").addEventListener("click", handleFriendRequestAction);
+
+  // เปิดใช้งานช่องค้นหาผู้เล่นบน topbar
+  initTopbarSearch();
 
   return friendWrapper;
 }

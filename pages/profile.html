@@ -23,14 +23,22 @@
     margin: 0 auto;
     display: grid;
     grid-template-columns: 300px 1fr;
-    grid-template-rows: auto auto;
+    align-items: start;
     gap: 24px;
+  }
+
+  /* คอลัมน์ขวา: ELO → ผลการเล่นด้วยกัน → ประวัติ ไหลต่อกันเอง */
+  .profile-right {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
   }
 
   /* ── LEFT PANEL: Avatar Card ── */
   .profile-card {
     grid-column: 1;
-    grid-row: 1 / 3;
     background: var(--bg2);
     border: 1px solid rgba(128,128,128,0.18);
     border-radius: 24px;
@@ -250,6 +258,45 @@
     color: var(--text);
   }
 
+  /* รหัสผู้เล่น */
+  .player-id-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(214,177,107,0.1);
+    border: 1px solid rgba(214,177,107,0.3);
+    border-radius: 100px;
+    padding: 7px 8px 7px 16px;
+    margin-bottom: 24px;
+  }
+  .player-id-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .player-id-value {
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #d6b16b;
+  }
+  .player-id-copy {
+    background: rgba(214,177,107,0.15);
+    border: 1px solid rgba(214,177,107,0.3);
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    color: #d6b16b;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .player-id-copy:hover { background: rgba(214,177,107,0.28); }
+  .player-id-copy.copied { background: #22c55e; border-color:#22c55e; color:#fff; }
+
   .profile-divider {
     width: 100%;
     height: 1px;
@@ -279,11 +326,6 @@
   .quick-stat-value { color: var(--text); font-weight: 600; }
 
   /* ── RIGHT TOP: ELO Grid ── */
-  .elo-section {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
   .section-title {
     font-family: 'Segoe UI', sans-serif;
     font-size: 0.8rem;
@@ -379,8 +421,6 @@
 
   /* ── HEAD-TO-HEAD (vs current user) ── */
   .h2h-section {
-    grid-column: 2;
-    grid-row: 2;
     margin-bottom: 4px;
   }
 
@@ -460,11 +500,6 @@
   .h2h-box-value.loss { color: #ef4444; }
 
   /* ── RIGHT BOTTOM: History ── */
-  .history-section {
-    grid-column: 2;
-    grid-row: 3;
-  }
-
   .history-panel {
     background: var(--bg2);
     border: 1px solid var(--bg);
@@ -603,8 +638,7 @@
 
   /* ── Read-only viewing banner ── */
   .viewing-banner {
-    grid-column: 1 / 3;
-    grid-row: 0;
+    grid-column: 1 / -1;
     background: rgba(214,177,107,0.1);
     border: 1px solid rgba(214,177,107,0.3);
     border-radius: 14px;
@@ -666,10 +700,9 @@
     .profile-wrapper {
       grid-template-columns: 1fr;
     }
-    .profile-card, .elo-section, .h2h-section, .history-section {
+    .profile-card, .profile-right {
       grid-column: 1;
     }
-    .profile-card { grid-row: auto; }
     .h2h-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
@@ -732,6 +765,13 @@
 
       <div class="rank-badge">⚔ นักรบผู้ฝึกหัด</div>
 
+      <!-- รหัสผู้เล่น (ใช้ค้นหาเพื่อน) -->
+      <div class="player-id-box" id="player-id-box">
+        <span class="player-id-label">รหัสผู้เล่น</span>
+        <span class="player-id-value" id="player-id-value">—</span>
+        <button type="button" class="player-id-copy" id="player-id-copy" title="คัดลอกรหัส">⧉</button>
+      </div>
+
       <div class="profile-divider"></div>
 
       <div class="quick-stats">
@@ -758,6 +798,7 @@
       </div>
     </div>
 
+    <div class="profile-right">
     <div class="elo-section">
       <p class="section-title">คะแนน ELO</p>
       <div class="elo-grid">
@@ -833,13 +874,15 @@
         </table>
       </div>
     </div>
+    </div><!-- /.profile-right -->
 
   </div></main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, get, update, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { START_ELO, getDisplayDelta, dateKey, ELO_MODES } from "../elo.js";
+import { ensurePlayerId, formatPlayerId } from "../playerid.js";
 
 // ── Firebase Config ──
 const firebaseConfig = {
@@ -919,6 +962,9 @@ async function initViewOtherProfile(targetSafeId, current, mySafeUid) {
   // แสดงคะแนน Elo + ป้ายบวก/ลบรายวันของคู่ต่อสู้
   await renderElo(targetSafeId);
 
+  // แสดงรหัสผู้เล่นของคู่ต่อสู้ (ดู/คัดลอกได้)
+  await renderPlayerId(targetSafeId, false);
+
   // 5. โหลดประวัติการเล่นย้อนหลังของคู่ต่อสู้ (จาก user_history ของเขา)
   await loadGameHistory(targetSafeId, targetName, false);
 
@@ -939,6 +985,9 @@ async function initOwnProfile(current, safeUid) {
 
   // แสดงคะแนน Elo + ป้ายบวก/ลบรายวันของตัวเอง (อ่านจาก Firebase)
   await renderElo(safeUid);
+
+  // แสดงรหัสผู้เล่น (สร้างให้ถ้ายังไม่มี)
+  await renderPlayerId(safeUid, true);
 
   // โหลดประวัติของตัวเอง
   await loadGameHistory(safeUid, current.name || 'คุณ', true);
@@ -1192,6 +1241,55 @@ function setEloTrend(mode, delta) {
   } else {
     el.classList.add('trend-flat');
     el.textContent = '— 0';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//   แสดงรหัสผู้เล่น 8 หลัก + ปุ่มคัดลอก
+//   isSelf = true → สร้างรหัสให้ถ้ายังไม่มี
+// ═══════════════════════════════════════════════════════════
+async function renderPlayerId(safeId, isSelf) {
+  const valEl = document.getElementById('player-id-value');
+  const copyBtn = document.getElementById('player-id-copy');
+  if (!valEl) return;
+
+  let pid = null;
+  try {
+    if (isSelf) {
+      // สร้างรหัสให้ถ้ายังไม่มี
+      pid = await ensurePlayerId(db, { ref, get, set }, safeId);
+    } else {
+      const snap = await get(ref(db, `users/${safeId}/playerId`));
+      pid = snap.exists() ? snap.val() : null;
+    }
+  } catch (e) {
+    console.warn('โหลดรหัสผู้เล่นไม่สำเร็จ:', e);
+  }
+
+  if (!pid) {
+    valEl.textContent = '—';
+    if (copyBtn) copyBtn.style.display = 'none';
+    return;
+  }
+
+  valEl.textContent = formatPlayerId(pid);
+
+  if (copyBtn) {
+    copyBtn.style.display = '';
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(pid);
+      } catch (e) {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = pid; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e2) {}
+        ta.remove();
+      }
+      copyBtn.classList.add('copied');
+      copyBtn.textContent = '✓';
+      setTimeout(() => { copyBtn.classList.remove('copied'); copyBtn.textContent = '⧉'; }, 1200);
+    };
   }
 }
 </script>
