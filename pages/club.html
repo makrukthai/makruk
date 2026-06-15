@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUKTHAI - ซุ้ม</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../styles-friend-enhanced.css">
+<link rel="stylesheet" href="../theme-refresh.css">
+<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
+<script type="module" src="../auth.js"></script>
+<style>
+  .club-body .main { height: auto; min-height: calc(100vh - 60px); display: block; align-items: initial; justify-content: initial; }
+  .club-wrap { max-width: 880px; margin: 0 auto; padding: 20px 16px 80px; }
+  .club-back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; margin-bottom: 14px; cursor: pointer; }
+  .club-back:hover { color: var(--gold); }
+
+  .club-hero {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg, 16px);
+    overflow: hidden; box-shadow: var(--shadow-1); margin-bottom: 20px;
+  }
+  .club-hero-banner { height: 150px; background: linear-gradient(135deg,#7a5230,#c8a24a); background-size: cover; background-position: center; }
+  .club-hero-body { padding: 0 22px 22px; display: flex; gap: 16px; align-items: flex-end; }
+  .club-hero-logo {
+    width: 88px; height: 88px; border-radius: 16px; border: 4px solid var(--bg2); margin-top: -44px;
+    background: var(--surface); overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; font-weight: 800; color: var(--gold);
+  }
+  .club-hero-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .club-hero-info { flex: 1; min-width: 0; padding-top: 12px; }
+  .club-hero-info h1 { margin: 0 0 6px; font-size: 1.5rem; }
+  .club-hero-meta { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 0.82rem; flex-wrap: wrap; }
+  .club-badge { background: var(--gold-soft); color: var(--gold); padding: 2px 9px; border-radius: 6px; font-weight: 600; }
+  .club-hero-action { padding-top: 12px; }
+  .club-action-btn {
+    height: 42px; padding: 0 22px; border-radius: var(--r-md,12px); font-weight: 700; cursor: pointer;
+    font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.92rem; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text);
+  }
+  .club-action-btn.primary { background: var(--gold); color: #1a1305; border-color: var(--gold); }
+  .club-action-btn.primary:hover { background: var(--gold-light,#e3c479); }
+  .club-action-btn.danger:hover { border-color: #c5544a; color: #e0796f; background: rgba(197,84,74,0.08); }
+  .club-action-btn.disabled { opacity: 0.55; cursor: default; }
+
+  .club-desc-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); padding: 18px 20px; margin-bottom: 20px; color: var(--text); line-height: 1.6; white-space: pre-wrap; }
+
+  .club-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); padding: 18px 20px; margin-bottom: 18px; }
+  .club-section h2 { font-size: 1.05rem; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+  .club-section h2 .count { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+
+  .member-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .member-row:last-child { border-bottom: none; }
+  .member-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0; cursor: pointer;
+    background: linear-gradient(135deg,#7a5230,#c8a24a); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; }
+  .member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .member-name { font-weight: 600; color: var(--text); cursor: pointer; }
+  .member-name:hover { color: var(--gold); text-decoration: underline; }
+  .role-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; font-weight: 600; margin-left: 8px; }
+  .role-owner { background: rgba(212,175,85,0.18); color: var(--gold); }
+  .role-admin { background: rgba(120,160,255,0.15); color: #8fb0ff; }
+  .role-member { background: var(--border); color: var(--muted); }
+  .req-note { color: var(--muted); font-size: 0.82rem; font-style: italic; margin-top: 6px; }
+  .member-actions { display: flex; gap: 6px; margin-left: auto; }
+  .mini-btn {
+    height: 30px; padding: 0 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text);
+    font-family: var(--font-ui, 'Noto Sans Thai', sans-serif); transition: background 0.15s, border-color 0.15s;
+  }
+  .mini-btn.accept { background: var(--gold); color: #1a1305; border-color: var(--gold); }
+  .mini-btn.accept:hover { background: var(--gold-light, #e3c479); }
+  .mini-btn.reject:hover, .mini-btn.kick:hover { border-color: #c5544a; color: #e0796f; background: rgba(197,84,74,0.08); }
+  .club-delete-bar { margin-top: 8px; text-align: right; }
+  .btn-delete-club {
+    background: transparent; border: 1px solid rgba(197,84,74,0.5); color: #e0796f; height: 40px; padding: 0 18px;
+    border-radius: 10px; font-weight: 600; cursor: pointer; font-family: var(--font-ui, 'Noto Sans Thai', sans-serif);
+  }
+  .btn-delete-club:hover { background: rgba(197,84,74,0.12); }
+  .mini-btn.promote:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-soft); }
+  .invite-box { display: flex; gap: 8px; }
+  .invite-box input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px;
+    color: var(--text); font-family: var(--font-mono, monospace); font-size: 0.8rem;
+  }
+  .invite-box input:focus { outline: none; border-color: var(--gold); }
+  .invite-banner {
+    background: var(--gold-soft); border: 1px solid var(--gold); color: var(--gold);
+    border-radius: var(--r-md, 12px); padding: 10px 14px; margin-bottom: 16px; font-size: 0.9rem; font-weight: 600;
+  }
+  .club-loading, .club-missing { text-align: center; color: var(--muted); padding: 60px 0; }
+</style>
+</head>
+<body class="club-body">
+<header class="topbar">
+    <div class="left">
+        <a href="play.html" class="logo">
+            <div class="logo-icon">
+                <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+                <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+            </div>
+        </a>
+        <nav class="nav">
+            <a href="play.html">เล่น</a>
+            <a href="tournament.html">ทัวร์นาเมนต์</a>
+            <a href="learn.html">เรียนรู้</a>
+            <a href="watch.html">ดูเกม</a>
+            <a href="community.html">ชุมชน</a>
+            <input class="search" placeholder="ค้นหาผู้เล่น...">
+        </nav>
+    </div>
+    <div class="right">
+        <button class="register">ลงทะเบียน</button>
+        <button class="login">เข้าสู่ระบบ</button>
+    </div>
+</header>
+
+<main class="main">
+  <div class="club-wrap">
+    <div class="club-back" onclick="location.href='community.html#clubs'">← กลับไปหน้าซุ้ม</div>
+    <div id="club-content"><div class="club-loading">กำลังโหลด…</div></div>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, update, remove, get, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const safeId = (id) => id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function loadUser() { try { return JSON.parse(localStorage.getItem('rukthai_current_user')) || null; } catch (e) { return null; } }
+const currentUser = loadUser();
+const mySid = currentUser && currentUser.id ? safeId(currentUser.id) : null;
+const myName = currentUser ? (currentUser.name || currentUser.email || 'ผู้เล่น') : '';
+
+const clubId = new URLSearchParams(location.search).get('id');
+let usersMap = {};
+
+const ROLE_ORDER = { owner: 0, admin: 1, member: 2 };
+const ROLE_LABEL = { owner: '👑 เจ้าของ', admin: '⭐ แอดมิน', member: 'สมาชิก' };
+let currentClub = null;
+function fmtDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }); }
+function avatarOf(uid, name) { const u = usersMap[safeId(uid)]; const a = u && u.avatar ? u.avatar : ''; return a ? `<img src="${esc(a)}" alt="">` : esc(String(name || '?').charAt(0).toUpperCase()); }
+function nameOf(uid, fb) { const u = usersMap[safeId(uid)]; return (u && u.name && u.name.trim()) ? u.name : (fb || 'ผู้เล่น'); }
+
+function render(c) {
+  const content = document.getElementById('club-content');
+  if (!c) { content.innerHTML = '<div class="club-missing">ไม่พบซุ้มนี้ (อาจถูกลบไปแล้ว)</div>'; return; }
+  currentClub = c;
+
+  const members = c.members || {};
+  const memberCount = Object.keys(members).length;
+  const requests = c.requests || {};
+  const reqCount = Object.keys(requests).length;
+  const myRole = mySid && members[mySid] ? members[mySid].role : null;
+  const isManager = myRole === 'owner' || myRole === 'admin';
+  const requested = !!(mySid && requests[mySid]);
+  // เตะได้ไหม: เจ้าของเตะได้ทุกคนยกเว้นตัวเอง/เจ้าของ, แอดมินเตะได้เฉพาะสมาชิก
+  const canKick = (role, sid) => {
+    if (sid === mySid) return false;
+    if (myRole === 'owner') return role !== 'owner';
+    if (myRole === 'admin') return role === 'member';
+    return false;
+  };
+  const badge = c.joinType === 'open' ? 'เข้าได้เลย' : 'ต้องอนุมัติ';
+  const logo = c.image ? `<img src="${esc(c.image)}" alt="">` : esc(String(c.name || '?').charAt(0).toUpperCase());
+  const banner = c.image ? `style="background-image:url('${esc(c.image)}')"` : '';
+
+  // ลิงก์เชิญ
+  const inviteParam = new URLSearchParams(location.search).get('invite');
+  const validInvite = !!(inviteParam && c.inviteToken && inviteParam === c.inviteToken);
+
+  // ปุ่ม action
+  let action = '';
+  if (!mySid) action = `<button class="club-action-btn disabled" disabled>เข้าสู่ระบบเพื่อเข้าร่วม</button>`;
+  else if (myRole === 'owner') action = `<button class="club-action-btn disabled" disabled>👑 คุณเป็นเจ้าของ</button>`;
+  else if (myRole) action = `<button class="club-action-btn danger" id="btn-leave">ออกจากซุ้ม</button>`;
+  else if (validInvite) action = `<button class="club-action-btn primary" id="btn-invite-join">✉️ เข้าร่วมด้วยลิงก์เชิญ</button>`;
+  else if (requested) action = `<button class="club-action-btn" id="btn-cancel">ยกเลิกคำขอ</button>`;
+  else if (c.joinType === 'open') action = `<button class="club-action-btn primary" id="btn-join">เข้าร่วม</button>`;
+  else action = `<button class="club-action-btn primary" id="btn-request">ขอเข้าร่วม</button>`;
+
+  // ปุ่มจัดการสมาชิก: เจ้าของ = ตั้ง/ลดแอดมิน, โอนเจ้าของ, เตะ | แอดมิน = เตะสมาชิก
+  function manageButtons(sid, role) {
+    if (myRole !== 'owner') {
+      return canKick(role, sid) ? `<button class="mini-btn kick" data-kick="${esc(sid)}">เตะ</button>` : '';
+    }
+    if (sid === mySid) return '';
+    let b = '';
+    if (role === 'member') b += `<button class="mini-btn promote" data-promote="${esc(sid)}">⭐ แอดมิน</button>`;
+    else if (role === 'admin') b += `<button class="mini-btn" data-demote="${esc(sid)}">↓ สมาชิก</button>`;
+    b += `<button class="mini-btn" data-transfer="${esc(sid)}">โอนเจ้าของ</button>`;
+    b += `<button class="mini-btn kick" data-kick="${esc(sid)}">เตะ</button>`;
+    return b;
+  }
+  const sorted = Object.entries(members).sort((a, b) =>
+    (ROLE_ORDER[a[1].role] ?? 9) - (ROLE_ORDER[b[1].role] ?? 9) || (a[1].joinedAt || 0) - (b[1].joinedAt || 0));
+  const memberRows = sorted.map(([sid, m]) => {
+    const btns = manageButtons(sid, m.role);
+    return `
+    <div class="member-row">
+      <div class="member-avatar" data-uid="${esc(sid)}">${avatarOf(sid, m.name)}</div>
+      <div style="flex:1; min-width:0;">
+        <span class="member-name" data-uid="${esc(sid)}">${esc(nameOf(sid, m.name))}</span>
+        <span class="role-badge role-${esc(m.role)}">${ROLE_LABEL[m.role] || 'สมาชิก'}</span>
+      </div>
+      ${btns ? `<div class="member-actions">${btns}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // คำขอเข้าร่วม (เจ้าของ/แอดมินจัดการได้)
+  let requestsBlock = '';
+  if (isManager && reqCount > 0) {
+    const reqRows = Object.entries(requests).sort((a, b) => (a[1].ts || 0) - (b[1].ts || 0)).map(([sid, r]) => `
+      <div class="member-row">
+        <div class="member-avatar" data-uid="${esc(sid)}">${avatarOf(sid, r.name)}</div>
+        <div style="flex:1;"><span class="member-name" data-uid="${esc(sid)}">${esc(nameOf(sid, r.name))}</span>
+          <span style="color:var(--muted); font-size:0.78rem; margin-left:8px;">${fmtDate(r.ts)}</span></div>
+        <div class="member-actions">
+          <button class="mini-btn accept" data-accept="${esc(sid)}">รับ</button>
+          <button class="mini-btn reject" data-reject="${esc(sid)}">ปฏิเสธ</button>
+        </div>
+      </div>`).join('');
+    requestsBlock = `
+      <div class="club-section">
+        <h2>⏳ คำขอเข้าร่วม <span class="count">(${reqCount})</span></h2>
+        ${reqRows}
+      </div>`;
+  }
+
+  content.innerHTML = `
+    <div class="club-hero">
+      <div class="club-hero-banner" ${banner}></div>
+      <div class="club-hero-body">
+        <div class="club-hero-logo">${logo}</div>
+        <div class="club-hero-info">
+          <h1>${esc(c.name || 'ซุ้ม')}</h1>
+          <div class="club-hero-meta"><span class="club-badge">${badge}</span><span>👥 ${memberCount} สมาชิก</span><span>สร้างเมื่อ ${fmtDate(c.createdAt)}</span></div>
+        </div>
+        <div class="club-hero-action">${action}</div>
+      </div>
+    </div>
+    ${validInvite && !myRole ? `<div class="invite-banner">✉️ คุณได้รับเชิญเข้าซุ้มนี้ — กด "เข้าร่วมด้วยลิงก์เชิญ" ด้านบน</div>` : ''}
+    ${c.description ? `<div class="club-desc-box">${esc(c.description)}</div>` : ''}
+    ${isManager ? `
+      <div class="club-section">
+        <h2>🔗 เชิญสมาชิก</h2>
+        <p style="color:var(--muted); font-size:0.85rem; margin:0 0 10px;">แชร์ลิงก์นี้เพื่อให้ผู้เล่นเข้าซุ้มได้ทันที (ข้ามการอนุมัติ)</p>
+        <div class="invite-box">
+          <input id="invite-link" readonly placeholder="กดปุ่มเพื่อสร้างลิงก์เชิญ" value="${c.inviteToken ? esc(inviteUrl(c.inviteToken)) : ''}">
+          <button class="mini-btn accept" id="btn-invite">${c.inviteToken ? 'คัดลอกลิงก์' : 'สร้างลิงก์เชิญ'}</button>
+        </div>
+      </div>` : ''}
+    ${requestsBlock}
+    <div class="club-section">
+      <h2>👥 สมาชิก <span class="count">(${memberCount})</span></h2>
+      ${memberRows}
+    </div>
+    ${myRole === 'owner' ? `<div class="club-delete-bar"><button class="btn-delete-club" id="btn-delete-club">🗑 ลบซุ้มนี้</button></div>` : ''}`;
+
+  // ผูก event
+  content.querySelectorAll('[data-uid]').forEach(el => el.addEventListener('click', () => { if (el.dataset.uid) location.href = `profile.html?user=${encodeURIComponent(el.dataset.uid)}`; }));
+  const join = content.querySelector('#btn-join');
+  const request = content.querySelector('#btn-request');
+  const cancel = content.querySelector('#btn-cancel');
+  const leave = content.querySelector('#btn-leave');
+  if (join) join.addEventListener('click', () => set(ref(db, `clubs/${clubId}/members/${mySid}`), { role: 'member', name: myName, joinedAt: serverTimestamp() }).catch(e => console.error(e)));
+  if (request) request.addEventListener('click', () => set(ref(db, `clubs/${clubId}/requests/${mySid}`), { name: myName, ts: serverTimestamp() }).catch(e => console.error(e)));
+  if (cancel) cancel.addEventListener('click', () => remove(ref(db, `clubs/${clubId}/requests/${mySid}`)).catch(e => console.error(e)));
+  if (leave) leave.addEventListener('click', () => { if (confirm('ออกจากซุ้มนี้?')) remove(ref(db, `clubs/${clubId}/members/${mySid}`)).catch(e => console.error(e)); });
+
+  // ── จัดการ (เจ้าของ/แอดมิน) ──
+  content.querySelectorAll('[data-accept]').forEach(b => b.addEventListener('click', () => acceptRequest(b.dataset.accept)));
+  content.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', () => remove(ref(db, `clubs/${clubId}/requests/${b.dataset.reject}`)).catch(e => console.error(e))));
+  content.querySelectorAll('[data-kick]').forEach(b => b.addEventListener('click', () => {
+    const sid = b.dataset.kick;
+    const nm = nameOf(sid, (currentClub.members?.[sid]?.name) || 'สมาชิก');
+    if (confirm(`เตะ "${nm}" ออกจากซุ้ม?`)) remove(ref(db, `clubs/${clubId}/members/${sid}`)).catch(e => console.error(e));
+  }));
+  const del = content.querySelector('#btn-delete-club');
+  if (del) del.addEventListener('click', async () => {
+    if (!confirm('ลบซุ้มนี้ถาวร? สมาชิกทั้งหมดจะถูกนำออกและกู้คืนไม่ได้')) return;
+    try { await remove(ref(db, `clubs/${clubId}`)); location.href = 'community.html#clubs'; }
+    catch (e) { console.error(e); alert('ลบไม่สำเร็จ'); }
+  });
+
+  // ── เฟส 4: มอบตำแหน่ง + ลิงก์เชิญ ──
+  content.querySelectorAll('[data-promote]').forEach(b => b.addEventListener('click', () =>
+    set(ref(db, `clubs/${clubId}/members/${b.dataset.promote}/role`), 'admin').catch(e => console.error(e))));
+  content.querySelectorAll('[data-demote]').forEach(b => b.addEventListener('click', () =>
+    set(ref(db, `clubs/${clubId}/members/${b.dataset.demote}/role`), 'member').catch(e => console.error(e))));
+  content.querySelectorAll('[data-transfer]').forEach(b => b.addEventListener('click', () => transferOwner(b.dataset.transfer)));
+
+  const inviteBtn = content.querySelector('#btn-invite');
+  if (inviteBtn) inviteBtn.addEventListener('click', () => handleInvite(content));
+
+  const inviteJoin = content.querySelector('#btn-invite-join');
+  if (inviteJoin) inviteJoin.addEventListener('click', () =>
+    set(ref(db, `clubs/${clubId}/members/${mySid}`), { role: 'member', name: myName, joinedAt: serverTimestamp() }).catch(e => console.error(e)));
+}
+
+function inviteUrl(token) { return `${location.origin}${location.pathname}?id=${encodeURIComponent(clubId)}&invite=${encodeURIComponent(token)}`; }
+
+// โอนความเป็นเจ้าของ (atomic): คนใหม่=owner, เรา=admin
+async function transferOwner(sid) {
+  const nm = nameOf(sid, (currentClub.members && currentClub.members[sid] && currentClub.members[sid].name) || 'สมาชิก');
+  if (!confirm(`โอนความเป็นเจ้าของซุ้มให้ "${nm}"? คุณจะกลายเป็นแอดมิน`)) return;
+  try {
+    await update(ref(db, `clubs/${clubId}`), {
+      [`members/${sid}/role`]: 'owner',
+      [`members/${mySid}/role`]: 'admin',
+      ownerUid: sid,
+      ownerName: nm
+    });
+  } catch (e) { console.error('โอนเจ้าของไม่สำเร็จ:', e); }
+}
+
+// สร้าง (ถ้ายังไม่มี) แล้วคัดลอกลิงก์เชิญ
+async function handleInvite(content) {
+  let token = currentClub && currentClub.inviteToken;
+  try {
+    if (!token) {
+      token = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+      await set(ref(db, `clubs/${clubId}/inviteToken`), token);
+    }
+    const url = inviteUrl(token);
+    const input = content.querySelector('#invite-link');
+    if (input) input.value = url;
+    try { await navigator.clipboard.writeText(url); } catch (e) { if (input) input.select(); }
+    const btn = content.querySelector('#btn-invite');
+    if (btn) { btn.textContent = 'คัดลอกแล้ว ✓'; setTimeout(() => { btn.textContent = 'คัดลอกลิงก์'; }, 1600); }
+  } catch (e) { console.error('สร้างลิงก์เชิญไม่สำเร็จ:', e); }
+}
+
+// รับคำขอ: ย้ายจาก requests → members แล้วลบคำขอ
+async function acceptRequest(sid) {
+  const r = currentClub && currentClub.requests ? currentClub.requests[sid] : null;
+  const nm = r && r.name ? r.name : 'ผู้เล่น';
+  try {
+    await set(ref(db, `clubs/${clubId}/members/${sid}`), { role: 'member', name: nm, joinedAt: serverTimestamp() });
+    await remove(ref(db, `clubs/${clubId}/requests/${sid}`));
+  } catch (e) { console.error('รับคำขอไม่สำเร็จ:', e); }
+}
+
+if (!clubId) {
+  document.getElementById('club-content').innerHTML = '<div class="club-missing">ไม่พบรหัสซุ้ม</div>';
+} else {
+  get(ref(db, 'users')).then(s => { usersMap = s.val() || {}; }).catch(() => {}).finally(() => {
+    onValue(ref(db, `clubs/${clubId}`), (snap) => render(snap.val()),
+      (err) => { document.getElementById('club-content').innerHTML = `<div class="club-missing">โหลดซุ้มไม่ได้: ${esc(err.code || err.message)}</div>`; });
+  });
+}
+</script>
+</body>
+</html>

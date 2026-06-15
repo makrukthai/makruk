@@ -254,6 +254,11 @@ html[data-user-bg="on"] body {
 html[data-background-mode="light"][data-user-bg="on"] { --bg-scrim: rgba(247,245,240,0.80); }
 html[data-background-mode="dark"][data-user-bg="on"]  { --bg-scrim: rgba(33,32,29,0.78); }
 
+/* .hero/.main เดิมเป็นพื้นทึบ (var(--bg)) ครอบเต็มจอ → ต้องทำให้โปร่ง
+   เพื่อให้เห็นภาพพื้นหลังที่ตั้งไว้เต็มหน้า (การ์ด/แผงอื่นยังทึบ อ่านง่ายเหมือนเดิม) */
+html[data-user-bg="on"] .main,
+html[data-user-bg="on"] .hero { background: transparent !important; }
+
 /* ─────────────────────────────────────────────
    7. RESPONSIVE (มือถือ)
    ───────────────────────────────────────────── */

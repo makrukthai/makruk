@@ -7,9 +7,173 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
-<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <link rel="stylesheet" href="../theme-refresh.css">
+<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <script type="module" src="../auth.js"></script>
+<style>
+  /* ── Dropdown เมนูชุมชน ── */
+  .nav-dropdown { position: relative; display: inline-flex; align-items: center; }
+  .nav-dropdown > .nav-trigger {
+    color: var(--text); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+    padding: var(--sp-2, 8px) var(--sp-1, 4px); position: relative;
+  }
+  .nav-dropdown > .nav-trigger::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px;
+    background: var(--gold, #d4af55); border-radius: 999px;
+  }
+  .nav-caret { font-size: 0.7em; transition: transform 0.18s; }
+  .nav-dropdown:hover .nav-caret, .nav-dropdown:focus-within .nav-caret { transform: rotate(180deg); }
+  .nav-dropdown-menu {
+    position: absolute; top: calc(100% + 8px); left: 0; min-width: 200px;
+    background: var(--bg2, #2b2926); border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: var(--r-md, 12px); box-shadow: var(--shadow-2, 0 8px 24px rgba(0,0,0,0.4));
+    padding: 6px; opacity: 0; visibility: hidden; transform: translateY(-6px);
+    transition: opacity 0.16s, transform 0.16s, visibility 0.16s; z-index: 1200;
+  }
+  .nav-dropdown:hover .nav-dropdown-menu, .nav-dropdown:focus-within .nav-dropdown-menu {
+    opacity: 1; visibility: visible; transform: translateY(0);
+  }
+  .nav-dropdown-menu a {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+    color: var(--text, #ece8e1); font-weight: 500; font-size: 0.92rem; white-space: nowrap;
+  }
+  .nav-dropdown-menu a:hover { background: var(--gold-soft, rgba(212,175,85,0.14)); color: var(--text); }
+  .nav-dropdown-menu a.active { color: var(--gold, #d4af55); font-weight: 700; }
+  .nav-dropdown-menu .dd-ico { width: 20px; text-align: center; }
+
+  /* ── Layout หน้า community ── */
+  .community-body .main {
+    height: auto; min-height: calc(100vh - 60px);
+    display: block; align-items: initial; justify-content: initial;
+  }
+  .community-wrap { max-width: 1000px; margin: 0 auto; padding: var(--sp-6, 24px) var(--sp-4, 16px) 80px; }
+  .community-view { display: none; }
+  .community-view.active { display: block; animation: cFade 0.2s ease; }
+  @keyframes cFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .view-head { margin-bottom: var(--sp-5, 20px); }
+  .view-head h1 { font-size: var(--fs-xl, 1.75rem); margin: 0 0 4px; }
+  .view-head p { color: var(--muted); margin: 0; font-size: 0.92rem; }
+
+  .coming-soon {
+    background: var(--bg2); border: 1px dashed var(--border-strong, rgba(255,255,255,0.12));
+    border-radius: var(--r-lg, 16px); padding: 48px 24px; text-align: center; color: var(--muted);
+  }
+  .coming-soon .cs-ico { font-size: 2.4rem; margin-bottom: 10px; }
+
+  /* ── แชทรวม ── */
+  .chat-box {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg, 16px);
+    box-shadow: var(--shadow-1); display: flex; flex-direction: column; height: calc(100vh - 230px); min-height: 420px; overflow: hidden;
+  }
+  .chat-stream { flex: 1; overflow-y: auto; padding: var(--sp-4, 16px); display: flex; flex-direction: column; gap: 14px; }
+  .chat-day-sep { text-align: center; color: var(--muted); font-size: 0.72rem; margin: 4px 0; position: relative; }
+  .chat-day-sep span { background: var(--bg2); padding: 0 10px; position: relative; z-index: 1; }
+  .chat-day-sep::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--border); }
+  .chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+  .chat-avatar {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; overflow: hidden; cursor: pointer;
+    background: linear-gradient(135deg,#7a5230,#c8a24a); display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 0.95rem;
+  }
+  .chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .chat-body { min-width: 0; flex: 1; }
+  .chat-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+  .chat-name { font-weight: 600; color: var(--text); font-size: 0.9rem; cursor: pointer; }
+  .chat-name:hover { color: var(--gold); text-decoration: underline; }
+  .chat-time { color: var(--muted); font-size: 0.72rem; }
+  .chat-text { color: var(--text); font-size: 0.92rem; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+  .chat-empty { margin: auto; color: var(--muted); text-align: center; font-style: italic; }
+
+  .chat-input-bar { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); }
+  .chat-input-bar input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md, 12px);
+    padding: 12px 14px; color: var(--text); font-family: var(--font-ui, 'Noto Sans Thai', sans-serif); font-size: 0.95rem;
+  }
+  .chat-input-bar input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .chat-input-bar button {
+    background: var(--gold); color: #1a1305; border: none; border-radius: var(--r-md, 12px);
+    padding: 0 22px; font-weight: 700; cursor: pointer; font-family: var(--font-ui, 'Noto Sans Thai', sans-serif);
+  }
+  .chat-input-bar button:hover { background: var(--gold-light, #e3c479); }
+  .chat-login-note { padding: 14px; text-align: center; color: var(--muted); border-top: 1px solid var(--border); font-size: 0.9rem; }
+
+  @media (max-width: 768px) { .chat-box { height: calc(100vh - 200px); } }
+
+  /* ── ซุ้ม (Clubs) ── */
+  .clubs-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .btn-create-club {
+    background: var(--gold); color: #1a1305; border: none; height: 42px; padding: 0 18px;
+    border-radius: var(--r-md, 12px); font-weight: 700; cursor: pointer; font-family: var(--font-ui, 'Noto Sans Thai', sans-serif);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-create-club:hover { background: var(--gold-light, #e3c479); }
+
+  .clubs-section-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin: 22px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .clubs-section-title .count { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+
+  .clubs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .club-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg, 16px);
+    box-shadow: var(--shadow-1); overflow: hidden; display: flex; flex-direction: column;
+  }
+  .club-banner {
+    height: 84px; background: linear-gradient(135deg, #7a5230, #c8a24a); position: relative;
+    background-size: cover; background-position: center; display: flex; align-items: flex-end;
+  }
+  .club-logo {
+    width: 54px; height: 54px; border-radius: 12px; border: 3px solid var(--bg2);
+    margin: 0 0 -22px 16px; background: var(--surface); overflow: hidden; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 700; color: var(--gold);
+  }
+  .club-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .club-info { padding: 30px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .club-name { font-weight: 700; color: var(--text); font-size: 1.02rem; }
+  .club-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.78rem; flex-wrap: wrap; }
+  .club-badge { background: var(--gold-soft); color: var(--gold); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+  .club-desc { color: var(--muted); font-size: 0.85rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .club-actions { margin-top: auto; padding-top: 10px; display: flex; gap: 8px; }
+  .club-btn {
+    flex: 1; height: 38px; border-radius: 9px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12));
+    background: transparent; color: var(--text); cursor: pointer; font-family: var(--font-ui, 'Noto Sans Thai', sans-serif);
+    font-weight: 600; font-size: 0.85rem; transition: background 0.15s, border-color 0.15s;
+  }
+  .club-btn:hover { border-color: var(--gold); background: var(--gold-soft); }
+  .club-btn.primary { background: var(--gold); color: #1a1305; border-color: var(--gold); }
+  .club-btn.primary:hover { background: var(--gold-light, #e3c479); }
+  .club-btn.disabled { opacity: 0.55; cursor: default; }
+  .club-btn.disabled:hover { background: transparent; border-color: var(--border-strong, rgba(255,255,255,0.12)); }
+  .clubs-empty { color: var(--muted); font-size: 0.9rem; padding: 16px 0; font-style: italic; }
+
+  /* ── Modal สร้างซุ้ม ── */
+  .club-modal-overlay {
+    position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.65);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .club-modal-overlay.open { display: flex; }
+  .club-modal {
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-lg, 16px);
+    width: 100%; max-width: 460px; max-height: 92vh; overflow-y: auto; padding: 22px;
+    box-shadow: var(--shadow-2);
+  }
+  .club-modal h2 { margin: 0 0 16px; font-size: 1.2rem; }
+  .club-field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .club-field label { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+  .club-field input[type="text"], .club-field textarea, .club-field select {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    color: var(--text); font-family: var(--font-ui, 'Noto Sans Thai', sans-serif); font-size: 0.92rem; width: 100%;
+  }
+  .club-field textarea { resize: vertical; min-height: 70px; }
+  .club-field input:focus, .club-field textarea:focus, .club-field select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .club-img-row { display: flex; align-items: center; gap: 12px; }
+  .club-img-preview { width: 56px; height: 56px; border-radius: 12px; background: var(--surface); background-size: cover; background-position: center; border: 1px solid var(--border); flex-shrink: 0; }
+  .club-modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+  .club-modal-actions button { flex: 1; height: 44px; border-radius: 10px; font-weight: 700; cursor: pointer; font-family: var(--font-ui, 'Noto Sans Thai', sans-serif); }
+  .cm-cancel { background: transparent; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); color: var(--text); }
+  .cm-save { background: var(--gold); border: none; color: #1a1305; }
+  .cm-save:hover { background: var(--gold-light, #e3c479); }
+  .club-modal-msg { font-size: 0.82rem; color: var(--muted); min-height: 18px; margin-top: 6px; }
+</style>
 </head>
 <body class="community-body">
 <header class="topbar">
@@ -25,7 +189,14 @@
             <a href="tournament.html">ทัวร์นาเมนต์</a>
             <a href="learn.html">เรียนรู้</a>
             <a href="watch.html">ดูเกม</a>
-            <a href="community.html">ชุมชน</a>
+            <div class="nav-dropdown">
+                <span class="nav-trigger" tabindex="0">ชุมชน <span class="nav-caret">▾</span></span>
+                <div class="nav-dropdown-menu">
+                    <a href="#clubs" data-tab="clubs"><span class="dd-ico">🏛</span> ซุ้ม</a>
+                    <a href="#chat"  data-tab="chat"><span class="dd-ico">💬</span> แชทรวม</a>
+                    <a href="#blog"  data-tab="blog"><span class="dd-ico">📰</span> ข่าวสาร</a>
+                </div>
+            </div>
             <input class="search" placeholder="ค้นหาผู้เล่น...">
         </nav>
     </div>
@@ -34,13 +205,370 @@
         <button class="login">เข้าสู่ระบบ</button>
     </div>
 </header>
+
 <main class="main">
-    <section class="hero">
-        <div class="hero-content">
-            <h1>ชุมชน</h1>
-            <p>ร่วมเชื่อมต่อ พูดคุย และแบ่งปันประสบการณ์หมากรุกไทย</p>
-        </div>
+  <div class="community-wrap">
+
+    <!-- ซุ้ม -->
+    <section class="community-view" id="view-clubs">
+      <div class="view-head"><h1>🏛 ซุ้ม</h1><p>สร้างหรือเข้าร่วมซุ้ม เพื่อรวมกลุ่มผู้เล่นหมากรุกไทย</p></div>
+      <div class="clubs-toolbar">
+        <div style="color:var(--muted); font-size:0.88rem;" id="clubs-summary"></div>
+        <button class="btn-create-club" id="btn-open-create">＋ สร้างซุ้ม</button>
+      </div>
+      <div id="my-clubs-wrap"></div>
+      <div class="clubs-section-title">ซุ้มทั้งหมด <span class="count" id="all-clubs-count"></span></div>
+      <div class="clubs-grid" id="all-clubs-grid"><div class="clubs-empty">กำลังโหลด…</div></div>
     </section>
+
+    <!-- แชทรวม -->
+    <section class="community-view" id="view-chat">
+      <div class="view-head"><h1>💬 แชทรวม</h1><p>พูดคุยกับผู้เล่นทั้งเซิร์ฟ — กดที่ชื่อ/รูปเพื่อดูโปรไฟล์</p></div>
+      <div class="chat-box">
+        <div class="chat-stream" id="chat-stream"><div class="chat-empty">กำลังโหลดแชท…</div></div>
+        <div id="chat-input-wrap"></div>
+      </div>
+    </section>
+
+    <!-- ข่าวสาร -->
+    <section class="community-view" id="view-blog">
+      <div class="view-head"><h1>📰 ข่าวสาร</h1><p>บทความและข่าวสารจากชุมชนหมากรุกไทย</p></div>
+      <div class="coming-soon"><div class="cs-ico">📰</div>ระบบข่าวสาร/บล็อกกำลังพัฒนา — เร็ว ๆ นี้<br><span style="font-size:0.85rem;">(เขียนบทความ / รูปปก / ผู้เขียน / วันที่)</span></div>
+    </section>
+
+  </div>
 </main>
+
+<!-- Modal สร้างซุ้ม -->
+<div class="club-modal-overlay" id="club-modal-overlay">
+  <div class="club-modal">
+    <h2>สร้างซุ้มใหม่</h2>
+    <div class="club-field">
+      <label>ชื่อซุ้ม *</label>
+      <input type="text" id="cm-name" maxlength="40" placeholder="เช่น ชมรมหมากรุกไทย">
+    </div>
+    <div class="club-field">
+      <label>คำอธิบาย</label>
+      <textarea id="cm-desc" maxlength="300" placeholder="ซุ้มนี้เกี่ยวกับอะไร…"></textarea>
+    </div>
+    <div class="club-field">
+      <label>รูปซุ้ม (ไม่บังคับ)</label>
+      <div class="club-img-row">
+        <div class="club-img-preview" id="cm-img-preview"></div>
+        <input type="file" id="cm-img-file" accept="image/*" hidden>
+        <button type="button" class="club-btn" id="cm-img-pick" style="flex:0 0 auto; padding:0 14px;">เลือกรูป…</button>
+        <button type="button" class="club-btn" id="cm-img-clear" style="flex:0 0 auto; padding:0 14px;">ลบ</button>
+      </div>
+    </div>
+    <div class="club-field">
+      <label>การเข้าร่วม</label>
+      <select id="cm-jointype">
+        <option value="open">เข้าได้เลย (ใครก็เข้าร่วมได้ทันที)</option>
+        <option value="approval">ต้องอนุมัติ (เจ้าของรับเข้า)</option>
+      </select>
+    </div>
+    <div class="club-modal-msg" id="cm-msg"></div>
+    <div class="club-modal-actions">
+      <button class="cm-cancel" id="cm-cancel">ยกเลิก</button>
+      <button class="cm-save" id="cm-save">สร้างซุ้ม</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, set, update, onValue, query, orderByChild, limitToLast, get, remove, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const MAX_CHAT = 200;
+const safeId = (id) => id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function loadUser() { try { return JSON.parse(localStorage.getItem('rukthai_current_user')) || null; } catch (e) { return null; } }
+const currentUser = loadUser();
+let usersMap = {};
+
+// ───── Tab routing ผ่าน hash ─────
+const TABS = ['clubs', 'chat', 'blog'];
+function showTab(tab) {
+  if (!TABS.includes(tab)) tab = 'clubs';
+  TABS.forEach(t => document.getElementById('view-' + t).classList.toggle('active', t === tab));
+  document.querySelectorAll('.nav-dropdown-menu a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+}
+function currentTab() { return (location.hash || '').replace('#', '') || 'clubs'; }
+window.addEventListener('hashchange', () => showTab(currentTab()));
+showTab(currentTab());
+
+// ───── แชทรวม ─────
+function fmtTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+}
+function dayKey(ts) {
+  const d = new Date(ts || Date.now());
+  return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+function authorAvatar(uid, name) {
+  const u = usersMap[safeId(uid)];
+  const avatar = u && u.avatar ? u.avatar : '';
+  return avatar ? `<img src="${esc(avatar)}" alt="">` : esc(String(name || '?').charAt(0).toUpperCase());
+}
+function authorName(uid, fallback) {
+  const u = usersMap[safeId(uid)];
+  return (u && u.name && u.name.trim()) ? u.name : (fallback || 'ผู้เล่น');
+}
+
+function renderChat(messages) {
+  const stream = document.getElementById('chat-stream');
+  if (!messages.length) { stream.innerHTML = '<div class="chat-empty">ยังไม่มีข้อความ — เริ่มทักทายกันได้เลย 👋</div>'; return; }
+  const atBottom = stream.scrollHeight - stream.scrollTop - stream.clientHeight < 80;
+  let html = '', lastDay = '';
+  messages.forEach(m => {
+    const dk = dayKey(m.ts);
+    if (dk !== lastDay) { html += `<div class="chat-day-sep"><span>${esc(dk)}</span></div>`; lastDay = dk; }
+    const sid = safeId(m.uid);
+    html += `
+      <div class="chat-msg">
+        <div class="chat-avatar" data-uid="${esc(sid)}">${authorAvatar(m.uid, m.name)}</div>
+        <div class="chat-body">
+          <div class="chat-meta">
+            <span class="chat-name" data-uid="${esc(sid)}">${esc(authorName(m.uid, m.name))}</span>
+            <span class="chat-time">${fmtTime(m.ts)}</span>
+          </div>
+          <div class="chat-text">${esc(m.text)}</div>
+        </div>
+      </div>`;
+  });
+  stream.innerHTML = html;
+  stream.querySelectorAll('[data-uid]').forEach(el => {
+    el.addEventListener('click', () => { if (el.dataset.uid) location.href = `profile.html?user=${encodeURIComponent(el.dataset.uid)}`; });
+  });
+  if (atBottom) stream.scrollTop = stream.scrollHeight;
+}
+
+function renderInputBar() {
+  const wrap = document.getElementById('chat-input-wrap');
+  if (!currentUser || !currentUser.id) {
+    wrap.innerHTML = '<div class="chat-login-note">เข้าสู่ระบบเพื่อร่วมพูดคุยในแชทรวม</div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="chat-input-bar">
+      <input id="chat-text" placeholder="พิมพ์ข้อความ…" maxlength="500" autocomplete="off">
+      <button id="chat-send">ส่ง</button>
+    </div>`;
+  const input = document.getElementById('chat-text');
+  const send = () => sendMessage(input);
+  document.getElementById('chat-send').addEventListener('click', send);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+}
+
+async function sendMessage(input) {
+  const text = input.value.trim();
+  if (!text || !currentUser) return;
+  input.value = '';
+  try {
+    await push(ref(db, 'global_chat'), {
+      uid: currentUser.id,
+      name: currentUser.name || currentUser.email || 'ผู้เล่น',
+      text,
+      ts: serverTimestamp()
+    });
+    trimOldMessages();
+  } catch (e) { console.error('ส่งข้อความไม่สำเร็จ:', e); }
+}
+
+// คงไว้ 200 ข้อความล่าสุด — ลบที่เกินทิ้ง
+async function trimOldMessages() {
+  try {
+    const snap = await get(query(ref(db, 'global_chat'), orderByChild('ts'), limitToLast(MAX_CHAT + 30)));
+    const entries = [];
+    snap.forEach(ch => { entries.push(ch.key); });
+    if (entries.length > MAX_CHAT) {
+      const removeCount = entries.length - MAX_CHAT;
+      for (let i = 0; i < removeCount; i++) {
+        remove(ref(db, `global_chat/${entries[i]}`)).catch(() => {});
+      }
+    }
+  } catch (e) { /* เงียบไว้ */ }
+}
+
+// โหลด users (รูป/ชื่อ) ครั้งเดียว แล้วฟังแชท
+get(ref(db, 'users')).then(snap => { usersMap = snap.val() || {}; }).catch(() => {}).finally(() => {
+  renderInputBar();
+  onValue(query(ref(db, 'global_chat'), orderByChild('ts'), limitToLast(MAX_CHAT)), (snap) => {
+    const messages = [];
+    snap.forEach(ch => { const v = ch.val(); messages.push({ ...v }); });
+    renderChat(messages);
+  });
+});
+
+// ═══════════════════════════════════════════
+//   ซุ้ม (Clubs) — เฟส 1: สร้าง / รายการ / เข้าร่วม
+// ═══════════════════════════════════════════
+const mySid = currentUser && currentUser.id ? safeId(currentUser.id) : null;
+let clubsMap = {};
+let cmImageData = "";
+
+function memberCount(c) { return c.members ? Object.keys(c.members).length : 0; }
+function myRole(c) { return (mySid && c.members && c.members[mySid]) ? c.members[mySid].role : null; }
+function hasRequested(c) { return !!(mySid && c.requests && c.requests[mySid]); }
+
+function clubCard(id, c) {
+  const role = myRole(c);
+  const requested = hasRequested(c);
+  const badge = c.joinType === 'open' ? 'เข้าได้เลย' : 'ต้องอนุมัติ';
+  const logo = c.image ? `<img src="${esc(c.image)}" alt="">` : esc(String(c.name || '?').charAt(0).toUpperCase());
+  const banner = c.image ? `style="background-image:url('${esc(c.image)}')"` : '';
+
+  let action;
+  if (!mySid) {
+    action = `<button class="club-btn disabled" disabled>เข้าสู่ระบบเพื่อเข้าร่วม</button>`;
+  } else if (role) {
+    const label = role === 'owner' ? '👑 ซุ้มของคุณ' : (role === 'admin' ? '⭐ แอดมิน' : '✓ เป็นสมาชิก');
+    action = `<button class="club-btn disabled" disabled>${label}</button>`;
+  } else if (requested) {
+    action = `<button class="club-btn disabled" disabled>⏳ รออนุมัติ</button>`;
+  } else if (c.joinType === 'open') {
+    action = `<button class="club-btn primary" data-join="${esc(id)}">เข้าร่วม</button>`;
+  } else {
+    action = `<button class="club-btn primary" data-request="${esc(id)}">ขอเข้าร่วม</button>`;
+  }
+  // ปุ่มเปิดหน้าซุ้ม (club.html — เฟส 2)
+  const view = `<button class="club-btn" data-open="${esc(id)}">ดูซุ้ม</button>`;
+
+  return `
+    <div class="club-card">
+      <div class="club-banner" ${banner}><div class="club-logo">${logo}</div></div>
+      <div class="club-info">
+        <div class="club-name">${esc(c.name || 'ซุ้ม')}</div>
+        <div class="club-meta"><span class="club-badge">${badge}</span><span>👥 ${memberCount(c)} คน</span></div>
+        <div class="club-desc">${esc(c.description || 'ไม่มีคำอธิบาย')}</div>
+        <div class="club-actions">${view}${action}</div>
+      </div>
+    </div>`;
+}
+
+function renderClubs() {
+  const all = Object.entries(clubsMap).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  const mine = all.filter(([id, c]) => myRole(c));
+  const myWrap = document.getElementById('my-clubs-wrap');
+  const grid = document.getElementById('all-clubs-grid');
+
+  document.getElementById('clubs-summary').textContent = `ทั้งหมด ${all.length} ซุ้ม`;
+
+  // ซุ้มของฉัน
+  if (mine.length) {
+    myWrap.innerHTML = `<div class="clubs-section-title">ซุ้มของฉัน <span class="count">(${mine.length})</span></div>
+      <div class="clubs-grid">${mine.map(([id, c]) => clubCard(id, c)).join('')}</div>`;
+  } else { myWrap.innerHTML = ''; }
+
+  // ซุ้มทั้งหมด (เฉพาะที่ยังไม่ได้เข้าร่วม)
+  const others = all.filter(([id, c]) => !myRole(c));
+  document.getElementById('all-clubs-count').textContent = `(${others.length})`;
+  grid.innerHTML = others.length ? others.map(([id, c]) => clubCard(id, c)).join('')
+    : '<div class="clubs-empty">ไม่มีซุ้มอื่นให้เข้าร่วมตอนนี้</div>';
+
+  // ผูกปุ่ม
+  document.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => joinClub(b.dataset.join, 'open')));
+  document.querySelectorAll('[data-request]').forEach(b => b.addEventListener('click', () => joinClub(b.dataset.request, 'approval')));
+  document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => { location.href = `club.html?id=${encodeURIComponent(b.dataset.open)}`; }));
+}
+
+async function joinClub(clubId, mode) {
+  if (!mySid || !currentUser) return;
+  const myName = currentUser.name || currentUser.email || 'ผู้เล่น';
+  try {
+    if (mode === 'open') {
+      await set(ref(db, `clubs/${clubId}/members/${mySid}`), { role: 'member', name: myName, joinedAt: serverTimestamp() });
+    } else {
+      await set(ref(db, `clubs/${clubId}/requests/${mySid}`), { name: myName, ts: serverTimestamp() });
+    }
+  } catch (e) { console.error('เข้าร่วมซุ้มไม่สำเร็จ:', e); }
+}
+
+// ── Modal สร้างซุ้ม ──
+const cmOverlay = document.getElementById('club-modal-overlay');
+function openCreate() {
+  if (!mySid) { alert('กรุณาเข้าสู่ระบบก่อนสร้างซุ้ม'); return; }
+  document.getElementById('cm-name').value = '';
+  document.getElementById('cm-desc').value = '';
+  document.getElementById('cm-jointype').value = 'open';
+  document.getElementById('cm-msg').textContent = '';
+  cmImageData = '';
+  document.getElementById('cm-img-preview').style.backgroundImage = '';
+  cmOverlay.classList.add('open');
+}
+function closeCreate() { cmOverlay.classList.remove('open'); }
+
+document.getElementById('btn-open-create').addEventListener('click', openCreate);
+document.getElementById('cm-cancel').addEventListener('click', closeCreate);
+cmOverlay.addEventListener('click', e => { if (e.target === cmOverlay) closeCreate(); });
+
+// เลือกรูปซุ้ม (ย่อก่อนเก็บ)
+function fileToScaledDataURL(file, maxW = 400, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(cv.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject; img.src = url;
+  });
+}
+document.getElementById('cm-img-pick').addEventListener('click', () => document.getElementById('cm-img-file').click());
+document.getElementById('cm-img-clear').addEventListener('click', () => { cmImageData = ''; document.getElementById('cm-img-preview').style.backgroundImage = ''; });
+document.getElementById('cm-img-file').addEventListener('change', async (e) => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  try { cmImageData = await fileToScaledDataURL(f); document.getElementById('cm-img-preview').style.backgroundImage = `url("${cmImageData}")`; }
+  catch (err) { document.getElementById('cm-msg').textContent = 'อ่านรูปไม่สำเร็จ'; }
+});
+
+document.getElementById('cm-save').addEventListener('click', async () => {
+  const name = document.getElementById('cm-name').value.trim();
+  const msg = document.getElementById('cm-msg');
+  if (!name) { msg.textContent = 'กรุณาใส่ชื่อซุ้ม'; return; }
+  if (!mySid) { msg.textContent = 'กรุณาเข้าสู่ระบบ'; return; }
+  msg.textContent = 'กำลังสร้าง…';
+  const myName = currentUser.name || currentUser.email || 'ผู้เล่น';
+  const newRef = push(ref(db, 'clubs'));
+  const data = {
+    name,
+    description: document.getElementById('cm-desc').value.trim(),
+    image: cmImageData || '',
+    joinType: document.getElementById('cm-jointype').value,
+    ownerUid: mySid,
+    ownerName: myName,
+    createdAt: serverTimestamp(),
+    members: { [mySid]: { role: 'owner', name: myName, joinedAt: serverTimestamp() } }
+  };
+  try {
+    await set(newRef, data);
+    closeCreate();
+  } catch (e) {
+    msg.textContent = (e && e.message && e.message.includes('exceed')) ? 'รูปใหญ่เกินไป ลองรูปเล็กลง' : 'สร้างไม่สำเร็จ';
+  }
+});
+
+// ฟังรายการซุ้มแบบเรียลไทม์
+onValue(ref(db, 'clubs'), (snap) => { clubsMap = snap.val() || {}; renderClubs(); },
+  (err) => console.error('โหลดซุ้มไม่ได้ (เช็ค Rules: clubs):', err.code || err.message));
+</script>
 </body>
 </html>

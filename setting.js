@@ -52,6 +52,7 @@ function populateSettingsForm() {
   }
   if (form.elements.customBackground) {
     form.elements.customBackground.value = settings.customBackground || "";
+    updateBgPreview(form, settings.customBackground || "");
   }
 
   // ดึงค่าการเดินหมากและจุดสีเทามาแสดงให้ตรงตอนเปิดหน้าตั้งค่า
@@ -89,7 +90,13 @@ function handleSettingsSubmit(event) {
     showMoves: showSelect ? showSelect.value : "show",
   };
 
-  saveSettings(settings);
+  try {
+    saveSettings(settings);
+  } catch (e) {
+    // มักเกิดเมื่อรูปใหญ่เกินพื้นที่ localStorage
+    showSettingsMessage("รูปใหญ่เกินไป บันทึกไม่ได้ ลองใช้รูปขนาดเล็กลง");
+    return;
+  }
   applyThemeAndBackground();
   
   // บังคับอัปเดตหน้ากระดานทันทีที่กดบันทึก
@@ -127,11 +134,17 @@ export function createSettingsModal() {
               <option value="light">Light</option>
             </select>
           </div>
-          <div class="settings-row" style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px;">
-            <span class="settings-row-label" style="font-weight:600;">ภาพพื้นหลัง (วาง URL รูป)</span>
-            <input type="url" name="customBackground" class="auth-input" style="width:100%;"
-                   placeholder="https://... (เว้นว่างเพื่อใช้สีพื้นปกติ)">
-            <span style="font-size:12px; color:var(--muted);">ระบบจะใส่ฉากทับบาง ๆ ให้อ่านข้อความได้ง่าย</span>
+          <div class="settings-row" style="display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin-top:12px;">
+            <span class="settings-row-label" style="font-weight:600;">ภาพพื้นหลัง</span>
+            <input type="file" id="set-bg-file" accept="image/*" hidden>
+            <input type="hidden" name="customBackground">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; width:100%;">
+              <button type="button" id="set-bg-pick" class="auth-input" style="cursor:pointer; width:auto;">เลือกรูป…</button>
+              <button type="button" id="set-bg-clear" class="auth-input" style="cursor:pointer; width:auto;">ลบรูป</button>
+              <span id="set-bg-name" style="font-size:12px; color:var(--muted);">ยังไม่ได้เลือก</span>
+            </div>
+            <div id="set-bg-preview" style="display:none; width:100%; height:84px; border-radius:10px; background-size:cover; background-position:center; border:1px solid var(--border, rgba(128,128,128,0.2));"></div>
+            <span style="font-size:12px; color:var(--muted);">ระบบย่อรูปอัตโนมัติและใส่ฉากทับให้อ่านข้อความได้ง่าย</span>
           </div>
         </div>
 
@@ -172,6 +185,60 @@ export function createSettingsModal() {
 
   settingsModal.querySelector(".auth-close").addEventListener("click", closeSettingsModal);
   settingsModal.querySelector("#settings-form").addEventListener("submit", handleSettingsSubmit);
+
+  // ── เลือกรูปพื้นหลังจากไฟล์ ──
+  const form = settingsModal.querySelector("#settings-form");
+  const fileInput = form.querySelector("#set-bg-file");
+  form.querySelector("#set-bg-pick").addEventListener("click", () => fileInput.click());
+  form.querySelector("#set-bg-clear").addEventListener("click", () => {
+    form.elements.customBackground.value = "";
+    fileInput.value = "";
+    updateBgPreview(form, "");
+  });
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToScaledDataURL(file);
+      form.elements.customBackground.value = dataUrl;
+      updateBgPreview(form, dataUrl);
+    } catch (e) {
+      showSettingsMessage("อ่านไฟล์รูปไม่สำเร็จ ลองรูปอื่น");
+    }
+  });
+}
+
+// ย่อรูปก่อนเก็บ (กว้างไม่เกิน 1600px, JPEG) — กันไฟล์ใหญ่เกิน localStorage
+function fileToScaledDataURL(file, maxW = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function updateBgPreview(form, dataUrl) {
+  const prev = form.querySelector("#set-bg-preview");
+  const name = form.querySelector("#set-bg-name");
+  if (dataUrl) {
+    prev.style.display = "block";
+    prev.style.backgroundImage = `url("${dataUrl}")`;
+    name.textContent = "เลือกรูปแล้ว";
+  } else {
+    prev.style.display = "none";
+    prev.style.backgroundImage = "";
+    name.textContent = "ยังไม่ได้เลือก";
+  }
 }
 
 export function openSettingsModal() {
