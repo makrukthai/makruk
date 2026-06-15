@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
 <link rel="stylesheet" href="../game.css">
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
+<link rel="stylesheet" href="../theme-refresh.css">
 <script type="module" src="../auth.js"></script>
 <script src="../game.js"></script>
 <style>
@@ -1698,10 +1699,10 @@ function fbToBoard(fb) {
 
 async function pushMoveToFirebase(move, promoted, captured, endReason) {
   if (!gameRef) return;
+  // ข้อมูลตาเดิน (ไม่เก็บ board เต็ม — ประหยัดพื้นที่ คำนวณย้อนหลังได้จาก from/to/promoted)
   const moveData = {
     from: move.from, to: move.to,
     promoted, captured: captured||'',
-    board: boardToFB(boardState),
     turn,
     timeW, timeB,
     moveCount,
@@ -1711,8 +1712,10 @@ async function pushMoveToFirebase(move, promoted, captured, endReason) {
     capturedByB: capturedByB || []
   };
   if (endReason) moveData.endReason = endReason;
+  // lastMove เก็บ board เต็มไว้ 1 ชุด (จำเป็นสำหรับ sync เรียลไทม์ + reconnect + หน้า watch)
+  const lastMoveData = { ...moveData, board: boardToFB(boardState) };
   try {
-    await update(gameRef, { lastMove: moveData });
+    await update(gameRef, { lastMove: lastMoveData });
     await set(ref(db, `games/${gameId}/moves/${moveCount}`), moveData);
   } catch(e) { console.error('Firebase push error:', e); }
 }

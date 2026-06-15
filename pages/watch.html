@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
+<link rel="stylesheet" href="../theme-refresh.css">
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <script type="module" src="../auth.js"></script>
 <style>
@@ -199,7 +200,6 @@
             <a href="learn.html">เรียนรู้</a>
             <a href="watch.html">ดูเกม</a>
             <a href="community.html">ชุมชน</a>
-            <a href="leader-board.html">กระดานผู้นำ</a>
             <input class="search" placeholder="ค้นหาผู้เล่น...">
         </nav>
     </div>
@@ -320,6 +320,7 @@ function fbToBoard(fb) {
   if (!Array.isArray(fb)) return INITIAL_BOARD.map(r => [...r]);
   return fb.map(r => String(r).split(',').map(c => c || null));
 }
+const boardToFB = (b) => b.map(row => row.map(c => c || '').join(','));
 function loadCurrentUser() {
   try { return JSON.parse(localStorage.getItem('rukthai_current_user')) || null; } catch (e) { return null; }
 }
@@ -524,14 +525,23 @@ let specMoveLog = [{ board: INITIAL_FB, moveCount: 0 }];
 let specViewPointer = 0;
 const overlay = document.getElementById('spec-overlay');
 
-// สร้างประวัติตาเดินจาก games/{id}/moves
+// สร้างประวัติตาเดินจาก games/{id}/moves — คำนวณกระดานย้อนหลังจาก from/to/promoted
+// (board ไม่ถูกเก็บใน DB แล้ว; เกมเก่าที่ยังมี board ก็ใช้ได้)
 function buildSpecMoveLog(g) {
   const log = [{ board: INITIAL_FB, moveCount: 0 }];
   const moves = g.moves || {};
+  let rb = fbToBoard(INITIAL_FB);
   Object.keys(moves).map(Number).filter(n => n >= 1).sort((a, b) => a - b).forEach(mc => {
     const md = moves[mc];
     if (!md || !md.from || !md.to) return;
-    log[mc] = { moveCount: mc, from: md.from, to: md.to, board: md.board, captured: md.captured || '' };
+    if (md.board) {
+      rb = fbToBoard(md.board);
+    } else {
+      const pc = rb[md.from.row][md.from.col];
+      rb[md.to.row][md.to.col] = md.promoted || pc;
+      rb[md.from.row][md.from.col] = null;
+    }
+    log[mc] = { moveCount: mc, from: md.from, to: md.to, board: boardToFB(rb), captured: md.captured || '' };
   });
   return log;
 }

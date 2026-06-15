@@ -6,6 +6,7 @@
 <title>RUKTHAI - รีเพลย์หมากรุกไทย</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../theme-refresh.css">
 <script type="module" src="../auth.js"></script>
 <style>
   .history-body { background: var(--bg); color: var(--text); font-family: 'Noto Sans Thai', sans-serif; padding-bottom: 40px; min-height: 100vh; }
@@ -182,6 +183,21 @@ async function initReplayPage() {
     if (gameData.moves) {
       const rawMoves = Object.values(gameData.moves).sort((a, b) => a.moveCount - b.moveCount);
       loadedMoves.push(...rawMoves);
+    }
+
+    // สร้างกระดานของแต่ละตาขึ้นใหม่จาก from/to/promoted (board ไม่ถูกเก็บใน DB แล้ว เพื่อประหยัดพื้นที่)
+    // เกมเก่าที่ยังมี board ติดมาด้วยก็ยังใช้ได้ (backward compatible)
+    let _rb = INITIAL_BOARD.map(r => [...r]);
+    for (let i = 1; i < loadedMoves.length; i++) {
+      const mv = loadedMoves[i];
+      if (mv && mv.board) {
+        _rb = fbToBoard(mv.board);                  // เกมเก่า: ใช้ board ที่เก็บไว้
+      } else if (mv && mv.from && mv.to) {
+        const pc = _rb[mv.from.row][mv.from.col];
+        _rb[mv.to.row][mv.to.col] = mv.promoted || pc;
+        _rb[mv.from.row][mv.from.col] = null;
+        mv.board = boardToFB(_rb);                   // เกมใหม่: คำนวณย้อนหลัง
+      }
     }
 
     // ดึงประวัติว่าผู้เล่นล็อกอินปัจจุบันเล่นสีอะไร เพื่อทำการกลับกระดานให้เหมาะสม

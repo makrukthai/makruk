@@ -5,6 +5,7 @@ let settingsModal = null;
 const DEFAULT_SETTINGS = {
   backgroundMode: "dark",
   boardBackground: "Board9.png",
+  customBackground: "",   // URL ภาพพื้นหลังที่ผู้ใช้ตั้งเอง (ว่าง = ไม่ใช้)
   moveMethod: "both",  
   showMoves: "show"    
 };
@@ -28,6 +29,16 @@ function applyThemeAndBackground() {
   
   // Apply background mode
   html.setAttribute("data-background-mode", settings.backgroundMode);
+
+  // ภาพพื้นหลังที่ผู้ใช้ตั้งเอง (ใช้ร่วมกับ theme-refresh.css)
+  const bg = (settings.customBackground || "").trim();
+  if (bg) {
+    html.style.setProperty("--user-bg-image", `url("${bg.replace(/"/g, '%22')}")`);
+    html.setAttribute("data-user-bg", "on");
+  } else {
+    html.style.removeProperty("--user-bg-image");
+    html.removeAttribute("data-user-bg");
+  }
 }
 
 function populateSettingsForm() {
@@ -38,6 +49,9 @@ function populateSettingsForm() {
   form.elements.backgroundMode.value = settings.backgroundMode;
   if (form.elements.boardBackground) {
     form.elements.boardBackground.value = settings.boardBackground;
+  }
+  if (form.elements.customBackground) {
+    form.elements.customBackground.value = settings.customBackground || "";
   }
 
   // ดึงค่าการเดินหมากและจุดสีเทามาแสดงให้ตรงตอนเปิดหน้าตั้งค่า
@@ -70,6 +84,7 @@ function handleSettingsSubmit(event) {
   const settings = {
     backgroundMode: form.elements.backgroundMode.value,
     boardBackground: form.elements.boardBackground?.value || "Board9.png",
+    customBackground: (form.elements.customBackground?.value || "").trim(),
     moveMethod: moveSelect ? moveSelect.value : "both",
     showMoves: showSelect ? showSelect.value : "show",
   };
@@ -111,6 +126,12 @@ export function createSettingsModal() {
               <option value="dark">Dark</option>
               <option value="light">Light</option>
             </select>
+          </div>
+          <div class="settings-row" style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px;">
+            <span class="settings-row-label" style="font-weight:600;">ภาพพื้นหลัง (วาง URL รูป)</span>
+            <input type="url" name="customBackground" class="auth-input" style="width:100%;"
+                   placeholder="https://... (เว้นว่างเพื่อใช้สีพื้นปกติ)">
+            <span style="font-size:12px; color:var(--muted);">ระบบจะใส่ฉากทับบาง ๆ ให้อ่านข้อความได้ง่าย</span>
           </div>
         </div>
 
