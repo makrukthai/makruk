@@ -396,10 +396,18 @@ function render(c) {
   });
 
   // ── เฟส 4: มอบตำแหน่ง + ลิงก์เชิญ ──
-  content.querySelectorAll('[data-promote]').forEach(b => b.addEventListener('click', () =>
-    set(ref(db, `clubs/${clubId}/members/${b.dataset.promote}/role`), 'admin').catch(e => console.error(e))));
-  content.querySelectorAll('[data-demote]').forEach(b => b.addEventListener('click', () =>
-    set(ref(db, `clubs/${clubId}/members/${b.dataset.demote}/role`), 'member').catch(e => console.error(e))));
+  content.querySelectorAll('[data-promote]').forEach(b => b.addEventListener('click', () => {
+    const sid = b.dataset.promote;
+    set(ref(db, `clubs/${clubId}/members/${sid}/role`), 'admin')
+      .then(() => notify(sid, 'ได้รับแต่งตั้งเป็นแอดมิน', `คุณเป็นแอดมินของซุ้ม "${currentClub.name || 'ซุ้ม'}" แล้ว`, `club.html?id=${clubId}`))
+      .catch(e => console.error(e));
+  }));
+  content.querySelectorAll('[data-demote]').forEach(b => b.addEventListener('click', () => {
+    const sid = b.dataset.demote;
+    set(ref(db, `clubs/${clubId}/members/${sid}/role`), 'member')
+      .then(() => notify(sid, 'เปลี่ยนตำแหน่งในซุ้ม', `ตำแหน่งของคุณในซุ้ม "${currentClub.name || 'ซุ้ม'}" ถูกปรับเป็นสมาชิก`, `club.html?id=${clubId}`))
+      .catch(e => console.error(e));
+  }));
   content.querySelectorAll('[data-transfer]').forEach(b => b.addEventListener('click', () => transferOwner(b.dataset.transfer)));
 
   const inviteBtn = content.querySelector('#btn-invite');
@@ -488,6 +496,12 @@ document.getElementById('ed-save').addEventListener('click', async () => {
 
 function inviteUrl(token) { return `${location.origin}${location.pathname}?id=${encodeURIComponent(clubId)}&invite=${encodeURIComponent(token)}`; }
 
+// เขียนแจ้งเตือนถึงผู้ใช้คนเดียว
+function notify(sid, title, message, link) {
+  if (!sid || sid === mySid) return;
+  push(ref(db, `notifications/${sid}`), { type: 'club', title, message, link: link || '', ts: serverTimestamp(), read: false }).catch(() => {});
+}
+
 // แจ้งเตือนเจ้าของ/แอดมินว่ามีคำขอเข้าร่วม
 function notifyManagers(club, requesterName) {
   if (!club || !club.members) return;
@@ -517,6 +531,7 @@ async function transferOwner(sid) {
       ownerUid: sid,
       ownerName: nm
     });
+    notify(sid, 'ได้รับโอนเป็นเจ้าของซุ้ม', `คุณเป็นเจ้าของซุ้ม "${currentClub.name || 'ซุ้ม'}" แล้ว`, `club.html?id=${clubId}`);
   } catch (e) { console.error('โอนเจ้าของไม่สำเร็จ:', e); }
 }
 
@@ -544,6 +559,7 @@ async function acceptRequest(sid) {
   try {
     await set(ref(db, `clubs/${clubId}/members/${sid}`), { role: 'member', name: nm, joinedAt: serverTimestamp() });
     await remove(ref(db, `clubs/${clubId}/requests/${sid}`));
+    notify(sid, 'ได้รับอนุมัติเข้าซุ้ม', `คำขอเข้าซุ้ม "${currentClub.name || 'ซุ้ม'}" ได้รับการอนุมัติแล้ว`, `club.html?id=${clubId}`);
   } catch (e) { console.error('รับคำขอไม่สำเร็จ:', e); }
 }
 

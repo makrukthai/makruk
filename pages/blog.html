@@ -143,6 +143,8 @@ function sanitize(html) {
 function render(p) {
   const wrap = document.getElementById('article-content');
   if (!p) { wrap.innerHTML = '<div class="article-missing">ไม่พบบทความนี้ (อาจถูกลบไปแล้ว)</div>'; return; }
+  postAuthorUid = safeId(p.authorUid || '');
+  postTitle = p.title || 'บทความ';
   const cover = p.cover ? `style="background-image:url('${esc(p.cover)}')"` : '';
   const adminBar = isAdmin ? `
     <div class="admin-bar">
@@ -186,6 +188,7 @@ function render(p) {
 const mySid = currentUser ? safeId(currentUser.id || currentUser.email) : null;
 const myName = currentUser ? (currentUser.name || currentUser.email || 'ผู้เล่น') : '';
 const COMMENT_MAX = 100;
+let postAuthorUid = null, postTitle = '';
 
 function renderCommentForm() {
   const wrap = document.getElementById('comment-form-wrap');
@@ -234,6 +237,16 @@ async function sendComment() {
   try {
     await push(ref(db, `blog_posts/${postId}/comments`), { uid: currentUser.id, name: myName, text, ts: serverTimestamp() });
     trimComments();
+    if (postAuthorUid && postAuthorUid !== mySid) {
+      push(ref(db, `notifications/${postAuthorUid}`), {
+        type: 'blog_comment',
+        title: 'มีความคิดเห็นใหม่',
+        message: `${myName} แสดงความคิดเห็นในบทความ "${postTitle}"`,
+        link: `blog.html?id=${postId}`,
+        ts: serverTimestamp(),
+        read: false
+      }).catch(() => {});
+    }
   } catch (e) { console.error(e); }
 }
 async function trimComments() {

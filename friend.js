@@ -201,6 +201,14 @@ async function sendFriendRequest(toUserId, toUserData) {
       timestamp: Date.now()
     });
     showFriendAlert("ส่งขอเพิ่มเพื่อนเรียบร้อยแล้ว");
+    push(ref(db, `notifications/${safeToId}`), {
+      type: 'friend_request',
+      title: 'คำขอเป็นเพื่อน',
+      message: `${currentUser.name || currentUser.email} ส่งคำขอเป็นเพื่อน`,
+      link: `profile.html?user=${encodeURIComponent(safeUid)}`,
+      ts: Date.now(),
+      read: false
+    }).catch(() => {});
     return true;
   } catch (error) {
     showFriendAlert("เกิดข้อผิดพลาดในการส่งคำขอ", true);
@@ -221,6 +229,14 @@ async function acceptFriendRequest(requestId) {
     await update(ref(db, `friends/${safeFromId}`), { [safeUid]: true });
     await remove(ref(db, `friend_requests/${safeUid}/${requestId}`));
     showFriendAlert("ยอมรับคำขอเพิ่มเพื่อนเรียบร้อยแล้ว");
+    push(ref(db, `notifications/${safeFromId}`), {
+      type: 'friend_accept',
+      title: 'รับเป็นเพื่อนแล้ว',
+      message: `${currentUser.name || currentUser.email} ตอบรับเป็นเพื่อนกับคุณ`,
+      link: `profile.html?user=${encodeURIComponent(safeUid)}`,
+      ts: Date.now(),
+      read: false
+    }).catch(() => {});
     return true;
   } catch (error) {
     showFriendAlert("เกิดข้อผิดพลาดในการยอมรับ", true);
