@@ -7,9 +7,118 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
-<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <link rel="stylesheet" href="../theme-refresh.css">
+<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <script type="module" src="../auth.js"></script>
+<style>
+  /* ── Dropdown เมนูเรียนรู้ ── */
+  .nav-dropdown { position: relative; display: inline-flex; align-items: center; }
+  .nav-dropdown > .nav-trigger {
+    color: var(--text); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+    padding: var(--sp-2, 8px) var(--sp-1, 4px); position: relative;
+  }
+  .nav-dropdown > .nav-trigger::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px;
+    background: var(--gold, #d4af55); border-radius: 999px;
+  }
+  .nav-caret { font-size: 0.7em; transition: transform 0.18s; }
+  .nav-dropdown:hover .nav-caret, .nav-dropdown:focus-within .nav-caret { transform: rotate(180deg); }
+  .nav-dropdown-menu {
+    position: absolute; top: calc(100% + 8px); left: 0; min-width: 200px;
+    background: var(--bg2, #2b2926); border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: var(--r-md, 12px); box-shadow: var(--shadow-2, 0 8px 24px rgba(0,0,0,0.4));
+    padding: 6px; opacity: 0; visibility: hidden; transform: translateY(-6px);
+    transition: opacity 0.16s, transform 0.16s, visibility 0.16s; z-index: 1200;
+  }
+  .nav-dropdown:hover .nav-dropdown-menu, .nav-dropdown:focus-within .nav-dropdown-menu {
+    opacity: 1; visibility: visible; transform: translateY(0);
+  }
+  .nav-dropdown-menu a {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+    color: var(--text, #ece8e1); font-weight: 500; font-size: 0.92rem; white-space: nowrap;
+  }
+  .nav-dropdown-menu a:hover { background: var(--gold-soft, rgba(212,175,85,0.14)); color: var(--text); }
+  .nav-dropdown-menu a.active { color: var(--gold, #d4af55); font-weight: 700; }
+  .nav-dropdown-menu .dd-ico { width: 20px; text-align: center; }
+
+  /* ── Layout หน้า learn ── */
+  .learn-body .main {
+    height: auto; min-height: calc(100vh - 60px);
+    display: block; align-items: initial; justify-content: initial;
+  }
+  .learn-wrap { max-width: 1000px; margin: 0 auto; padding: var(--sp-6, 24px) var(--sp-4, 16px) 80px; }
+  .learn-view { display: none; }
+  .learn-view.active { display: block; animation: lFade 0.2s ease; }
+  @keyframes lFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .view-head { margin-bottom: var(--sp-5, 20px); }
+  .view-head h1 { font-size: var(--fs-xl, 1.75rem); margin: 0 0 4px; }
+  .view-head p { color: var(--muted); margin: 0; font-size: 0.92rem; }
+
+  .coming-soon {
+    background: var(--bg2); border: 1px dashed var(--border-strong, rgba(255,255,255,0.12));
+    border-radius: var(--r-lg, 16px); padding: 48px 24px; text-align: center; color: var(--muted);
+  }
+  .coming-soon .cs-ico { font-size: 2.4rem; margin-bottom: 10px; }
+
+  /* ── บทเรียน ── */
+  .lessons-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .lesson-cat { margin-bottom: 26px; }
+  .lesson-cat-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .lesson-cat-title .count { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+  .lesson-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  .lesson-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); padding: 16px; cursor: pointer; box-shadow: var(--shadow-1); transition: transform 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; gap: 8px; }
+  .lesson-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--gold); }
+  .lesson-card .lc-ico { font-size: 1.6rem; }
+  .lesson-card .lc-title { font-weight: 700; color: var(--text); font-size: 1rem; line-height: 1.3; }
+  .lesson-card .lc-meta { color: var(--muted); font-size: 0.78rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .lesson-empty { color: var(--muted); font-size: 0.88rem; font-style: italic; padding: 4px 0 8px; }
+  .btn-add-lesson { background: var(--gold); color: #1a1305; border: none; height: 42px; padding: 0 18px; border-radius: var(--r-md,12px); font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); display: none; align-items: center; gap: 6px; }
+  .btn-add-lesson:hover { background: var(--gold-light,#e3c479); }
+
+  /* ── เครื่องมือสร้างบทเรียน ── */
+  .lesson-editor-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.7); display: none; align-items: flex-start; justify-content: center; padding: 24px; overflow-y: auto; }
+  .lesson-editor-overlay.open { display: flex; }
+  .lesson-editor { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-lg,16px); width: 100%; max-width: 900px; padding: 24px; box-shadow: var(--shadow-2); margin: auto; }
+  .lesson-editor h2 { margin: 0 0 16px; font-size: 1.3rem; }
+  .le-top { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .le-top input, .le-top select { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.95rem; }
+  .le-top input { flex: 1; min-width: 200px; }
+  .le-top input:focus, .le-top select:focus { outline: none; border-color: var(--gold); }
+  .le-body { display: grid; grid-template-columns: minmax(0,440px) 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 760px) { .le-body { grid-template-columns: 1fr; } }
+  .le-board-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .le-turn { font-size: 0.85rem; color: var(--muted); text-align: center; }
+  .le-board-actions { display: flex; gap: 8px; }
+  .le-board-actions button { flex: 1; height: 36px; border-radius: 8px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-weight: 600; font-size: 0.85rem; }
+  .le-board-actions button:hover { border-color: var(--gold); background: var(--gold-soft); }
+
+  .lb-layout { display: grid; grid-template-columns: 16px 1fr; grid-template-rows: auto 16px; gap: 4px; width: 100%; }
+  .lb-coords-left { grid-column: 1; grid-row: 1; display: grid; grid-template-rows: repeat(8,1fr); align-items: center; justify-items: center; }
+  .lb-coords-bottom { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(8,1fr); align-items: center; justify-items: center; }
+  .lb-coords-left span, .lb-coords-bottom span { font-size: 0.7rem; color: var(--muted); font-family: var(--font-mono, monospace); }
+  .lb-board { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 2px; background: #1e1d1b; border-radius: 6px; overflow: hidden; }
+  .lb-cell { position: relative; aspect-ratio: 1; min-width: 0; background: #c56c30; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .lb-cell img { width: 82%; height: 82%; object-fit: contain; pointer-events: none; user-select: none; }
+  .lb-cell.sel { background: rgba(168,168,168,0.45); }
+  .lb-cell.legal::after { content: ''; position: absolute; width: 30%; height: 30%; background: rgba(131,131,131,0.77); border-radius: 50%; pointer-events: none; }
+  .lb-cell.cap { outline: 3px solid rgba(239,100,68,0.7); outline-offset: -3px; }
+
+  .le-steps { display: flex; flex-direction: column; gap: 10px; max-height: 460px; overflow-y: auto; }
+  .le-steps-empty { color: var(--muted); font-style: italic; font-size: 0.88rem; }
+  .le-step { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  .le-step-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.82rem; }
+  .le-step-num { background: var(--gold-soft); color: var(--gold); width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+  .le-step-move { font-family: var(--font-mono,monospace); color: var(--text); }
+  .le-step textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.88rem; resize: vertical; min-height: 38px; }
+  .le-step textarea:focus { outline: none; border-color: var(--gold); }
+  .le-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .le-actions button { flex: 1; height: 46px; border-radius: 10px; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .le-cancel { background: transparent; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); color: var(--text); }
+  .le-save { background: var(--gold); border: none; color: #1a1305; }
+  .le-save:hover { background: var(--gold-light,#e3c479); }
+  .le-msg { font-size: 0.82rem; color: var(--muted); min-height: 18px; margin-top: 8px; }
+</style>
 </head>
 <body class="learn-body">
 <header class="topbar">
@@ -23,7 +132,15 @@
         <nav class="nav">
             <a href="play.html">เล่น</a>
             <a href="tournament.html">ทัวร์นาเมนต์</a>
-            <a href="learn.html">เรียนรู้</a>
+            <div class="nav-dropdown">
+                <span class="nav-trigger" tabindex="0">เรียนรู้ <span class="nav-caret">▾</span></span>
+                <div class="nav-dropdown-menu">
+                    <a href="#lessons"  data-tab="lessons"><span class="dd-ico">📖</span> บทเรียน</a>
+                    <a href="#strategy" data-tab="strategy"><span class="dd-ico">♟</span> กลยุทธ์</a>
+                    <a href="#tactics"  data-tab="tactics"><span class="dd-ico">⚡</span> ชั้นเชิง</a>
+                    <a href="#courses"  data-tab="courses"><span class="dd-ico">🎓</span> คอร์ส</a>
+                </div>
+            </div>
             <a href="watch.html">ดูเกม</a>
             <a href="community.html">ชุมชน</a>
             <input class="search" placeholder="ค้นหาผู้เล่น...">
@@ -34,13 +151,256 @@
         <button class="login">เข้าสู่ระบบ</button>
     </div>
 </header>
+
 <main class="main">
-    <section class="hero">
-        <div class="hero-content">
-            <h1>เรียนรู้</h1>
-            <p>ศึกษากลยุทธ์และกฎการเล่นหมากรุกไทยในที่เดียว</p>
-        </div>
+  <div class="learn-wrap">
+
+    <!-- บทเรียน -->
+    <section class="learn-view" id="view-lessons">
+      <div class="view-head"><h1>📖 บทเรียน</h1><p>พื้นฐานหมากรุกไทย พร้อมกระดานให้เล่นตามทีละขั้น</p></div>
+      <div class="lessons-toolbar">
+        <div style="color:var(--muted); font-size:0.88rem;" id="lessons-summary"></div>
+        <button class="btn-add-lesson" id="btn-add-lesson">＋ เพิ่มบทเรียน</button>
+      </div>
+      <div id="lessons-container"><div class="lesson-empty">กำลังโหลด…</div></div>
     </section>
+
+    <!-- กลยุทธ์ -->
+    <section class="learn-view" id="view-strategy">
+      <div class="view-head"><h1>♟ กลยุทธ์</h1><p>แนวคิดการวางแผนระยะยาว การคุมกระดาน และการได้เปรียบ</p></div>
+      <div class="coming-soon"><div class="cs-ico">♟</div>ระบบกลยุทธ์กำลังพัฒนา — เร็ว ๆ นี้</div>
+    </section>
+
+    <!-- ชั้นเชิง -->
+    <section class="learn-view" id="view-tactics">
+      <div class="view-head"><h1>⚡ ชั้นเชิง</h1><p>ลวดลายการจู่โจม การหลอกล่อ และโจทย์ฝึกไหวพริบ</p></div>
+      <div class="coming-soon"><div class="cs-ico">⚡</div>ระบบชั้นเชิงกำลังพัฒนา — เร็ว ๆ นี้</div>
+    </section>
+
+    <!-- คอร์ส -->
+    <section class="learn-view" id="view-courses">
+      <div class="view-head"><h1>🎓 คอร์ส</h1><p>คอร์สเรียนเป็นชุด จัดลำดับเนื้อหาให้เรียนรู้อย่างเป็นระบบ</p></div>
+      <div class="coming-soon"><div class="cs-ico">🎓</div>ระบบคอร์สกำลังพัฒนา — เร็ว ๆ นี้</div>
+    </section>
+
+  </div>
 </main>
+
+<!-- เครื่องมือสร้างบทเรียน (แอดมิน) -->
+<div class="lesson-editor-overlay" id="lesson-editor-overlay">
+  <div class="lesson-editor">
+    <h2>สร้างบทเรียน</h2>
+    <div class="le-top">
+      <input type="text" id="le-title" maxlength="80" placeholder="ชื่อบทเรียน เช่น การเดินของเรือ">
+      <select id="le-category">
+        <option value="rules">การเดินหมากและกติกา</option>
+        <option value="opening">การเปิดเกม</option>
+        <option value="midgame">กลางเกม</option>
+        <option value="endgame">การไล่ปลายกระดาน</option>
+      </select>
+    </div>
+    <div class="le-body">
+      <div class="le-board-wrap">
+        <div class="le-turn" id="le-turn">ตาเดิน: ขาว</div>
+        <div class="lb-layout">
+          <div class="lb-coords-left"><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+          <div class="lb-board" id="le-board"></div>
+          <div class="lb-coords-bottom"><span>ก</span><span>ข</span><span>ค</span><span>ง</span><span>จ</span><span>ฉ</span><span>ช</span><span>ซ</span></div>
+        </div>
+        <div class="le-board-actions">
+          <button type="button" id="le-undo">↶ ย้อนหมากล่าสุด</button>
+          <button type="button" id="le-reset">เริ่มใหม่</button>
+        </div>
+        <div style="font-size:0.8rem; color:var(--muted); text-align:center;">คลิกหมากแล้วคลิกช่องที่จะเดิน — แต่ละตาจะถูกบันทึกเป็นขั้น</div>
+      </div>
+      <div>
+        <div style="font-weight:600; margin-bottom:10px; font-size:0.9rem;">ขั้นตอน + คำอธิบาย</div>
+        <div class="le-steps" id="le-steps"><div class="le-steps-empty">ยังไม่มีขั้น — เริ่มเดินหมากบนกระดาน</div></div>
+      </div>
+    </div>
+    <div class="le-msg" id="le-msg"></div>
+    <div class="le-actions">
+      <button class="le-cancel" id="le-cancel">ยกเลิก</button>
+      <button class="le-save" id="le-save">บันทึกบทเรียน</button>
+    </div>
+  </div>
+</div>
+
+<script src="../game.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const ADMIN_EMAILS = ['wachangngoen95@gmail.com'];
+const safeId = (id) => id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function loadUser() { try { return JSON.parse(localStorage.getItem('rukthai_current_user')) || null; } catch (e) { return null; } }
+const currentUser = loadUser();
+const mySid = currentUser ? safeId(currentUser.id || currentUser.email) : null;
+const isAdmin = !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
+
+// ───── Tab routing ─────
+const TABS = ['lessons', 'strategy', 'tactics', 'courses'];
+function showTab(tab) {
+  if (!TABS.includes(tab)) tab = 'lessons';
+  TABS.forEach(t => document.getElementById('view-' + t).classList.toggle('active', t === tab));
+  document.querySelectorAll('.nav-dropdown-menu a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+}
+function currentTab() { return (location.hash || '').replace('#', '') || 'lessons'; }
+window.addEventListener('hashchange', () => showTab(currentTab()));
+showTab(currentTab());
+
+// ═══════════════════════════════════════════
+//   บทเรียน — เฟส 1: รายการ 4 หมวด + เครื่องมือสร้าง (แอดมิน)
+// ═══════════════════════════════════════════
+const CATS = [
+  { key: 'rules',   ico: '📋', label: 'การเดินหมากและกติกา' },
+  { key: 'opening', ico: '🚪', label: 'การเปิดเกม' },
+  { key: 'midgame', ico: '⚔️', label: 'กลางเกม' },
+  { key: 'endgame', ico: '🏁', label: 'การไล่ปลายกระดาน' },
+];
+
+function renderLessons(lessons) {
+  const all = Object.entries(lessons);
+  document.getElementById('lessons-summary').textContent = all.length ? `${all.length} บทเรียน` : '';
+  const container = document.getElementById('lessons-container');
+  container.innerHTML = CATS.map(cat => {
+    const items = all.filter(([id, l]) => l.category === cat.key).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
+    const cards = items.length ? items.map(([id, l]) => `
+      <div class="lesson-card" data-lesson="${esc(id)}">
+        <div class="lc-ico">${cat.ico}</div>
+        <div class="lc-title">${esc(l.title || 'บทเรียน')}</div>
+        <div class="lc-meta"><span>${(l.steps || []).length} ขั้น</span><span>·</span><span>${esc(l.authorName || 'ทีมงาน')}</span></div>
+      </div>`).join('') : '<div class="lesson-empty">ยังไม่มีบทเรียนในหมวดนี้</div>';
+    return `<div class="lesson-cat">
+      <div class="lesson-cat-title">${cat.ico} ${cat.label} <span class="count">(${items.length})</span></div>
+      <div class="lesson-grid">${cards}</div>
+    </div>`;
+  }).join('');
+  container.querySelectorAll('[data-lesson]').forEach(el => el.addEventListener('click', () => { location.href = `lesson.html?id=${encodeURIComponent(el.dataset.lesson)}`; }));
+}
+
+if (isAdmin) document.getElementById('btn-add-lesson').style.display = 'inline-flex';
+
+// ── กระดานสร้างบทเรียน ──
+const E = window; // engine globals จาก game.js
+let authBoard = E.cloneBoard(E.INITIAL_BOARD);
+let authSteps = [];   // { from:[r,c], to:[r,c], text }
+let authSel = null;   // {r,c}
+let authLegal = [];
+
+function turnColor() { return authSteps.length % 2 === 0 ? 'w' : 'b'; }
+
+function renderAuthBoard() {
+  const el = document.getElementById('le-board');
+  document.getElementById('le-turn').textContent = 'ตาเดิน: ' + (turnColor() === 'w' ? 'ขาว' : 'ดำ');
+  let html = '';
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const p = authBoard[r][c];
+    const sel = authSel && authSel.r === r && authSel.c === c ? ' sel' : '';
+    const legal = authLegal.find(m => m.to.row === r && m.to.col === c);
+    const cls = legal ? (p ? ' cap' : ' legal') : '';
+    html += `<div class="lb-cell${sel}${cls}" data-r="${r}" data-c="${c}">${p ? `<img src="../Pieces/${p}.png" alt="">` : ''}</div>`;
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.lb-cell').forEach(cell => cell.addEventListener('click', () => onCell(+cell.dataset.r, +cell.dataset.c)));
+}
+
+function onCell(r, c) {
+  const legal = authLegal.find(m => m.to.row === r && m.to.col === c);
+  if (authSel && legal) {  // เดินหมาก
+    const piece = authBoard[authSel.r][authSel.c];
+    authBoard[r][c] = E.promoteIfNeeded(piece, r);
+    authBoard[authSel.r][authSel.c] = null;
+    authSteps.push({ from: [authSel.r, authSel.c], to: [r, c], text: '' });
+    authSel = null; authLegal = [];
+    renderAuthBoard(); renderSteps();
+    return;
+  }
+  const p = authBoard[r][c];
+  if (p && E.colorOf(p) === turnColor()) {  // เลือกหมากฝ่ายที่ถึงตา
+    authSel = { r, c };
+    authLegal = E.getLegalMoves(authBoard, r, c);
+  } else { authSel = null; authLegal = []; }
+  renderAuthBoard();
+}
+
+function rebuildFromSteps() {
+  authBoard = E.cloneBoard(E.INITIAL_BOARD);
+  authSteps.forEach(s => {
+    const piece = authBoard[s.from[0]][s.from[1]];
+    authBoard[s.to[0]][s.to[1]] = E.promoteIfNeeded(piece, s.to[0]);
+    authBoard[s.from[0]][s.from[1]] = null;
+  });
+}
+
+function renderSteps() {
+  const wrap = document.getElementById('le-steps');
+  if (!authSteps.length) { wrap.innerHTML = '<div class="le-steps-empty">ยังไม่มีขั้น — เริ่มเดินหมากบนกระดาน</div>'; return; }
+  wrap.innerHTML = authSteps.map((s, i) => {
+    const mv = `${E.getPosName(s.from[0], s.from[1])} → ${E.getPosName(s.to[0], s.to[1])}`;
+    return `<div class="le-step">
+      <div class="le-step-head"><span class="le-step-num">${i + 1}</span><span class="le-step-move">${esc(mv)}</span></div>
+      <textarea data-step="${i}" placeholder="คำอธิบายขั้นนี้ (ไม่บังคับ)">${esc(s.text)}</textarea>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('textarea[data-step]').forEach(t => t.addEventListener('input', () => { authSteps[+t.dataset.step].text = t.value; }));
+}
+
+const leOverlay = document.getElementById('lesson-editor-overlay');
+function openLessonEditor() {
+  if (!isAdmin) return;
+  document.getElementById('le-title').value = '';
+  document.getElementById('le-category').value = 'rules';
+  document.getElementById('le-msg').textContent = '';
+  authBoard = E.cloneBoard(E.INITIAL_BOARD); authSteps = []; authSel = null; authLegal = [];
+  renderAuthBoard(); renderSteps();
+  leOverlay.classList.add('open');
+}
+function closeLessonEditor() { leOverlay.classList.remove('open'); }
+
+if (isAdmin) document.getElementById('btn-add-lesson').addEventListener('click', openLessonEditor);
+document.getElementById('le-cancel').addEventListener('click', closeLessonEditor);
+leOverlay.addEventListener('click', e => { if (e.target === leOverlay) closeLessonEditor(); });
+document.getElementById('le-undo').addEventListener('click', () => { authSteps.pop(); authSel = null; authLegal = []; rebuildFromSteps(); renderAuthBoard(); renderSteps(); });
+document.getElementById('le-reset').addEventListener('click', () => { authSteps = []; authSel = null; authLegal = []; rebuildFromSteps(); renderAuthBoard(); renderSteps(); });
+
+document.getElementById('le-save').addEventListener('click', async () => {
+  const msg = document.getElementById('le-msg');
+  if (!isAdmin) { msg.textContent = 'เฉพาะแอดมินเท่านั้น'; return; }
+  const title = document.getElementById('le-title').value.trim();
+  if (!title) { msg.textContent = 'กรุณาใส่ชื่อบทเรียน'; return; }
+  if (!authSteps.length) { msg.textContent = 'กรุณาเดินหมากอย่างน้อย 1 ขั้น'; return; }
+  msg.textContent = 'กำลังบันทึก…';
+  try {
+    await set(push(ref(db, 'lessons')), {
+      title,
+      category: document.getElementById('le-category').value,
+      steps: authSteps,
+      authorUid: mySid,
+      authorName: currentUser.name || currentUser.email || 'ทีมงาน',
+      createdAt: serverTimestamp()
+    });
+    closeLessonEditor();
+  } catch (e) { msg.textContent = 'บันทึกไม่สำเร็จ'; }
+});
+
+// ฟังรายการบทเรียน
+onValue(ref(db, 'lessons'), (snap) => renderLessons(snap.val() || {}),
+  (err) => { document.getElementById('lessons-container').innerHTML = '<div class="lesson-empty">โหลดบทเรียนไม่ได้ (เช็ค Rules: lessons)</div>'; });
+</script>
 </body>
 </html>
