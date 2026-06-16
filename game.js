@@ -69,7 +69,7 @@ function getRawMoves(board, row, col) {
         moves.push({from:{row,col},to:{row:r,col:c2}});
     });
   } else if (t==='Q') {
-    [[-1,-1],[-1,1],[1,-1],[1,1],[0,-1],[0,1]].forEach(([dr,dc])=>add(row+dr,col+dc));
+    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>add(row+dr,col+dc));
   } else if (t==='K') {
     for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) if(dr||dc) add(row+dr,col+dc);
   } else if (t==='N') {

@@ -12,7 +12,7 @@
 <script type="module" src="../auth.js"></script>
 <style>
   .lesson-body .main { height: auto; min-height: calc(100vh - 60px); display: block; align-items: initial; justify-content: initial; }
-  .lesson-wrap { max-width: 1000px; margin: 0 auto; padding: 22px 16px 80px; }
+  .lesson-wrap { max-width: 1180px; margin: 0 auto; padding: 22px 16px 80px; }
   .lesson-back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; cursor: pointer; }
   .lesson-back:hover { color: var(--gold); }
   .lesson-head { margin-bottom: 18px; }
@@ -20,14 +20,15 @@
   .lesson-head .meta { color: var(--muted); font-size: 0.85rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .lesson-cat-badge { background: var(--gold-soft); color: var(--gold); padding: 2px 9px; border-radius: 6px; font-weight: 600; }
 
-  .lesson-layout { display: grid; grid-template-columns: minmax(0,460px) 1fr; gap: 24px; align-items: start; }
+  .lesson-layout { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 28px; align-items: start; }
   @media (max-width: 820px) { .lesson-layout { grid-template-columns: 1fr; } }
+  .lesson-board-col { max-width: 680px; }
 
   /* กระดาน (ยึด game.css) */
-  .lb-layout { display: grid; grid-template-columns: 16px 1fr; grid-template-rows: auto 16px; gap: 4px; width: 100%; }
+  .lb-layout { display: grid; grid-template-columns: 20px 1fr; grid-template-rows: auto 20px; gap: 5px; width: 100%; }
   .lb-coords-left { grid-column: 1; grid-row: 1; display: grid; grid-template-rows: repeat(8,1fr); align-items: center; justify-items: center; }
   .lb-coords-bottom { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(8,1fr); align-items: center; justify-items: center; }
-  .lb-coords-left span, .lb-coords-bottom span { font-size: 0.7rem; color: var(--muted); font-family: var(--font-mono, monospace); }
+  .lb-coords-left span, .lb-coords-bottom span { font-size: 0.8rem; color: var(--muted); font-family: var(--font-mono, monospace); }
   .lb-board { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 2px; background: #1e1d1b; border-radius: 6px; overflow: hidden; }
   .lb-cell { position: relative; aspect-ratio: 1; min-width: 0; background: #c56c30; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .lb-cell img { width: 82%; height: 82%; object-fit: contain; pointer-events: none; user-select: none; }
@@ -115,9 +116,15 @@ const CAT_LABEL = { rules: 'การเดินหมากและกติ�
 const lessonId = new URLSearchParams(location.search).get('id');
 let lesson = null, steps = [], stepIndex = 0, sel = null, selLegal = [];
 
+// แปลง startBoard (แถวสตริง) -> อาเรย์ 2 มิติ
+function parseStartBoard(fb) {
+  if (!Array.isArray(fb) || fb.length !== 8) return E.cloneBoard(E.INITIAL_BOARD);
+  return fb.map(row => String(row).split(',').map(x => x || null));
+}
+
 // สร้างกระดาน ณ ขั้นที่กำหนด (replay)
 function boardAt(n) {
-  let b = E.cloneBoard(E.INITIAL_BOARD);
+  let b = lesson && lesson.startBoard ? parseStartBoard(lesson.startBoard) : E.cloneBoard(E.INITIAL_BOARD);
   for (let i = 0; i < n; i++) {
     const s = steps[i];
     const piece = b[s.from[0]][s.from[1]];
@@ -206,7 +213,7 @@ function render(l) {
       <div class="meta"><span class="lesson-cat-badge">${esc(CAT_LABEL[l.category] || 'บทเรียน')}</span><span>·</span><span>${esc(l.authorName || 'ทีมงาน')}</span><span>·</span><span>${steps.length} ขั้น</span></div>
     </div>
     <div class="lesson-layout">
-      <div>
+      <div class="lesson-board-col">
         <div class="lb-layout">
           <div class="lb-coords-left"><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
           <div class="lb-board" id="lb-board"></div>

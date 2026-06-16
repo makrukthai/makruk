@@ -88,6 +88,19 @@
   .le-body { display: grid; grid-template-columns: minmax(0,440px) 1fr; gap: 20px; align-items: start; }
   @media (max-width: 760px) { .le-body { grid-template-columns: 1fr; } }
   .le-board-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .le-mode { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .le-mode button { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-weight: 600; font-size: 0.83rem; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .le-mode button.on { background: var(--gold); color: #1a1305; border-color: var(--gold); }
+  .le-startturn { font-size: 0.83rem; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .le-startturn select { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .le-palette { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; }
+  .le-pal-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .le-pal-label { font-size: 0.78rem; color: var(--muted); width: 36px; }
+  .le-pal-btn { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .le-pal-btn img { width: 80%; height: 80%; object-fit: contain; }
+  .le-pal-btn.sel { border-color: var(--gold); background: var(--gold-soft); }
+  .le-pal-act { height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-size: 0.8rem; font-weight: 600; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .le-pal-act.sel { border-color: var(--gold); background: var(--gold-soft); color: var(--gold); }
   .le-turn { font-size: 0.85rem; color: var(--muted); text-align: center; }
   .le-board-actions { display: flex; gap: 8px; }
   .le-board-actions button { flex: 1; height: 36px; border-radius: 8px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-weight: 600; font-size: 0.85rem; }
@@ -201,6 +214,36 @@
     </div>
     <div class="le-body">
       <div class="le-board-wrap">
+        <div class="le-mode">
+          <button type="button" data-mode="setup" id="mode-setup">✏️ ตั้งกระดาน</button>
+          <button type="button" data-mode="record" id="mode-record" class="on">▶️ บันทึกตาเดิน</button>
+          <span class="le-startturn" id="le-startturn-wrap" style="display:none;">ฝ่ายเริ่ม:
+            <select id="le-startturn"><option value="w">ขาว</option><option value="b">ดำ</option></select>
+          </span>
+        </div>
+        <div class="le-palette" id="le-palette" style="display:none;">
+          <div class="le-pal-row"><span class="le-pal-label">ขาว</span>
+            <button type="button" class="le-pal-btn" data-piece="Kw"><img src="../Pieces/Kw.png" alt="ขุน"></button>
+            <button type="button" class="le-pal-btn" data-piece="Qw"><img src="../Pieces/Qw.png" alt="เม็ด"></button>
+            <button type="button" class="le-pal-btn" data-piece="Bw"><img src="../Pieces/Bw.png" alt="โคน"></button>
+            <button type="button" class="le-pal-btn" data-piece="Nw"><img src="../Pieces/Nw.png" alt="ม้า"></button>
+            <button type="button" class="le-pal-btn" data-piece="Rw"><img src="../Pieces/Rw.png" alt="เรือ"></button>
+            <button type="button" class="le-pal-btn" data-piece="Pw"><img src="../Pieces/Pw.png" alt="เบี้ย"></button>
+          </div>
+          <div class="le-pal-row"><span class="le-pal-label">ดำ</span>
+            <button type="button" class="le-pal-btn" data-piece="Kb"><img src="../Pieces/Kb.png" alt="ขุน"></button>
+            <button type="button" class="le-pal-btn" data-piece="Qb"><img src="../Pieces/Qb.png" alt="เม็ด"></button>
+            <button type="button" class="le-pal-btn" data-piece="Bb"><img src="../Pieces/Bb.png" alt="โคน"></button>
+            <button type="button" class="le-pal-btn" data-piece="Nb"><img src="../Pieces/Nb.png" alt="ม้า"></button>
+            <button type="button" class="le-pal-btn" data-piece="Rb"><img src="../Pieces/Rb.png" alt="เรือ"></button>
+            <button type="button" class="le-pal-btn" data-piece="Pb"><img src="../Pieces/Pb.png" alt="เบี้ย"></button>
+          </div>
+          <div class="le-pal-row">
+            <button type="button" class="le-pal-act" data-piece="erase" id="pal-erase">🧹 ยางลบ</button>
+            <button type="button" class="le-pal-act" id="pal-clear">เคลียร์ทั้งหมด</button>
+            <button type="button" class="le-pal-act" id="pal-standard">ใส่กระดานมาตรฐาน</button>
+          </div>
+        </div>
         <div class="le-turn" id="le-turn">ตาเดิน: ขาว</div>
         <div class="lb-layout">
           <div class="lb-coords-left"><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
@@ -297,21 +340,28 @@ if (isAdmin) document.getElementById('btn-add-lesson').style.display = 'inline-f
 
 // ── กระดานสร้างบทเรียน ──
 const E = window; // engine globals จาก game.js
+const EMPTY_BOARD = () => Array.from({ length: 8 }, () => Array(8).fill(null));
+let editMode = 'record';      // 'setup' | 'record'
+let setupTool = null;         // รหัสหมาก หรือ 'erase'
+let startBoard = E.cloneBoard(E.INITIAL_BOARD);   // ตำแหน่งเริ่มของบทเรียน
+let startTurn = 'w';
 let authBoard = E.cloneBoard(E.INITIAL_BOARD);
 let authSteps = [];   // { from:[r,c], to:[r,c], text }
 let authSel = null;   // {r,c}
 let authLegal = [];
 
-function turnColor() { return authSteps.length % 2 === 0 ? 'w' : 'b'; }
+function turnColor() { return authSteps.length % 2 === 0 ? startTurn : E.opposite(startTurn); }
 
 function renderAuthBoard() {
   const el = document.getElementById('le-board');
-  document.getElementById('le-turn').textContent = 'ตาเดิน: ' + (turnColor() === 'w' ? 'ขาว' : 'ดำ');
+  const turnEl = document.getElementById('le-turn');
+  if (editMode === 'setup') turnEl.textContent = 'โหมดตั้งกระดาน — เลือกหมากแล้วคลิกวางบนกระดาน';
+  else turnEl.textContent = 'ตาเดิน: ' + (turnColor() === 'w' ? 'ขาว' : 'ดำ');
   let html = '';
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
     const p = authBoard[r][c];
     const sel = authSel && authSel.r === r && authSel.c === c ? ' sel' : '';
-    const legal = authLegal.find(m => m.to.row === r && m.to.col === c);
+    const legal = (editMode === 'record') && authLegal.find(m => m.to.row === r && m.to.col === c);
     const cls = legal ? (p ? ' cap' : ' legal') : '';
     html += `<div class="lb-cell${sel}${cls}" data-r="${r}" data-c="${c}">${p ? `<img src="../Pieces/${p}.png" alt="">` : ''}</div>`;
   }
@@ -320,8 +370,15 @@ function renderAuthBoard() {
 }
 
 function onCell(r, c) {
+  if (editMode === 'setup') {            // วาง/ลบหมาก
+    if (setupTool === 'erase') authBoard[r][c] = null;
+    else if (setupTool) authBoard[r][c] = setupTool;
+    startBoard = E.cloneBoard(authBoard);
+    renderAuthBoard();
+    return;
+  }
   const legal = authLegal.find(m => m.to.row === r && m.to.col === c);
-  if (authSel && legal) {  // เดินหมาก
+  if (authSel && legal) {  // เดินหมาก (บันทึกขั้น)
     const piece = authBoard[authSel.r][authSel.c];
     authBoard[r][c] = E.promoteIfNeeded(piece, r);
     authBoard[authSel.r][authSel.c] = null;
@@ -331,7 +388,7 @@ function onCell(r, c) {
     return;
   }
   const p = authBoard[r][c];
-  if (p && E.colorOf(p) === turnColor()) {  // เลือกหมากฝ่ายที่ถึงตา
+  if (p && E.colorOf(p) === turnColor()) {
     authSel = { r, c };
     authLegal = E.getLegalMoves(authBoard, r, c);
   } else { authSel = null; authLegal = []; }
@@ -339,7 +396,7 @@ function onCell(r, c) {
 }
 
 function rebuildFromSteps() {
-  authBoard = E.cloneBoard(E.INITIAL_BOARD);
+  authBoard = E.cloneBoard(startBoard);
   authSteps.forEach(s => {
     const piece = authBoard[s.from[0]][s.from[1]];
     authBoard[s.to[0]][s.to[1]] = E.promoteIfNeeded(piece, s.to[0]);
@@ -366,29 +423,96 @@ function openLessonEditor() {
   document.getElementById('le-title').value = '';
   document.getElementById('le-category').value = 'rules';
   document.getElementById('le-msg').textContent = '';
-  authBoard = E.cloneBoard(E.INITIAL_BOARD); authSteps = []; authSel = null; authLegal = [];
+  editMode = 'record'; setupTool = null; startTurn = 'w';
+  startBoard = E.cloneBoard(E.INITIAL_BOARD);
+  authBoard = E.cloneBoard(E.INITIAL_BOARD);
+  authSteps = []; authSel = null; authLegal = [];
+  document.getElementById('le-startturn').value = 'w';
+  document.getElementById('le-palette').style.display = 'none';
+  document.getElementById('le-startturn-wrap').style.display = 'none';
+  document.getElementById('mode-setup').classList.remove('on');
+  document.getElementById('mode-record').classList.add('on');
+  document.querySelectorAll('.le-pal-btn, .le-pal-act').forEach(b => b.classList.remove('sel'));
   renderAuthBoard(); renderSteps();
   leOverlay.classList.add('open');
 }
 function closeLessonEditor() { leOverlay.classList.remove('open'); }
 
+// สลับโหมด ตั้งกระดาน <-> บันทึกตาเดิน
+function setMode(mode) {
+  if (mode === editMode) return;
+  if (mode === 'setup') {
+    if (authSteps.length && !confirm('สลับไปโหมดตั้งกระดานจะล้างตาเดินที่บันทึกไว้ ดำเนินการต่อ?')) return;
+    editMode = 'setup'; authSteps = []; authSel = null; authLegal = [];
+    document.getElementById('le-palette').style.display = 'flex';
+    document.getElementById('le-startturn-wrap').style.display = 'inline-flex';
+  } else {
+    // เริ่มบันทึกตาเดินจากตำแหน่งที่ตั้งไว้
+    startBoard = E.cloneBoard(authBoard);
+    startTurn = document.getElementById('le-startturn').value;
+    editMode = 'record'; authSteps = []; authSel = null; authLegal = [];
+    authBoard = E.cloneBoard(startBoard);
+    setupTool = null;
+    document.getElementById('le-palette').style.display = 'none';
+    document.getElementById('le-startturn-wrap').style.display = 'none';
+    document.querySelectorAll('.le-pal-btn, .le-pal-act').forEach(b => b.classList.remove('sel'));
+  }
+  document.getElementById('mode-setup').classList.toggle('on', editMode === 'setup');
+  document.getElementById('mode-record').classList.toggle('on', editMode === 'record');
+  renderAuthBoard(); renderSteps();
+}
+
 if (isAdmin) document.getElementById('btn-add-lesson').addEventListener('click', openLessonEditor);
 document.getElementById('le-cancel').addEventListener('click', closeLessonEditor);
 leOverlay.addEventListener('click', e => { if (e.target === leOverlay) closeLessonEditor(); });
-document.getElementById('le-undo').addEventListener('click', () => { authSteps.pop(); authSel = null; authLegal = []; rebuildFromSteps(); renderAuthBoard(); renderSteps(); });
-document.getElementById('le-reset').addEventListener('click', () => { authSteps = []; authSel = null; authLegal = []; rebuildFromSteps(); renderAuthBoard(); renderSteps(); });
+document.getElementById('mode-setup').addEventListener('click', () => setMode('setup'));
+document.getElementById('mode-record').addEventListener('click', () => setMode('record'));
+document.getElementById('le-startturn').addEventListener('change', () => { startTurn = document.getElementById('le-startturn').value; });
+
+// palette: เลือกหมาก/ยางลบ
+document.querySelectorAll('.le-pal-btn[data-piece], #pal-erase').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const wasSel = btn.classList.contains('sel');
+    document.querySelectorAll('.le-pal-btn, .le-pal-act').forEach(b => b.classList.remove('sel'));
+    if (wasSel) { setupTool = null; return; }
+    btn.classList.add('sel');
+    setupTool = btn.dataset.piece;  // รหัสหมาก หรือ 'erase'
+  });
+});
+document.getElementById('pal-clear').addEventListener('click', () => {
+  authBoard = EMPTY_BOARD(); startBoard = EMPTY_BOARD(); authSel = null; authLegal = [];
+  renderAuthBoard();
+});
+document.getElementById('pal-standard').addEventListener('click', () => {
+  authBoard = E.cloneBoard(E.INITIAL_BOARD); startBoard = E.cloneBoard(E.INITIAL_BOARD); authSel = null; authLegal = [];
+  renderAuthBoard();
+});
+
+document.getElementById('le-undo').addEventListener('click', () => {
+  if (editMode !== 'record') return;
+  authSteps.pop(); authSel = null; authLegal = []; rebuildFromSteps(); renderAuthBoard(); renderSteps();
+});
+document.getElementById('le-reset').addEventListener('click', () => {
+  if (editMode !== 'record') return;
+  authSteps = []; authSel = null; authLegal = []; rebuildFromSteps(); renderAuthBoard(); renderSteps();
+});
 
 document.getElementById('le-save').addEventListener('click', async () => {
   const msg = document.getElementById('le-msg');
   if (!isAdmin) { msg.textContent = 'เฉพาะแอดมินเท่านั้น'; return; }
   const title = document.getElementById('le-title').value.trim();
   if (!title) { msg.textContent = 'กรุณาใส่ชื่อบทเรียน'; return; }
+  if (editMode === 'setup') { msg.textContent = 'กรุณากด "บันทึกตาเดิน" เพื่อเริ่มเดินหมากก่อนบันทึก'; return; }
   if (!authSteps.length) { msg.textContent = 'กรุณาเดินหมากอย่างน้อย 1 ขั้น'; return; }
   msg.textContent = 'กำลังบันทึก…';
+  // เก็บ startBoard เป็นแถวสตริง (RTDB ไม่เก็บ null ในอาเรย์)
+  const startRows = startBoard.map(row => row.map(c => c || '').join(','));
   try {
     await set(push(ref(db, 'lessons')), {
       title,
       category: document.getElementById('le-category').value,
+      startBoard: startRows,
+      startTurn,
       steps: authSteps,
       authorUid: mySid,
       authorName: currentUser.name || currentUser.email || 'ทีมงาน',
