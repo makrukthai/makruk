@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUKTHAI - บทความ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../styles-friend-enhanced.css">
+<link rel="stylesheet" href="../theme-refresh.css">
+<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
+<script type="module" src="../auth.js"></script>
+<style>
+  .blog-body .main { height: auto; min-height: calc(100vh - 60px); display: block; align-items: initial; justify-content: initial; }
+  .article-wrap { max-width: 760px; margin: 0 auto; padding: 24px 18px 90px; }
+  .article-back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; margin-bottom: 18px; cursor: pointer; }
+  .article-back:hover { color: var(--gold); }
+  .article-cover { width: 100%; aspect-ratio: 16/9; border-radius: var(--r-lg,16px); background: linear-gradient(135deg,#7a5230,#c8a24a); background-size: cover; background-position: center; margin-bottom: 22px; border: 1px solid var(--border); }
+  .article-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); padding: 28px 32px; box-shadow: var(--shadow-1); }
+  .article-card + .article-card { margin-top: 18px; }
+  @media (max-width: 768px) { .article-card { padding: 20px 18px; } }
+  .article-title { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 14px; color: var(--text); }
+  .article-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.88rem; margin-bottom: 6px; flex-wrap: wrap; }
+  .article-meta .author { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .article-meta .author:hover { color: var(--gold); }
+  .article-meta .av { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg,#7a5230,#c8a24a); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 0.8rem; }
+  .article-meta .av img { width: 100%; height: 100%; object-fit: cover; }
+  .article-meta .dot { opacity: 0.5; }
+  .article-divider { height: 1px; background: var(--border); margin: 22px 0; }
+  .article-content { color: var(--text); font-size: 1.05rem; line-height: 1.8; word-break: break-word; }
+  .article-content h2 { font-size: 1.6rem; margin: 26px 0 10px; }
+  .article-content h3 { font-size: 1.3rem; margin: 22px 0 8px; }
+  .article-content p { margin: 0 0 16px; }
+  .article-content img { max-width: 100%; border-radius: 10px; margin: 12px 0; display: block; }
+  .article-content a { color: var(--gold); text-decoration: underline; word-break: break-all; }
+  .article-content ul, .article-content ol { margin: 0 0 16px; padding-left: 24px; }
+  .article-content li { margin-bottom: 6px; }
+  .article-loading, .article-missing { text-align: center; color: var(--muted); padding: 70px 0; }
+  .admin-bar { display: flex; gap: 8px; margin-bottom: 18px; }
+  .admin-bar button { height: 38px; padding: 0 16px; border-radius: 9px; font-weight: 600; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.85rem; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); }
+  .admin-bar .del:hover { border-color: #c5544a; color: #e0796f; background: rgba(197,84,74,0.08); }
+  .admin-bar .edit:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-soft); }
+
+  /* ── คอมเมนต์ ── */
+  .comments-section h2 { font-size: 1.2rem; margin: 0 0 16px; }
+  .comment-form { display: flex; gap: 10px; margin-bottom: 22px; align-items: flex-start; }
+  .comment-form textarea { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.95rem; resize: vertical; min-height: 44px; }
+  .comment-form textarea:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .comment-form button { background: var(--gold); color: #1a1305; border: none; border-radius: 12px; padding: 0 20px; height: 44px; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); flex-shrink: 0; }
+  .comment-form button:hover { background: var(--gold-light,#e3c479); }
+  .comment-login { color: var(--muted); font-size: 0.9rem; margin-bottom: 22px; }
+  .comment-row { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--border); }
+  .comment-av { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0; cursor: pointer; background: linear-gradient(135deg,#7a5230,#c8a24a); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; }
+  .comment-av img { width: 100%; height: 100%; object-fit: cover; }
+  .comment-main { flex: 1; min-width: 0; }
+  .comment-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+  .comment-name { font-weight: 600; color: var(--text); cursor: pointer; }
+  .comment-name:hover { color: var(--gold); text-decoration: underline; }
+  .comment-time { color: var(--muted); font-size: 0.75rem; }
+  .comment-text { color: var(--text); font-size: 0.95rem; line-height: 1.55; word-break: break-word; white-space: pre-wrap; }
+  .comment-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.78rem; padding: 2px 6px; align-self: flex-start; }
+  .comment-del:hover { color: #e0796f; }
+  .comments-empty { color: var(--muted); font-style: italic; padding: 14px 0; }
+</style>
+</head>
+<body class="blog-body">
+<header class="topbar">
+    <div class="left">
+        <a href="play.html" class="logo">
+            <div class="logo-icon">
+                <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+                <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+            </div>
+        </a>
+        <nav class="nav">
+            <a href="play.html">เล่น</a>
+            <a href="tournament.html">ทัวร์นาเมนต์</a>
+            <a href="learn.html">เรียนรู้</a>
+            <a href="watch.html">ดูเกม</a>
+            <a href="community.html">ชุมชน</a>
+            <input class="search" placeholder="ค้นหาผู้เล่น...">
+        </nav>
+    </div>
+    <div class="right">
+        <button class="register">ลงทะเบียน</button>
+        <button class="login">เข้าสู่ระบบ</button>
+    </div>
+</header>
+
+<main class="main">
+  <div class="article-wrap">
+    <div class="article-back" onclick="location.href='community.html#blog'">← กลับไปหน้าข่าวสาร</div>
+    <div id="article-content"><div class="article-loading">กำลังโหลด…</div></div>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, get, onValue, push, set, remove, runTransaction, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const ADMIN_EMAILS = ['wachangngoen95@gmail.com'];
+const safeId = (id) => id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function loadUser() { try { return JSON.parse(localStorage.getItem('rukthai_current_user')) || null; } catch (e) { return null; } }
+const currentUser = loadUser();
+const isAdmin = !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
+const postId = new URLSearchParams(location.search).get('id');
+let usersMap = {};
+
+function fmtDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); }
+function authorAvatar(uid, name) { const u = usersMap[safeId(uid)]; const a = u && u.avatar ? u.avatar : ''; return a ? `<img src="${esc(a)}" alt="">` : esc(String(name || '?').charAt(0).toUpperCase()); }
+function authorName(uid, fb) { const u = usersMap[safeId(uid)]; return (u && u.name && u.name.trim()) ? u.name : (fb || 'ทีมงาน'); }
+
+// เนื้อหา blog เป็น HTML ที่แอดมินสร้างผ่าน editor — sanitize เบื้องต้น (ตัด script/handler/iframe)
+function sanitize(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html || '';
+  t.content.querySelectorAll('script, iframe, object, embed, link, style').forEach(n => n.remove());
+  t.content.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(a => {
+      const n = a.name.toLowerCase();
+      if (n.startsWith('on')) el.removeAttribute(a.name);
+      if ((n === 'href' || n === 'src') && /^\s*javascript:/i.test(a.value)) el.removeAttribute(a.name);
+    });
+    if (el.tagName === 'A') { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer nofollow'); }
+  });
+  return t.innerHTML;
+}
+
+function render(p) {
+  const wrap = document.getElementById('article-content');
+  if (!p) { wrap.innerHTML = '<div class="article-missing">ไม่พบบทความนี้ (อาจถูกลบไปแล้ว)</div>'; return; }
+  const cover = p.cover ? `style="background-image:url('${esc(p.cover)}')"` : '';
+  const adminBar = isAdmin ? `
+    <div class="admin-bar">
+      <button class="edit" id="btn-edit-post">✎ แก้ไข</button>
+      <button class="del" id="btn-del-post">🗑 ลบบทความ</button>
+    </div>` : '';
+  wrap.innerHTML = `
+    ${adminBar}
+    ${p.cover ? `<div class="article-cover" ${cover}></div>` : ''}
+    <div class="article-card">
+      <h1 class="article-title">${esc(p.title || 'บทความ')}</h1>
+      <div class="article-meta">
+        <span class="author" data-uid="${esc(p.authorUid || '')}"><span class="av">${authorAvatar(p.authorUid, p.authorName)}</span>${esc(authorName(p.authorUid, p.authorName))}</span>
+        <span class="dot">·</span><span>${fmtDate(p.createdAt)}</span>
+        <span class="dot">·</span><span>👁 ${p.views || 0} ครั้ง</span>
+      </div>
+      <div class="article-divider"></div>
+      <div class="article-content">${sanitize(p.content || '')}</div>
+    </div>
+    <div class="article-card comments-section" id="comments-section">
+      <h2>💬 ความคิดเห็น <span id="comment-count" style="color:var(--muted); font-weight:500; font-size:0.9rem;"></span></h2>
+      <div id="comment-form-wrap"></div>
+      <div id="comments-list"><div class="comments-empty">ยังไม่มีความคิดเห็น</div></div>
+    </div>`;
+
+  const au = wrap.querySelector('.author');
+  if (au && au.dataset.uid) au.addEventListener('click', () => { location.href = `profile.html?user=${encodeURIComponent(au.dataset.uid)}`; });
+  const del = wrap.querySelector('#btn-del-post');
+  if (del) del.addEventListener('click', async () => {
+    if (!confirm('ลบบทความนี้ถาวร?')) return;
+    try { await remove(ref(db, `blog_posts/${postId}`)); location.href = 'community.html#blog'; }
+    catch (e) { alert('ลบไม่สำเร็จ'); }
+  });
+  const edit = wrap.querySelector('#btn-edit-post');
+  if (edit) edit.addEventListener('click', () => { location.href = `community.html?edit=${encodeURIComponent(postId)}#blog`; });
+
+  renderCommentForm();
+  renderComments(p.comments || {});
+}
+
+const mySid = currentUser ? safeId(currentUser.id || currentUser.email) : null;
+const myName = currentUser ? (currentUser.name || currentUser.email || 'ผู้เล่น') : '';
+const COMMENT_MAX = 100;
+
+function renderCommentForm() {
+  const wrap = document.getElementById('comment-form-wrap');
+  if (!wrap) return;
+  if (!mySid) { wrap.innerHTML = '<div class="comment-login">เข้าสู่ระบบเพื่อแสดงความคิดเห็น</div>'; return; }
+  wrap.innerHTML = `
+    <div class="comment-form">
+      <textarea id="comment-input" placeholder="แสดงความคิดเห็น…" maxlength="600"></textarea>
+      <button id="comment-send">ส่ง</button>
+    </div>`;
+  document.getElementById('comment-send').addEventListener('click', sendComment);
+}
+
+function renderComments(comments) {
+  const list = document.getElementById('comments-list');
+  const countEl = document.getElementById('comment-count');
+  if (!list) return;
+  const entries = Object.entries(comments).sort((a, b) => (b[1].ts || 0) - (a[1].ts || 0));
+  if (countEl) countEl.textContent = entries.length ? `(${entries.length})` : '';
+  if (!entries.length) { list.innerHTML = '<div class="comments-empty">ยังไม่มีความคิดเห็น — เป็นคนแรกได้เลย</div>'; return; }
+  list.innerHTML = entries.map(([cid, c]) => {
+    const sid = safeId(c.uid);
+    const canDel = mySid && (sid === mySid || isAdmin);
+    return `<div class="comment-row">
+      <div class="comment-av" data-uid="${esc(sid)}">${authorAvatar(c.uid, c.name)}</div>
+      <div class="comment-main">
+        <div class="comment-head"><span class="comment-name" data-uid="${esc(sid)}">${esc(authorName(c.uid, c.name))}</span><span class="comment-time">${fmtCommentTime(c.ts)}</span></div>
+        <div class="comment-text">${esc(c.text)}</div>
+      </div>
+      ${canDel ? `<button class="comment-del" data-del="${esc(cid)}">ลบ</button>` : ''}
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-uid]').forEach(el => el.addEventListener('click', () => { if (el.dataset.uid) location.href = `profile.html?user=${encodeURIComponent(el.dataset.uid)}`; }));
+  list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    if (confirm('ลบความคิดเห็นนี้?')) remove(ref(db, `blog_posts/${postId}/comments/${b.dataset.del}`)).catch(() => {});
+  }));
+}
+
+function fmtCommentTime(ts) { if (!ts) return ''; return new Date(ts).toLocaleString('th-TH', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+
+async function sendComment() {
+  const input = document.getElementById('comment-input');
+  const text = input.value.trim();
+  if (!text || !mySid) return;
+  input.value = '';
+  try {
+    await push(ref(db, `blog_posts/${postId}/comments`), { uid: currentUser.id, name: myName, text, ts: serverTimestamp() });
+    trimComments();
+  } catch (e) { console.error(e); }
+}
+async function trimComments() {
+  try {
+    const snap = await get(ref(db, `blog_posts/${postId}/comments`));
+    const all = []; snap.forEach(ch => all.push({ key: ch.key, ts: ch.val().ts || 0 }));
+    if (all.length > COMMENT_MAX) {
+      all.sort((a, b) => a.ts - b.ts);
+      for (let i = 0; i < all.length - COMMENT_MAX; i++) remove(ref(db, `blog_posts/${postId}/comments/${all[i].key}`)).catch(() => {});
+    }
+  } catch (e) { /* เงียบ */ }
+}
+
+// นับยอดวิว +1 (ครั้งเดียวต่อการเปิดหน้า)
+function bumpView() {
+  runTransaction(ref(db, `blog_posts/${postId}/views`), (cur) => (cur || 0) + 1).catch(() => {});
+}
+
+if (!postId) {
+  document.getElementById('article-content').innerHTML = '<div class="article-missing">ไม่พบรหัสบทความ</div>';
+} else {
+  get(ref(db, 'users')).then(s => { usersMap = s.val() || {}; }).catch(() => {}).finally(() => {
+    get(ref(db, `blog_posts/${postId}`)).then(snap => {
+      if (snap.exists()) bumpView();
+    }).catch(() => {});
+    onValue(ref(db, `blog_posts/${postId}`), (snap) => render(snap.val()),
+      (err) => { document.getElementById('article-content').innerHTML = `<div class="article-missing">โหลดบทความไม่ได้: ${esc(err.code || err.message)}</div>`; });
+  });
+}
+</script>
+</body>
+</html>

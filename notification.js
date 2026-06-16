@@ -133,7 +133,7 @@ function subscribeNotifications() {
     if (notifCache.length > 50) notifCache = notifCache.slice(0, 50);
     renderNotificationList();
     refreshNotificationDot();
-  }, () => {});
+  }, (err) => console.error('โหลดแจ้งเตือนไม่ได้:', err.code || err.message));
 }
 
 export function createNotificationButton() {

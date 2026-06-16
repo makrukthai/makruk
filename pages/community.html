@@ -175,6 +175,48 @@
   .cm-save { background: var(--gold); border: none; color: #1a1305; }
   .cm-save:hover { background: var(--gold-light, #e3c479); }
   .club-modal-msg { font-size: 0.82rem; color: var(--muted); min-height: 18px; margin-top: 6px; }
+
+  /* ── Blog / ข่าวสาร ── */
+  .blog-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .blog-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); overflow: hidden; cursor: pointer; box-shadow: var(--shadow-1); transition: transform 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; }
+  .blog-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  .blog-cover { height: 160px; background: linear-gradient(135deg,#7a5230,#c8a24a); background-size: cover; background-position: center; }
+  .blog-card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .blog-card-title { font-weight: 700; color: var(--text); font-size: 1.05rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .blog-card-excerpt { color: var(--muted); font-size: 0.86rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .blog-card-meta { margin-top: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.78rem; padding-top: 6px; }
+  .blog-card-meta .dot { opacity: 0.5; }
+  .blog-empty { color: var(--muted); font-style: italic; padding: 30px 0; text-align: center; }
+
+  /* Editor modal */
+  .blog-editor-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.7); display: none; align-items: flex-start; justify-content: center; padding: 24px; overflow-y: auto; }
+  .blog-editor-overlay.open { display: flex; }
+  .blog-editor { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-lg,16px); width: 100%; max-width: 760px; padding: 24px; box-shadow: var(--shadow-2); margin: auto; }
+  .blog-editor h2 { margin: 0 0 16px; font-size: 1.3rem; }
+  .blog-editor .be-field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .blog-editor label { font-size: 0.85rem; font-weight: 600; }
+  .be-title-input { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 1.1rem; font-weight: 600; }
+  .be-title-input:focus { outline: none; border-color: var(--gold); }
+  .be-cover-row { display: flex; align-items: center; gap: 12px; }
+  .be-cover-preview { width: 120px; height: 68px; border-radius: 8px; background: var(--surface); background-size: cover; background-position: center; border: 1px solid var(--border); flex-shrink: 0; }
+  .be-toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; background: var(--bg2); border: 1px solid var(--border); border-bottom: none; border-radius: 10px 10px 0 0; }
+  .be-toolbar button { width: 34px; height: 34px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: var(--text); cursor: pointer; font-size: 0.9rem; font-weight: 700; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .be-toolbar button:hover { background: var(--gold-soft); border-color: var(--border); }
+  .be-toolbar .sep { width: 1px; background: var(--border); margin: 4px 3px; }
+  .be-content { min-height: 280px; max-height: 460px; overflow-y: auto; background: var(--bg2); border: 1px solid var(--border); border-radius: 0 0 10px 10px; padding: 14px 16px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.96rem; line-height: 1.7; }
+  .be-content:focus { outline: none; border-color: var(--gold); }
+  .be-content:empty::before { content: attr(data-placeholder); color: var(--muted); }
+  .be-content h2 { font-size: 1.4rem; margin: 12px 0 6px; }
+  .be-content h3 { font-size: 1.15rem; margin: 10px 0 6px; }
+  .be-content img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+  .be-content a { color: var(--gold); }
+  .be-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .be-actions button { flex: 1; height: 46px; border-radius: 10px; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .be-cancel { background: transparent; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); color: var(--text); }
+  .be-publish { background: var(--gold); border: none; color: #1a1305; }
+  .be-publish:hover { background: var(--gold-light,#e3c479); }
+  .be-msg { font-size: 0.82rem; color: var(--muted); min-height: 18px; margin-top: 8px; }
 </style>
 </head>
 <body class="community-body">
@@ -236,8 +278,12 @@
 
     <!-- ข่าวสาร -->
     <section class="community-view" id="view-blog">
-      <div class="view-head"><h1>📰 ข่าวสาร</h1><p>บทความและข่าวสารจากชุมชนหมากรุกไทย</p></div>
-      <div class="coming-soon"><div class="cs-ico">📰</div>ระบบข่าวสาร/บล็อกกำลังพัฒนา — เร็ว ๆ นี้<br><span style="font-size:0.85rem;">(เขียนบทความ / รูปปก / ผู้เขียน / วันที่)</span></div>
+      <div class="view-head"><h1>📰 ข่าวสาร</h1><p>บทความและข่าวสารทางการจากทีมงาน RUKTHAI</p></div>
+      <div class="blog-toolbar">
+        <div style="color:var(--muted); font-size:0.88rem;" id="blog-summary"></div>
+        <button class="btn-create-club" id="btn-write-blog" style="display:none;">✍️ เขียนบทความ</button>
+      </div>
+      <div class="blog-grid" id="blog-grid"><div class="blog-empty">กำลังโหลด…</div></div>
     </section>
 
   </div>
@@ -284,6 +330,54 @@
     <div class="club-modal-actions">
       <button class="cm-cancel" id="cm-cancel">ยกเลิก</button>
       <button class="cm-save" id="cm-save">สร้างซุ้ม</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal เขียนบทความ (Blog) -->
+<div class="blog-editor-overlay" id="blog-editor-overlay">
+  <div class="blog-editor">
+    <h2 id="be-heading">เขียนบทความ</h2>
+    <div class="be-field">
+      <label>หัวข้อบทความ *</label>
+      <input type="text" id="be-title" class="be-title-input" maxlength="120" placeholder="ใส่ชื่อบทความ…">
+    </div>
+    <div class="be-field">
+      <label>รูปปก (แนะนำ 16:9)</label>
+      <div class="be-cover-row">
+        <div class="be-cover-preview" id="be-cover-preview"></div>
+        <input type="file" id="be-cover-file" accept="image/*" hidden>
+        <button type="button" class="club-btn" id="be-cover-pick" style="flex:0 0 auto; padding:0 14px;">เลือกรูป…</button>
+        <button type="button" class="club-btn" id="be-cover-clear" style="flex:0 0 auto; padding:0 14px;">ลบ</button>
+      </div>
+    </div>
+    <div class="be-field">
+      <label>เนื้อหา *</label>
+      <div class="be-toolbar" id="be-toolbar">
+        <button type="button" data-cmd="formatBlock" data-val="h2" title="หัวข้อใหญ่">H1</button>
+        <button type="button" data-cmd="formatBlock" data-val="h3" title="หัวข้อรอง">H2</button>
+        <button type="button" data-cmd="formatBlock" data-val="p" title="ข้อความปกติ">¶</button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="bold" title="ตัวหนา" style="font-weight:800;">B</button>
+        <button type="button" data-cmd="italic" title="ตัวเอียง" style="font-style:italic;">I</button>
+        <button type="button" data-cmd="underline" title="ขีดเส้นใต้" style="text-decoration:underline;">U</button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="insertUnorderedList" title="หัวข้อย่อย">•</button>
+        <button type="button" data-cmd="insertOrderedList" title="ลำดับเลข">1.</button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="justifyLeft" title="ชิดซ้าย">⬅</button>
+        <button type="button" data-cmd="justifyCenter" title="กึ่งกลาง">↔</button>
+        <span class="sep"></span>
+        <button type="button" id="be-link" title="แทรกลิงก์">🔗</button>
+        <button type="button" id="be-image" title="แทรกรูป">🖼</button>
+      </div>
+      <div class="be-content" id="be-content" contenteditable="true" data-placeholder="เริ่มเขียนเนื้อหาบทความที่นี่…"></div>
+      <input type="file" id="be-img-file" accept="image/*" hidden>
+    </div>
+    <div class="be-msg" id="be-msg"></div>
+    <div class="be-actions">
+      <button class="be-cancel" id="be-cancel">ยกเลิก</button>
+      <button class="be-publish" id="be-publish">เผยแพร่</button>
     </div>
   </div>
 </div>
@@ -622,6 +716,159 @@ document.getElementById('cm-save').addEventListener('click', async () => {
 // ฟังรายการซุ้มแบบเรียลไทม์
 onValue(ref(db, 'clubs'), (snap) => { clubsMap = snap.val() || {}; renderClubs(); },
   (err) => console.error('โหลดซุ้มไม่ได้ (เช็ค Rules: clubs):', err.code || err.message));
+
+// ═══════════════════════════════════════════
+//   Blog / ข่าวสาร — เฟส 1 (เฉพาะแอดมินเขียน)
+// ═══════════════════════════════════════════
+const ADMIN_EMAILS = ['wachangngoen95@gmail.com'];
+const isAdmin = !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
+let blogCover = '';
+
+function stripHtml(html) { const d = document.createElement('div'); d.innerHTML = html; return (d.textContent || '').trim(); }
+function fmtBlogDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }); }
+
+function renderBlogList(posts) {
+  const grid = document.getElementById('blog-grid');
+  const summary = document.getElementById('blog-summary');
+  const entries = Object.entries(posts).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  summary.textContent = entries.length ? `${entries.length} บทความ` : '';
+  if (!entries.length) { grid.innerHTML = '<div class="blog-empty">ยังไม่มีบทความ</div>'; return; }
+  grid.innerHTML = entries.map(([id, p]) => {
+    const cover = p.cover ? `style="background-image:url('${esc(p.cover)}')"` : '';
+    return `<div class="blog-card" data-post="${esc(id)}">
+      <div class="blog-cover" ${cover}></div>
+      <div class="blog-card-body">
+        <div class="blog-card-title">${esc(p.title || 'บทความ')}</div>
+        <div class="blog-card-excerpt">${esc(p.excerpt || '')}</div>
+        <div class="blog-card-meta">
+          <span>${esc(p.authorName || 'ทีมงาน')}</span><span class="dot">·</span>
+          <span>${fmtBlogDate(p.createdAt)}</span><span class="dot">·</span>
+          <span>👁 ${p.views || 0}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('[data-post]').forEach(el => el.addEventListener('click', () => { location.href = `blog.html?id=${encodeURIComponent(el.dataset.post)}`; }));
+}
+
+// ── Editor ──
+const beOverlay = document.getElementById('blog-editor-overlay');
+let editingPostId = null;
+function openEditor(post, postId) {
+  if (!isAdmin) return;
+  editingPostId = postId || null;
+  document.getElementById('be-heading').textContent = editingPostId ? 'แก้ไขบทความ' : 'เขียนบทความ';
+  document.getElementById('be-publish').textContent = editingPostId ? 'บันทึก' : 'เผยแพร่';
+  document.getElementById('be-title').value = post ? (post.title || '') : '';
+  document.getElementById('be-content').innerHTML = post ? (post.content || '') : '';
+  document.getElementById('be-msg').textContent = '';
+  blogCover = post ? (post.cover || '') : '';
+  document.getElementById('be-cover-preview').style.backgroundImage = blogCover ? `url("${blogCover}")` : '';
+  beOverlay.classList.add('open');
+}
+function closeEditor() { beOverlay.classList.remove('open'); editingPostId = null; }
+
+if (isAdmin) {
+  const writeBtn = document.getElementById('btn-write-blog');
+  writeBtn.style.display = 'inline-flex';
+  writeBtn.addEventListener('click', () => openEditor(null, null));
+}
+document.getElementById('be-cancel').addEventListener('click', closeEditor);
+beOverlay.addEventListener('click', e => { if (e.target === beOverlay) closeEditor(); });
+
+// เปิดโหมดแก้ไขจาก blog.html (?edit=postId)  หรือ hash #blog?edit=
+async function checkEditMode() {
+  if (!isAdmin) return;
+  const params = new URLSearchParams(location.search);
+  let editId = params.get('edit');
+  if (!editId && location.hash.includes('edit=')) editId = decodeURIComponent(location.hash.split('edit=')[1]);
+  if (!editId) return;
+  location.hash = '#blog';
+  try {
+    const snap = await get(ref(db, `blog_posts/${editId}`));
+    if (snap.exists()) openEditor(snap.val(), editId);
+  } catch (e) { /* เงียบ */ }
+}
+checkEditMode();
+
+// Toolbar (execCommand รองรับ contenteditable ทุกเบราว์เซอร์หลัก)
+document.getElementById('be-toolbar').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-cmd]');
+  if (!btn) return;
+  e.preventDefault();
+  document.getElementById('be-content').focus();
+  document.execCommand(btn.dataset.cmd, false, btn.dataset.val || null);
+});
+document.getElementById('be-link').addEventListener('click', () => {
+  const url = prompt('วางลิงก์ (ขึ้นต้น https://)');
+  if (url && /^https?:\/\//i.test(url)) { document.getElementById('be-content').focus(); document.execCommand('createLink', false, url); }
+});
+
+// แทรกรูปในเนื้อหา (ย่อแรง ~800px) + รูปปก (~1000px)
+function scaleImg(file, maxW, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(cv.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject; img.src = url;
+  });
+}
+document.getElementById('be-cover-pick').addEventListener('click', () => document.getElementById('be-cover-file').click());
+document.getElementById('be-cover-clear').addEventListener('click', () => { blogCover = ''; document.getElementById('be-cover-preview').style.backgroundImage = ''; });
+document.getElementById('be-cover-file').addEventListener('change', async (e) => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  try { blogCover = await scaleImg(f, 1000); document.getElementById('be-cover-preview').style.backgroundImage = `url("${blogCover}")`; }
+  catch (err) { document.getElementById('be-msg').textContent = 'อ่านรูปปกไม่สำเร็จ'; }
+});
+document.getElementById('be-image').addEventListener('click', () => document.getElementById('be-img-file').click());
+document.getElementById('be-img-file').addEventListener('change', async (e) => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  try {
+    const data = await scaleImg(f, 800);
+    document.getElementById('be-content').focus();
+    document.execCommand('insertImage', false, data);
+  } catch (err) { document.getElementById('be-msg').textContent = 'แทรกรูปไม่สำเร็จ'; }
+  e.target.value = '';
+});
+
+document.getElementById('be-publish').addEventListener('click', async () => {
+  const msg = document.getElementById('be-msg');
+  if (!isAdmin) { msg.textContent = 'เฉพาะแอดมินเท่านั้น'; return; }
+  const title = document.getElementById('be-title').value.trim();
+  const contentHtml = document.getElementById('be-content').innerHTML.trim();
+  const plain = stripHtml(contentHtml);
+  if (!title) { msg.textContent = 'กรุณาใส่หัวข้อบทความ'; return; }
+  if (!plain) { msg.textContent = 'กรุณาใส่เนื้อหา'; return; }
+  msg.textContent = editingPostId ? 'กำลังบันทึก…' : 'กำลังเผยแพร่…';
+  try {
+    if (editingPostId) {
+      // แก้ไข: อัปเดตเฉพาะฟิลด์เนื้อหา คง views/createdAt/author เดิม
+      await update(ref(db, `blog_posts/${editingPostId}`), {
+        title, cover: blogCover || '', excerpt: plain.slice(0, 160), content: contentHtml,
+        editedAt: serverTimestamp()
+      });
+    } else {
+      await set(push(ref(db, 'blog_posts')), {
+        title, cover: blogCover || '', excerpt: plain.slice(0, 160), content: contentHtml,
+        authorUid: mySid, authorName: currentUser.name || currentUser.email || 'ทีมงาน',
+        createdAt: serverTimestamp(), views: 0
+      });
+    }
+    closeEditor();
+  } catch (e) {
+    msg.textContent = (e && e.message && e.message.includes('exceed')) ? 'รูปใหญ่เกินไป ลองลดขนาด/จำนวนรูป' : 'บันทึกไม่สำเร็จ';
+  }
+});
+
+// ฟังรายการบทความ
+onValue(ref(db, 'blog_posts'), (snap) => renderBlogList(snap.val() || {}),
+  (err) => { document.getElementById('blog-grid').innerHTML = `<div class="blog-empty">โหลดบทความไม่ได้ (เช็ค Rules: blog_posts)</div>`; });
 </script>
 </body>
 </html>
