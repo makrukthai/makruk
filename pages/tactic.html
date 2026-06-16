@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUKTHAI - ชั้นเชิง</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../styles-friend-enhanced.css">
+<link rel="stylesheet" href="../theme-refresh.css">
+<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
+<script type="module" src="../auth.js"></script>
+<style>
+  .lesson-body .main { height: auto; min-height: calc(100vh - 60px); display: block; }
+  .lesson-wrap { max-width: 1180px; margin: 0 auto; padding: 22px 16px 80px; }
+  .lesson-back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; cursor: pointer; }
+  .lesson-back:hover { color: var(--gold); }
+  .lesson-head { margin-bottom: 18px; }
+  .lesson-head h1 { font-size: 1.5rem; margin: 0 0 6px; }
+  .lesson-head .meta { color: var(--muted); font-size: 0.85rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .tactic-badge { background: var(--gold-soft); color: var(--gold); padding: 2px 9px; border-radius: 6px; font-weight: 700; }
+
+  .lesson-layout { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 28px; align-items: start; }
+  @media (max-width: 820px) { .lesson-layout { grid-template-columns: 1fr; } }
+  .lesson-board-col { max-width: 680px; }
+
+  .lb-layout { display: grid; grid-template-columns: 20px 1fr; grid-template-rows: auto 20px; gap: 5px; width: 100%; }
+  .lb-coords-left { grid-column: 1; grid-row: 1; display: grid; grid-template-rows: repeat(8,1fr); align-items: center; justify-items: center; }
+  .lb-coords-bottom { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(8,1fr); align-items: center; justify-items: center; }
+  .lb-coords-left span, .lb-coords-bottom span { font-size: 0.8rem; color: var(--muted); font-family: var(--font-mono, monospace); }
+  .lb-board { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 2px; background: #1e1d1b; border-radius: 6px; overflow: hidden; }
+  .lb-cell { position: relative; aspect-ratio: 1; min-width: 0; background: #c56c30; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .lb-cell img { width: 82%; height: 82%; object-fit: contain; pointer-events: none; user-select: none; }
+  .lb-cell.sel { background: rgba(168,168,168,0.45); }
+  .lb-cell.last { background: rgba(207,126,21,0.79); }
+  .lb-cell.legal::after { content: ''; position: absolute; width: 30%; height: 30%; background: rgba(131,131,131,0.77); border-radius: 50%; pointer-events: none; }
+  .lb-cell.cap { outline: 3px solid rgba(239,100,68,0.7); outline-offset: -3px; }
+
+  .tactic-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); padding: 20px 22px; box-shadow: var(--shadow-1); }
+  .tactic-turn { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+  .tactic-sub { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+  .tactic-status { margin-top: 16px; padding: 12px 14px; border-radius: 10px; font-size: 0.92rem; display: none; }
+  .tactic-status.show { display: block; }
+  .tactic-status.ok { background: rgba(46,125,82,0.15); color: #4cae7d; }
+  .tactic-status.wrong { background: rgba(197,84,74,0.13); color: #e0796f; }
+  .tactic-solved-box { margin-top: 16px; padding: 18px; border-radius: 12px; background: linear-gradient(145deg, rgba(46,125,82,0.18), rgba(36,95,64,0.12)); border: 1px solid #3a9968; text-align: center; display: none; }
+  .tactic-solved-box.show { display: block; }
+  .tactic-solved-box .big { font-size: 1.3rem; font-weight: 800; color: #4cae7d; margin-bottom: 10px; }
+  .tactic-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .tactic-actions button { flex: 1; height: 44px; border-radius: 10px; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); }
+  .tactic-actions .primary { background: var(--gold); border: none; color: #1a1305; }
+  .tactic-retry { margin-top: 12px; }
+  .tactic-retry button { width: 100%; height: 40px; border-radius: 10px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-weight: 600; }
+  .admin-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+  .admin-bar button { height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-weight: 600; font-size: 0.83rem; }
+  .admin-bar .del:hover { border-color: #c5544a; color: #e0796f; }
+  .lesson-loading, .lesson-missing { text-align: center; color: var(--muted); padding: 70px 0; }
+</style>
+</head>
+<body class="lesson-body">
+<header class="topbar">
+    <div class="left">
+        <a href="play.html" class="logo"><div class="logo-icon">
+            <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+            <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+        </div></a>
+        <nav class="nav">
+            <a href="play.html">เล่น</a>
+            <a href="tournament.html">ทัวร์นาเมนต์</a>
+            <a href="learn.html">เรียนรู้</a>
+            <a href="watch.html">ดูเกม</a>
+            <a href="community.html">ชุมชน</a>
+            <input class="search" placeholder="ค้นหาผู้เล่น...">
+        </nav>
+    </div>
+    <div class="right">
+        <button class="register">ลงทะเบียน</button>
+        <button class="login">เข้าสู่ระบบ</button>
+    </div>
+</header>
+
+<main class="main">
+  <div class="lesson-wrap">
+    <div class="lesson-back" onclick="location.href='learn.html#tactics'">← กลับไปด่านทั้งหมด</div>
+    <div id="tactic-content"><div class="lesson-loading">กำลังโหลด…</div></div>
+  </div>
+</main>
+
+<script src="../game.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, remove }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const db = getDatabase(initializeApp(firebaseConfig));
+const E = window;
+
+const ADMIN_EMAILS = ['wachangngoen95@gmail.com'];
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeId = (id) => id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+function loadUser() { try { return JSON.parse(localStorage.getItem('rukthai_current_user')) || null; } catch (e) { return null; } }
+const currentUser = loadUser();
+const mySid = currentUser ? safeId(currentUser.id || currentUser.email) : null;
+const isAdmin = !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
+
+const level = parseInt(new URLSearchParams(location.search).get('level'), 10);
+let tactic = null, solution = [], startBoard = null, startTurn = 'w';
+let stepIndex = 0, sel = null, selLegal = [], locked = false, solved = false;
+
+function parseRows(fb) {
+  if (!Array.isArray(fb) || fb.length !== 8) return Array.from({ length: 8 }, () => Array(8).fill(null));
+  return fb.map(row => String(row).split(',').map(x => x || null));
+}
+function boardAt(n) {
+  let b = E.cloneBoard(startBoard);
+  for (let i = 0; i < n; i++) {
+    const s = solution[i];
+    const piece = b[s.from[0]][s.from[1]];
+    b[s.to[0]][s.to[1]] = E.promoteIfNeeded(piece, s.to[0]);
+    b[s.from[0]][s.from[1]] = null;
+  }
+  return b;
+}
+function sideToMove() {
+  const exp = solution[stepIndex];
+  if (!exp) return startTurn;
+  const b = boardAt(stepIndex);
+  return E.colorOf(b[exp.from[0]][exp.from[1]]) || startTurn;
+}
+
+function renderBoardEl() {
+  const el = document.getElementById('lb-board'); if (!el) return;
+  const board = boardAt(stepIndex);
+  const lastMove = stepIndex > 0 ? solution[stepIndex - 1] : null;
+  let html = '';
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const p = board[r][c];
+    const isLast = lastMove && ((lastMove.from[0] === r && lastMove.from[1] === c) || (lastMove.to[0] === r && lastMove.to[1] === c));
+    const isSel = sel && sel.r === r && sel.c === c;
+    const legal = selLegal.find(m => m.to.row === r && m.to.col === c);
+    const cls = [isLast ? 'last' : '', isSel ? 'sel' : '', legal ? (p ? 'cap' : 'legal') : ''].filter(Boolean).join(' ');
+    html += `<div class="lb-cell ${cls}" data-r="${r}" data-c="${c}">${p ? `<img src="../Pieces/${p}.png" alt="">` : ''}</div>`;
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.lb-cell').forEach(cell => cell.addEventListener('click', () => onCell(+cell.dataset.r, +cell.dataset.c)));
+}
+
+function setStatus(text, cls) {
+  const el = document.getElementById('tactic-status');
+  el.textContent = text; el.className = 'tactic-status show ' + cls;
+  clearTimeout(setStatus._t); setStatus._t = setTimeout(() => { el.className = 'tactic-status'; }, 2200);
+}
+function updateTurnLabel() {
+  const t = document.getElementById('tactic-turn'); if (!t) return;
+  if (solved) { t.textContent = 'แก้สำเร็จ! ✓'; return; }
+  t.textContent = `เดินตาที่ ${stepIndex + 1} / ${solution.length} — ฝ่าย${sideToMove() === 'w' ? 'ขาว' : 'ดำ'}`;
+}
+
+function onCell(r, c) {
+  if (locked || solved) return;
+  const board = boardAt(stepIndex);
+  const expected = solution[stepIndex];
+  if (sel) {
+    const legal = selLegal.find(m => m.to.row === r && m.to.col === c);
+    if (legal) {
+      if (expected && sel.r === expected.from[0] && sel.c === expected.from[1] && r === expected.to[0] && c === expected.to[1]) {
+        stepIndex++; sel = null; selLegal = []; renderBoardEl(); updateTurnLabel();
+        if (stepIndex >= solution.length) { onSolved(); return; }
+        setStatus('ถูกต้อง! เดินตาต่อไป', 'ok');
+      } else {
+        sel = null; selLegal = []; renderBoardEl();
+        setStatus('ยังไม่ใช่ตาที่ถูกต้อง ลองใหม่อีกครั้ง', 'wrong');
+      }
+      return;
+    }
+  }
+  const p = board[r][c];
+  if (p && E.colorOf(p) === sideToMove()) { sel = { r, c }; selLegal = E.getLegalMoves(board, r, c); }
+  else { sel = null; selLegal = []; }
+  renderBoardEl();
+}
+
+async function onSolved() {
+  solved = true; locked = false; sel = null; selLegal = [];
+  updateTurnLabel(); renderBoardEl();
+  const box = document.getElementById('tactic-solved-box');
+  const hasNext = level < 100;
+  box.innerHTML = `<div class="big">🎉 แก้สำเร็จ!</div>
+    <div class="tactic-sub">${mySid ? 'ปลดล็อกด่านถัดไปแล้ว' : 'เข้าสู่ระบบเพื่อบันทึกความคืบหน้า'}</div>
+    <div class="tactic-actions">
+      ${hasNext ? `<button class="primary" id="t-next">ด่านถัดไป →</button>` : ''}
+      <button id="t-back">ดูด่านทั้งหมด</button>
+    </div>`;
+  box.classList.add('show');
+  const nx = document.getElementById('t-next');
+  if (nx) nx.addEventListener('click', () => { location.href = `tactic.html?level=${level + 1}`; });
+  document.getElementById('t-back').addEventListener('click', () => { location.href = 'learn.html#tactics'; });
+  if (mySid) { try { await set(ref(db, `tactic_progress/${mySid}/${level}`), true); } catch (e) {} }
+}
+
+function resetPuzzle() {
+  stepIndex = 0; sel = null; selLegal = []; locked = false; solved = false;
+  document.getElementById('tactic-solved-box').classList.remove('show');
+  renderBoardEl(); updateTurnLabel();
+}
+
+function render(t) {
+  const wrap = document.getElementById('tactic-content');
+  if (!t || !t.startBoard || !Array.isArray(t.solution) || !t.solution.length) {
+    wrap.innerHTML = `<div class="lesson-missing">ด่าน ${isNaN(level) ? '' : level} ยังไม่มีโจทย์</div>`; return;
+  }
+  tactic = t; solution = t.solution; startBoard = parseRows(t.startBoard); startTurn = t.startTurn || 'w';
+  stepIndex = 0; sel = null; selLegal = []; locked = false; solved = false;
+  const myMoves = solution.length;
+  const adminBar = isAdmin ? `<div class="admin-bar"><button class="del" id="t-del">🗑 ลบโจทย์ด่านนี้</button></div>` : '';
+  wrap.innerHTML = `
+    ${adminBar}
+    <div class="lesson-head">
+      <h1>${esc(t.title || 'โจทย์ชั้นเชิง')}</h1>
+      <div class="meta"><span class="tactic-badge">ด่าน ${level}</span><span>·</span><span>${myMoves} ตาที่ต้องเดินให้ถูก</span></div>
+    </div>
+    <div class="lesson-layout">
+      <div class="lesson-board-col">
+        <div class="lb-layout">
+          <div class="lb-coords-left"><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+          <div class="lb-board" id="lb-board"></div>
+          <div class="lb-coords-bottom"><span>ก</span><span>ข</span><span>ค</span><span>ง</span><span>จ</span><span>ฉ</span><span>ช</span><span>ซ</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="tactic-panel">
+          <div class="tactic-turn" id="tactic-turn"></div>
+          <div class="tactic-sub">เดินหมากให้ถูกตามเฉลยทุกตา แก้ครบทุกตาเพื่อผ่านด่าน</div>
+          <div class="tactic-status" id="tactic-status"></div>
+          <div class="tactic-retry"><button id="t-retry">↺ เริ่มด่านนี้ใหม่</button></div>
+        </div>
+        <div class="tactic-solved-box" id="tactic-solved-box"></div>
+      </div>
+    </div>`;
+  document.getElementById('t-retry').addEventListener('click', resetPuzzle);
+  const del = document.getElementById('t-del');
+  if (del) del.addEventListener('click', async () => {
+    if (!confirm(`ลบโจทย์ด่าน ${level}?`)) return;
+    try { await remove(ref(db, `tactics/${level}`)); location.href = 'learn.html#tactics'; } catch (e) { alert('ลบไม่สำเร็จ'); }
+  });
+  renderBoardEl(); updateTurnLabel();
+}
+
+if (isNaN(level) || level < 1 || level > 100) {
+  document.getElementById('tactic-content').innerHTML = '<div class="lesson-missing">ด่านไม่ถูกต้อง</div>';
+} else {
+  onValue(ref(db, `tactics/${level}`), (snap) => render(snap.val()),
+    (err) => { document.getElementById('tactic-content').innerHTML = `<div class="lesson-missing">โหลดด่านไม่ได้: ${esc(err.code || '')}</div>`; });
+}
+</script>
+</body>
+</html>

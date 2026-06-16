@@ -61,6 +61,24 @@
   }
   .coming-soon .cs-ico { font-size: 2.4rem; margin-bottom: 10px; }
 
+  /* ── ชั้นเชิง (100 ด่าน) ── */
+  .tactics-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tactics-progress { color: var(--muted); font-size: 0.9rem; }
+  .tactics-progress b { color: var(--gold); }
+  .btn-admin-tactic { background: transparent; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); color: var(--text); height: 40px; padding: 0 16px; border-radius: var(--r-md,12px); font-weight: 600; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); display: none; }
+  .btn-admin-tactic.on { background: var(--gold); color: #1a1305; border-color: var(--gold); }
+  .tactics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 10px; }
+  .tactic-box { aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; cursor: pointer; border: 1px solid var(--border); background: var(--bg2); color: var(--text); position: relative; transition: transform 0.12s, box-shadow 0.12s; user-select: none; }
+  .tactic-box .tb-sub { font-size: 0.6rem; font-weight: 500; opacity: 0.7; margin-top: 2px; }
+  .tactic-box.locked { background: var(--bg2); color: var(--muted); opacity: 0.5; cursor: not-allowed; }
+  .tactic-box.open { border-color: var(--gold); }
+  .tactic-box.open:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  .tactic-box.solved { background: linear-gradient(145deg, #2e7d52, #245f40); color: #fff; border-color: #3a9968; }
+  .tactic-box.solved::after { content: '✓'; position: absolute; top: 4px; right: 6px; font-size: 0.7rem; }
+  .tactic-box.empty { border-style: dashed; color: var(--muted); }
+  .tactic-box.admin-has { box-shadow: inset 0 0 0 2px var(--gold-soft); }
+  .tactic-box .tb-lock { font-size: 0.9rem; }
+
   /* ── บทเรียน ── */
   .lessons-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
   .lesson-cat { margin-bottom: 26px; }
@@ -149,7 +167,6 @@
                 <span class="nav-trigger" tabindex="0">เรียนรู้ <span class="nav-caret">▾</span></span>
                 <div class="nav-dropdown-menu">
                     <a href="#lessons"  data-tab="lessons"><span class="dd-ico">📖</span> บทเรียน</a>
-                    <a href="#strategy" data-tab="strategy"><span class="dd-ico">♟</span> กลยุทธ์</a>
                     <a href="#tactics"  data-tab="tactics"><span class="dd-ico">⚡</span> ชั้นเชิง</a>
                     <a href="#courses"  data-tab="courses"><span class="dd-ico">🎓</span> คอร์ส</a>
                 </div>
@@ -178,16 +195,14 @@
       <div id="lessons-container"><div class="lesson-empty">กำลังโหลด…</div></div>
     </section>
 
-    <!-- กลยุทธ์ -->
-    <section class="learn-view" id="view-strategy">
-      <div class="view-head"><h1>♟ กลยุทธ์</h1><p>แนวคิดการวางแผนระยะยาว การคุมกระดาน และการได้เปรียบ</p></div>
-      <div class="coming-soon"><div class="cs-ico">♟</div>ระบบกลยุทธ์กำลังพัฒนา — เร็ว ๆ นี้</div>
-    </section>
-
     <!-- ชั้นเชิง -->
     <section class="learn-view" id="view-tactics">
-      <div class="view-head"><h1>⚡ ชั้นเชิง</h1><p>ลวดลายการจู่โจม การหลอกล่อ และโจทย์ฝึกไหวพริบ</p></div>
-      <div class="coming-soon"><div class="cs-ico">⚡</div>ระบบชั้นเชิงกำลังพัฒนา — เร็ว ๆ นี้</div>
+      <div class="view-head"><h1>⚡ ชั้นเชิง</h1><p>โจทย์ฝึกไหวพริบ 100 ด่าน — แก้ถูกเพื่อปลดล็อกด่านถัดไป</p></div>
+      <div class="tactics-toolbar">
+        <div class="tactics-progress" id="tactics-progress"></div>
+        <button class="btn-admin-tactic" id="btn-admin-tactic">🛠 โหมดสร้างโจทย์</button>
+      </div>
+      <div class="tactics-grid" id="tactics-grid"></div>
     </section>
 
     <!-- คอร์ส -->
@@ -202,7 +217,7 @@
 <!-- เครื่องมือสร้างบทเรียน (แอดมิน) -->
 <div class="lesson-editor-overlay" id="lesson-editor-overlay">
   <div class="lesson-editor">
-    <h2>สร้างบทเรียน</h2>
+    <h2 id="le-h2">สร้างบทเรียน</h2>
     <div class="le-top">
       <input type="text" id="le-title" maxlength="80" placeholder="ชื่อบทเรียน เช่น การเดินของเรือ">
       <select id="le-category">
@@ -296,7 +311,7 @@ const mySid = currentUser ? safeId(currentUser.id || currentUser.email) : null;
 const isAdmin = !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
 
 // ───── Tab routing ─────
-const TABS = ['lessons', 'strategy', 'tactics', 'courses'];
+const TABS = ['lessons', 'tactics', 'courses'];
 function showTab(tab) {
   if (!TABS.includes(tab)) tab = 'lessons';
   TABS.forEach(t => document.getElementById('view-' + t).classList.toggle('active', t === tab));
@@ -343,6 +358,7 @@ const E = window; // engine globals จาก game.js
 const EMPTY_BOARD = () => Array.from({ length: 8 }, () => Array(8).fill(null));
 let editMode = 'record';      // 'setup' | 'record'
 let setupTool = null;         // รหัสหมาก หรือ 'erase'
+let freeTurn = false;         // tactic: กำหนดเฉลยได้อิสระ ไม่บังคับสลับตา
 let startBoard = E.cloneBoard(E.INITIAL_BOARD);   // ตำแหน่งเริ่มของบทเรียน
 let startTurn = 'w';
 let authBoard = E.cloneBoard(E.INITIAL_BOARD);
@@ -356,6 +372,7 @@ function renderAuthBoard() {
   const el = document.getElementById('le-board');
   const turnEl = document.getElementById('le-turn');
   if (editMode === 'setup') turnEl.textContent = 'โหมดตั้งกระดาน — เลือกหมากแล้วคลิกวางบนกระดาน';
+  else if (freeTurn) turnEl.textContent = 'กำหนดเฉลย — คลิกหมากแล้วเดินตาที่ถูกต้อง (เดินได้หลายตา)';
   else turnEl.textContent = 'ตาเดิน: ' + (turnColor() === 'w' ? 'ขาว' : 'ดำ');
   let html = '';
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
@@ -388,7 +405,7 @@ function onCell(r, c) {
     return;
   }
   const p = authBoard[r][c];
-  if (p && E.colorOf(p) === turnColor()) {
+  if (p && (freeTurn || E.colorOf(p) === turnColor())) {
     authSel = { r, c };
     authLegal = E.getLegalMoves(authBoard, r, c);
   } else { authSel = null; authLegal = []; }
@@ -418,8 +435,16 @@ function renderSteps() {
 }
 
 const leOverlay = document.getElementById('lesson-editor-overlay');
+let editorTarget = 'lesson';   // 'lesson' | 'tactic'
+let editorLevel = 0;
+
 function openLessonEditor() {
   if (!isAdmin) return;
+  editorTarget = 'lesson'; editorLevel = 0;
+  freeTurn = false;
+  document.getElementById('le-h2').textContent = 'สร้างบทเรียน';
+  document.getElementById('le-category').style.display = '';
+  document.getElementById('le-title').placeholder = 'ชื่อบทเรียน เช่น การเดินของเรือ';
   document.getElementById('le-title').value = '';
   document.getElementById('le-category').value = 'rules';
   document.getElementById('le-msg').textContent = '';
@@ -501,23 +526,30 @@ document.getElementById('le-save').addEventListener('click', async () => {
   const msg = document.getElementById('le-msg');
   if (!isAdmin) { msg.textContent = 'เฉพาะแอดมินเท่านั้น'; return; }
   const title = document.getElementById('le-title').value.trim();
-  if (!title) { msg.textContent = 'กรุณาใส่ชื่อบทเรียน'; return; }
   if (editMode === 'setup') { msg.textContent = 'กรุณากด "บันทึกตาเดิน" เพื่อเริ่มเดินหมากก่อนบันทึก'; return; }
   if (!authSteps.length) { msg.textContent = 'กรุณาเดินหมากอย่างน้อย 1 ขั้น'; return; }
-  msg.textContent = 'กำลังบันทึก…';
-  // เก็บ startBoard เป็นแถวสตริง (RTDB ไม่เก็บ null ในอาเรย์)
   const startRows = startBoard.map(row => row.map(c => c || '').join(','));
+  msg.textContent = 'กำลังบันทึก…';
   try {
-    await set(push(ref(db, 'lessons')), {
-      title,
-      category: document.getElementById('le-category').value,
-      startBoard: startRows,
-      startTurn,
-      steps: authSteps,
-      authorUid: mySid,
-      authorName: currentUser.name || currentUser.email || 'ทีมงาน',
-      createdAt: serverTimestamp()
-    });
+    if (editorTarget === 'tactic') {
+      await set(ref(db, `tactics/${editorLevel}`), {
+        level: editorLevel,
+        title: title || `ด่าน ${editorLevel}`,
+        startBoard: startRows,
+        startTurn,
+        solution: authSteps,
+        authorName: currentUser.name || currentUser.email || 'ทีมงาน',
+        createdAt: serverTimestamp()
+      });
+    } else {
+      if (!title) { msg.textContent = 'กรุณาใส่ชื่อบทเรียน'; return; }
+      await set(push(ref(db, 'lessons')), {
+        title, category: document.getElementById('le-category').value,
+        startBoard: startRows, startTurn, steps: authSteps,
+        authorUid: mySid, authorName: currentUser.name || currentUser.email || 'ทีมงาน',
+        createdAt: serverTimestamp()
+      });
+    }
     closeLessonEditor();
   } catch (e) { msg.textContent = 'บันทึกไม่สำเร็จ'; }
 });
@@ -525,6 +557,118 @@ document.getElementById('le-save').addEventListener('click', async () => {
 // ฟังรายการบทเรียน
 onValue(ref(db, 'lessons'), (snap) => renderLessons(snap.val() || {}),
   (err) => { document.getElementById('lessons-container').innerHTML = '<div class="lesson-empty">โหลดบทเรียนไม่ได้ (เช็ค Rules: lessons)</div>'; });
+
+// ═══════════════════════════════════════════
+//   ชั้นเชิง — 100 ด่าน ปลดล็อกทีละด่าน
+// ═══════════════════════════════════════════
+const TOTAL_LEVELS = 100;
+let tacticsData = {};
+let tacticProgress = {};
+let adminTacticMode = false;
+
+function openTacticEditor(level, existing) {
+  if (!isAdmin) return;
+  editorTarget = 'tactic'; editorLevel = level;
+  freeTurn = true;
+  document.getElementById('le-h2').textContent = `สร้างโจทย์ — ด่าน ${level}`;
+  document.getElementById('le-category').style.display = 'none';
+  document.getElementById('le-title').placeholder = 'ชื่อโจทย์ (ไม่บังคับ)';
+  document.getElementById('le-msg').textContent = '';
+  document.querySelectorAll('.le-pal-btn, .le-pal-act').forEach(b => b.classList.remove('sel'));
+  if (existing) {
+    // แก้ไขโจทย์เดิม: โหลดตำแหน่ง + เฉลย
+    document.getElementById('le-title').value = existing.title || '';
+    startBoard = parseRows(existing.startBoard);
+    startTurn = existing.startTurn || 'w';
+    authSteps = Array.isArray(existing.solution) ? existing.solution.map(s => ({ from: s.from, to: s.to, text: s.text || '' })) : [];
+    editMode = 'record'; setupTool = null;
+    authBoard = E.cloneBoard(startBoard); authSel = null; authLegal = []; rebuildFromSteps();
+    document.getElementById('le-startturn').value = startTurn;
+    document.getElementById('le-palette').style.display = 'none';
+    document.getElementById('le-startturn-wrap').style.display = 'none';
+    document.getElementById('mode-setup').classList.remove('on');
+    document.getElementById('mode-record').classList.add('on');
+  } else {
+    // โจทย์ใหม่: เริ่มโหมดตั้งกระดานด้วยกระดานว่าง
+    document.getElementById('le-title').value = '';
+    startTurn = 'w'; startBoard = EMPTY_BOARD(); authBoard = EMPTY_BOARD();
+    authSteps = []; authSel = null; authLegal = []; setupTool = null;
+    editMode = 'setup';
+    document.getElementById('le-startturn').value = 'w';
+    document.getElementById('le-palette').style.display = 'flex';
+    document.getElementById('le-startturn-wrap').style.display = 'inline-flex';
+    document.getElementById('mode-setup').classList.add('on');
+    document.getElementById('mode-record').classList.remove('on');
+  }
+  renderAuthBoard(); renderSteps();
+  leOverlay.classList.add('open');
+}
+
+function parseRows(fb) {
+  if (!Array.isArray(fb) || fb.length !== 8) return EMPTY_BOARD();
+  return fb.map(row => String(row).split(',').map(x => x || null));
+}
+
+function highestUnlocked() {
+  let n = 1;
+  while (n < TOTAL_LEVELS && tacticProgress[n]) n++;
+  return n;  // ด่านแรกที่ยังไม่ผ่าน (= ปลดล็อกถึงด่านนี้)
+}
+
+function renderTactics() {
+  const grid = document.getElementById('tactics-grid');
+  const unlocked = highestUnlocked();
+  const solvedCount = Object.keys(tacticProgress).filter(k => tacticProgress[k]).length;
+  const withPuzzle = Object.keys(tacticsData).length;
+  document.getElementById('tactics-progress').innerHTML =
+    adminTacticMode ? `โหมดแอดมิน — มีโจทย์ <b>${withPuzzle}</b>/${TOTAL_LEVELS} ด่าน (คลิกด่านเพื่อสร้าง/แก้)`
+    : `แก้แล้ว <b>${solvedCount}</b> ด่าน · ปลดล็อกถึงด่าน <b>${unlocked}</b>`;
+
+  let html = '';
+  for (let n = 1; n <= TOTAL_LEVELS; n++) {
+    const exists = !!tacticsData[n];
+    const solved = !!tacticProgress[n];
+    const isUnlocked = n <= unlocked;
+    if (adminTacticMode) {
+      html += `<div class="tactic-box open ${exists ? 'admin-has' : 'empty'}" data-level="${n}">${n}<span class="tb-sub">${exists ? 'มีโจทย์' : 'ว่าง'}</span></div>`;
+    } else if (solved) {
+      html += `<div class="tactic-box solved" data-level="${n}" data-act="solve">${n}</div>`;
+    } else if (isUnlocked) {
+      html += `<div class="tactic-box ${exists ? 'open' : 'open empty'}" data-level="${n}" data-act="${exists ? 'solve' : 'none'}">${n}${exists ? '' : '<span class="tb-sub">ว่าง</span>'}</div>`;
+    } else {
+      html += `<div class="tactic-box locked" data-level="${n}"><span class="tb-lock">🔒</span></div>`;
+    }
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('.tactic-box').forEach(box => box.addEventListener('click', () => {
+    const n = +box.dataset.level;
+    if (adminTacticMode) { openTacticEditor(n, tacticsData[n]); return; }
+    if (box.classList.contains('locked')) { toast('ปลดล็อกด่านก่อนหน้าก่อนนะ'); return; }
+    if (box.dataset.act === 'solve') { location.href = `tactic.html?level=${n}`; }
+    else { toast('ด่านนี้ยังไม่มีโจทย์'); }
+  }));
+}
+
+let toastTimer;
+function toast(text) {
+  let el = document.getElementById('learn-toast');
+  if (!el) { el = document.createElement('div'); el.id = 'learn-toast';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:10px;box-shadow:var(--shadow-2);z-index:9999;font-size:0.9rem;';
+    document.body.appendChild(el); }
+  el.textContent = text; el.style.opacity = '1';
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
+}
+
+if (isAdmin) {
+  const btn = document.getElementById('btn-admin-tactic');
+  btn.style.display = 'inline-block';
+  btn.addEventListener('click', () => { adminTacticMode = !adminTacticMode; btn.classList.toggle('on', adminTacticMode); renderTactics(); });
+}
+
+onValue(ref(db, 'tactics'), (snap) => { tacticsData = snap.val() || {}; renderTactics(); },
+  () => { document.getElementById('tactics-grid').innerHTML = '<div class="lesson-empty">โหลดด่านไม่ได้ (เช็ค Rules: tactics)</div>'; });
+if (mySid) onValue(ref(db, `tactic_progress/${mySid}`), (snap) => { tacticProgress = snap.val() || {}; renderTactics(); });
+else renderTactics();
 </script>
 </body>
 </html>
