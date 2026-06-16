@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
-<link rel="stylesheet" href="../theme-refresh.css">
 <script type="module" src="../auth.js"></script>
 <style>
   /* ── Profile Page Overrides ── */
@@ -809,6 +808,14 @@
       </div>
     </div>
 
+    <!-- ซุ้มที่ผู้เล่นอยู่ -->
+    <div class="clubs-section" id="profile-clubs-section" style="margin-top:18px;">
+      <p class="section-title">🏛 ซุ้มที่เข้าร่วม</p>
+      <div id="profile-clubs-list" style="display:flex; flex-direction:column; gap:10px;">
+        <div style="color:var(--muted); font-size:0.88rem;">กำลังโหลด…</div>
+      </div>
+    </div>
+
     <!-- ประวัติการเล่นด้วยกัน (แสดงเฉพาะตอนดูโปรไฟล์คนอื่น) -->
     <div class="h2h-section hidden" id="h2h-section">
       <p class="section-title">ประวัติการเล่นด้วยกัน</p>
@@ -905,11 +912,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (isViewingOther) {
     await initViewOtherProfile(getSafeId(viewUserId), current, mySafeUid);
+    renderUserClubs(getSafeId(viewUserId));
   } else {
     if (!current) return;
     await initOwnProfile(current, mySafeUid);
+    if (mySafeUid) renderUserClubs(mySafeUid);
   }
 });
+
+// ── แสดงซุ้มที่ผู้เล่นเป็นสมาชิก ──
+async function renderUserClubs(targetSafeId) {
+  const listEl = document.getElementById('profile-clubs-list');
+  if (!listEl || !targetSafeId) return;
+  try {
+    const snap = await get(ref(db, 'clubs'));
+    const clubs = snap.val() || {};
+    const mine = Object.entries(clubs).filter(([id, c]) => c.members && c.members[targetSafeId]);
+    if (!mine.length) { listEl.innerHTML = '<div style="color:var(--muted); font-size:0.88rem;">ยังไม่ได้เข้าร่วมซุ้มใด</div>'; return; }
+    const roleLabel = { owner: '👑 เจ้าของ', admin: '⭐ แอดมิน', member: 'สมาชิก' };
+    const escp = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    listEl.innerHTML = mine.map(([id, c]) => {
+      const lg = c.logo || c.image || '';
+      const logo = lg ? `<img src="${escp(lg)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : escp(String(c.name || '?').charAt(0).toUpperCase());
+      const role = c.members[targetSafeId].role;
+      return `<a href="club.html?id=${encodeURIComponent(id)}" style="display:flex; align-items:center; gap:12px; padding:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg2); text-decoration:none;">
+        <div style="width:42px;height:42px;border-radius:10px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#7a5230,#c8a24a);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">${logo}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:var(--text);">${escp(c.name || 'ซุ้ม')}</div>
+          <div style="font-size:0.78rem;color:var(--muted);">${roleLabel[role] || 'สมาชิก'} · 👥 ${c.members ? Object.keys(c.members).length : 0} คน</div>
+        </div>
+        <span style="color:var(--muted);">›</span>
+      </a>`;
+    }).join('');
+  } catch (e) {
+    listEl.innerHTML = '<div style="color:var(--muted); font-size:0.88rem;">โหลดซุ้มไม่ได้</div>';
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 //   โหมด: ดูโปรไฟล์ของผู้เล่นคนอื่น (อ่านอย่างเดียว)

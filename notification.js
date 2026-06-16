@@ -1,61 +1,69 @@
-﻿const STORAGE_NOTIFICATIONS_KEY = "rukthai_notifications";
+﻿// ═══════════════════════════════════════════════
+//   notification.js — แจ้งเตือน (ผูก Firebase RTDB)
+//   path: notifications/{safeUid}/{pushId}
+//     = { type, title, message, link, ts, read }
+// ═══════════════════════════════════════════════
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const safeId = (id) => id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+function loadUser() { try { return JSON.parse(localStorage.getItem('rukthai_current_user')) || null; } catch (e) { return null; } }
+const currentUser = loadUser();
+const mySid = currentUser ? safeId(currentUser.id || currentUser.email) : null;
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 let notificationWrapper = null;
+let notifCache = [];
 
-const DEFAULT_NOTIFICATIONS = [
-  { id: "1", title: "คำเชิญใหม่", message: "คุณได้รับคำขอเป็นเพื่อนใหม่", read: false, time: "2 นาทีที่แล้ว" },
-  { id: "2", title: "ข่าวสาร", message: "มีบทความใหม่ในชุมชนของคุณ", read: false, time: "1 ชั่วโมงที่แล้ว" },
-];
-
-function loadNotifications() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_NOTIFICATIONS_KEY));
-    return Array.isArray(stored) ? stored : DEFAULT_NOTIFICATIONS.slice();
-  } catch (error) {
-    return DEFAULT_NOTIFICATIONS.slice();
-  }
+function timeAgo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'เมื่อสักครู่';
+  if (m < 60) return `${m} นาทีที่แล้ว`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} ชั่วโมงที่แล้ว`;
+  return `${Math.floor(h / 24)} วันที่แล้ว`;
 }
 
-function saveNotifications(notifications) {
-  localStorage.setItem(STORAGE_NOTIFICATIONS_KEY, JSON.stringify(notifications));
-}
-
-function getUnreadCount() {
-  return loadNotifications().filter((notification) => !notification.read).length;
-}
-
+function getUnreadCount() { return notifCache.filter(n => !n.read).length; }
 function refreshNotificationDot() {
   if (!notificationWrapper) return;
   const dot = notificationWrapper.querySelector(".notif-dot");
-  if (!dot) return;
-  dot.style.display = getUnreadCount() > 0 ? "block" : "none";
+  if (dot) dot.style.display = getUnreadCount() > 0 ? "block" : "none";
 }
 
 function renderNotificationList() {
   if (!notificationWrapper) return;
   const listContainer = notificationWrapper.querySelector(".notification-list");
-  const notifications = loadNotifications();
-  listContainer.innerHTML = "";
-
-  if (!notifications.length) {
+  if (!listContainer) return;
+  if (!notifCache.length) {
     listContainer.innerHTML = `<div class="notification-empty">ยังไม่มีการแจ้งเตือน</div>`;
     return;
   }
-
-  notifications.forEach((notification) => {
-    const item = document.createElement("div");
-    item.className = `notification-item ${notification.read ? "read" : "unread"}`;
-    item.innerHTML = `
+  listContainer.innerHTML = notifCache.map(n => `
+    <div class="notification-item ${n.read ? "read" : "unread"}" ${n.link ? `data-link="${esc(n.link)}"` : ''} data-id="${esc(n.id)}" style="${n.link ? 'cursor:pointer;' : ''}">
       <div class="notification-header">
         <div>
-          <div class="notification-title">${notification.title}</div>
-          <div class="notification-time">${notification.time}</div>
+          <div class="notification-title">${esc(n.title || 'การแจ้งเตือน')}</div>
+          <div class="notification-time">${timeAgo(n.ts)}</div>
         </div>
-        <button type="button" class="notification-mark" data-action="toggle-read" data-id="${notification.id}">${notification.read ? "อ่านแล้ว" : "ทำเครื่องหมายว่าอ่านแล้ว"}</button>
+        <button type="button" class="notification-mark" data-action="toggle-read" data-id="${esc(n.id)}">${n.read ? "อ่านแล้ว" : "ทำว่าอ่านแล้ว"}</button>
       </div>
-      <p class="notification-message">${notification.message}</p>
-    `;
-    listContainer.appendChild(item);
-  });
+      <p class="notification-message">${esc(n.message || '')}</p>
+    </div>`).join('');
 }
 
 function closeNotificationDropdown() {
@@ -73,12 +81,7 @@ function toggleNotificationDropdown() {
   const dropdown = notificationWrapper.querySelector(".profile-dropdown");
   if (!dropdown) return;
   const isHidden = dropdown.classList.contains("hidden");
-
-  document.querySelectorAll(".profile-dropdown").forEach((menu) => {
-    menu.classList.add("hidden");
-    menu.style.display = "";
-  });
-
+  document.querySelectorAll(".profile-dropdown").forEach((menu) => { menu.classList.add("hidden"); menu.style.display = ""; });
   if (isHidden) {
     renderNotificationList();
     refreshNotificationDot();
@@ -90,52 +93,51 @@ function toggleNotificationDropdown() {
   }
 }
 
+function markRead(id) { if (mySid && id) update(ref(db, `notifications/${mySid}/${id}`), { read: true }).catch(() => {}); }
+
 function handleNotificationActionClick(event) {
   event.stopPropagation();
   const button = event.target.closest("button[data-action]");
   if (!button) return;
   const action = button.dataset.action;
-
-  if (action === "mark-all") {
-    const notifications = loadNotifications().map((notification) => ({ ...notification, read: true }));
-    saveNotifications(notifications);
-    renderNotificationList();
-    refreshNotificationDot();
+  if (action === "mark-all" && mySid) {
+    notifCache.filter(n => !n.read).forEach(n => markRead(n.id));
   }
-
-  if (action === "clear-all") {
-    saveNotifications([]);
-    renderNotificationList();
-    refreshNotificationDot();
+  if (action === "clear-all" && mySid) {
+    remove(ref(db, `notifications/${mySid}`)).catch(() => {});
   }
 }
 
 function handleNotificationListClick(event) {
-  event.stopPropagation();
-  const button = event.target.closest("button[data-action]");
-  if (!button) return;
+  const markBtn = event.target.closest('button[data-action="toggle-read"]');
+  if (markBtn) {
+    event.stopPropagation();
+    markRead(markBtn.dataset.id);
+    return;
+  }
+  // คลิกตัวการแจ้งเตือน → ทำว่าอ่านแล้ว + ไปยังลิงก์
+  const item = event.target.closest('.notification-item[data-link]');
+  if (item) {
+    event.stopPropagation();
+    markRead(item.dataset.id);
+    location.href = item.dataset.link;
+  }
+}
 
-  const action = button.dataset.action;
-  const id = button.dataset.id;
-  if (action !== "toggle-read" || !id) return;
-
-  const notifications = loadNotifications().map((notification) => {
-    if (notification.id === id) {
-      return { ...notification, read: true };
-    }
-    return notification;
-  });
-
-  saveNotifications(notifications);
-  renderNotificationList();
-  refreshNotificationDot();
+function subscribeNotifications() {
+  if (!mySid) { notifCache = []; renderNotificationList(); refreshNotificationDot(); return; }
+  onValue(ref(db, `notifications/${mySid}`), (snap) => {
+    notifCache = [];
+    snap.forEach(ch => { const v = ch.val(); notifCache.push({ id: ch.key, ...v }); });
+    notifCache.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    if (notifCache.length > 50) notifCache = notifCache.slice(0, 50);
+    renderNotificationList();
+    refreshNotificationDot();
+  }, () => {});
 }
 
 export function createNotificationButton() {
-  if (notificationWrapper) {
-    return notificationWrapper;
-  }
-
+  if (notificationWrapper) return notificationWrapper;
   notificationWrapper = document.createElement("div");
   notificationWrapper.className = "profile-menu notification-menu";
   notificationWrapper.style.position = "relative";
@@ -156,36 +158,21 @@ export function createNotificationButton() {
       </div>
       <div class="profile-dropdown-items">
         <div class="notification-actions">
-          <button type="button" class="notification-action-btn" data-action="mark-all">ทำเครื่องหมายทั้งหมดว่าอ่านแล้ว</button>
+          <button type="button" class="notification-action-btn" data-action="mark-all">ทำว่าอ่านแล้วทั้งหมด</button>
           <button type="button" class="notification-action-btn" data-action="clear-all">ล้างการแจ้งเตือน</button>
         </div>
         <div class="notification-list"></div>
       </div>
     </div>
   `;
-
   const button = notificationWrapper.querySelector(".topbar-icon-btn");
-  button.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    toggleNotificationDropdown();
-  });
-
-  notificationWrapper.addEventListener("click", (event) => {
-    event.stopPropagation();
-  });
-
-  // Close all dropdowns when clicking outside
-  document.addEventListener("click", (event) => {
-    // Only close if we're not clicking inside any profile-menu
-    if (!event.target.closest(".profile-menu")) {
-      closeNotificationDropdown();
-    }
-  });
-
+  button.addEventListener("click", (event) => { event.preventDefault(); event.stopPropagation(); toggleNotificationDropdown(); });
+  notificationWrapper.addEventListener("click", (event) => { event.stopPropagation(); });
+  document.addEventListener("click", (event) => { if (!event.target.closest(".profile-menu")) closeNotificationDropdown(); });
   notificationWrapper.querySelector(".notification-actions").addEventListener("click", handleNotificationActionClick);
   notificationWrapper.querySelector(".notification-list").addEventListener("click", handleNotificationListClick);
 
+  subscribeNotifications();
   refreshNotificationDot();
   return notificationWrapper;
 }

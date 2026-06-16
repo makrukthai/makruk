@@ -86,7 +86,59 @@
     background: var(--gold-soft); border: 1px solid var(--gold); color: var(--gold);
     border-radius: var(--r-md, 12px); padding: 10px 14px; margin-bottom: 16px; font-size: 0.9rem; font-weight: 600;
   }
+  .btn-edit-club {
+    background: transparent; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); color: var(--text);
+    height: 42px; padding: 0 16px; border-radius: var(--r-md,12px); font-weight: 600; cursor: pointer;
+    font-family: var(--font-ui,'Noto Sans Thai',sans-serif); margin-right: 8px;
+  }
+  .btn-edit-club:hover { border-color: var(--gold); background: var(--gold-soft); }
+  .edit-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; padding: 20px; }
+  .edit-overlay.open { display: flex; }
+  .edit-modal { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-lg,16px); width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; padding: 22px; box-shadow: var(--shadow-2); }
+  .edit-modal h2 { margin: 0 0 16px; font-size: 1.2rem; }
+  .edit-field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .edit-field label { font-size: 0.85rem; font-weight: 600; }
+  .edit-field input[type="text"], .edit-field textarea { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.92rem; }
+  .edit-field textarea { resize: vertical; min-height: 70px; }
+  .edit-img-row { display: flex; align-items: center; gap: 10px; }
+  .edit-img-preview { background: var(--surface); background-size: cover; background-position: center; border: 1px solid var(--border); flex-shrink: 0; }
+  .edit-actions { display: flex; gap: 10px; margin-top: 8px; }
+  .edit-actions button { flex: 1; height: 44px; border-radius: 10px; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .edit-cancel { background: transparent; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); color: var(--text); }
+  .edit-save { background: var(--gold); border: none; color: #1a1305; }
+  .edit-save:hover { background: var(--gold-light,#e3c479); }
+  .edit-msg { font-size: 0.82rem; color: var(--muted); min-height: 18px; margin-top: 6px; }
   .club-loading, .club-missing { text-align: center; color: var(--muted); padding: 60px 0; }
+
+  /* ── 2 คอลัมน์: ข้อมูล (ซ้าย) + แชท (ขวา) ── */
+  .club-grid { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; }
+  .club-grid.has-chat { grid-template-columns: 1fr 340px; }
+  @media (max-width: 860px) { .club-grid.has-chat { grid-template-columns: 1fr; } }
+
+  .club-chat-col { position: sticky; top: 76px; }
+  @media (max-width: 860px) { .club-chat-col { position: static; } }
+  .club-chat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); display: flex; flex-direction: column; height: calc(100vh - 120px); min-height: 420px; max-height: 720px; overflow: hidden; box-shadow: var(--shadow-1); }
+  .ccl-head { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .ccl-head h2 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+  .ccl-note { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+  .ccl-stream { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+  .ccl-msg { display: flex; gap: 9px; align-items: flex-start; }
+  .ccl-av { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; overflow: hidden; cursor: pointer; background: linear-gradient(135deg,#7a5230,#c8a24a); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 0.8rem; }
+  .ccl-av img { width: 100%; height: 100%; object-fit: cover; }
+  .ccl-b { min-width: 0; flex: 1; }
+  .ccl-meta { display: flex; gap: 7px; align-items: baseline; }
+  .ccl-name { font-weight: 600; font-size: 0.84rem; color: var(--text); cursor: pointer; }
+  .ccl-name:hover { color: var(--gold); text-decoration: underline; }
+  .ccl-time { font-size: 0.68rem; color: var(--muted); }
+  .ccl-text { font-size: 0.86rem; color: var(--text); line-height: 1.45; word-break: break-word; white-space: pre-wrap; }
+  .chat-link { color: var(--gold); text-decoration: underline; word-break: break-all; }
+  .chat-link:hover { color: var(--gold-light, #e3c479); }
+  .ccl-empty { margin: auto; color: var(--muted); font-style: italic; text-align: center; font-size: 0.85rem; }
+  .ccl-input { display: flex; gap: 7px; padding: 10px; border-top: 1px solid var(--border); }
+  .ccl-input input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.88rem; }
+  .ccl-input input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .ccl-input button { background: var(--gold); color: #1a1305; border: none; border-radius: 10px; padding: 0 16px; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .ccl-input button:hover { background: var(--gold-light,#e3c479); }
 </style>
 </head>
 <body class="club-body">
@@ -120,9 +172,41 @@
   </div>
 </main>
 
+<!-- Modal แก้ไขซุ้ม -->
+<div class="edit-overlay" id="edit-overlay">
+  <div class="edit-modal">
+    <h2>แก้ไขซุ้ม</h2>
+    <div class="edit-field"><label>ชื่อซุ้ม *</label><input type="text" id="ed-name" maxlength="40"></div>
+    <div class="edit-field"><label>คำอธิบาย</label><textarea id="ed-desc" maxlength="300"></textarea></div>
+    <div class="edit-field">
+      <label>รูปโปรไฟล์ซุ้ม (โลโก้)</label>
+      <div class="edit-img-row">
+        <div class="edit-img-preview" id="ed-logo-preview" style="width:56px; height:56px; border-radius:12px;"></div>
+        <input type="file" id="ed-logo-file" accept="image/*" hidden>
+        <button type="button" class="btn-edit-club" id="ed-logo-pick" style="margin:0;">เลือกรูป…</button>
+        <button type="button" class="btn-edit-club" id="ed-logo-clear" style="margin:0;">ลบ</button>
+      </div>
+    </div>
+    <div class="edit-field">
+      <label>รูปปกซุ้ม (แบนเนอร์)</label>
+      <div class="edit-img-row">
+        <div class="edit-img-preview" id="ed-cover-preview" style="width:110px; height:48px; border-radius:8px;"></div>
+        <input type="file" id="ed-cover-file" accept="image/*" hidden>
+        <button type="button" class="btn-edit-club" id="ed-cover-pick" style="margin:0;">เลือกรูป…</button>
+        <button type="button" class="btn-edit-club" id="ed-cover-clear" style="margin:0;">ลบ</button>
+      </div>
+    </div>
+    <div class="edit-msg" id="ed-msg"></div>
+    <div class="edit-actions">
+      <button class="edit-cancel" id="ed-cancel">ยกเลิก</button>
+      <button class="edit-save" id="ed-save">บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, update, remove, get, serverTimestamp }
+import { getDatabase, ref, onValue, set, update, remove, get, push, query, orderByChild, limitToLast, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -174,8 +258,9 @@ function render(c) {
     return false;
   };
   const badge = c.joinType === 'open' ? 'เข้าได้เลย' : 'ต้องอนุมัติ';
-  const logo = c.image ? `<img src="${esc(c.image)}" alt="">` : esc(String(c.name || '?').charAt(0).toUpperCase());
-  const banner = c.image ? `style="background-image:url('${esc(c.image)}')"` : '';
+  const lg = c.logo || c.image || '', cv = c.cover || c.image || '';
+  const logo = lg ? `<img src="${esc(lg)}" alt="">` : esc(String(c.name || '?').charAt(0).toUpperCase());
+  const banner = cv ? `style="background-image:url('${esc(cv)}')"` : '';
 
   // ลิงก์เชิญ
   const inviteParam = new URLSearchParams(location.search).get('invite');
@@ -248,26 +333,38 @@ function render(c) {
           <h1>${esc(c.name || 'ซุ้ม')}</h1>
           <div class="club-hero-meta"><span class="club-badge">${badge}</span><span>👥 ${memberCount} สมาชิก</span><span>สร้างเมื่อ ${fmtDate(c.createdAt)}</span></div>
         </div>
-        <div class="club-hero-action">${action}</div>
+        <div class="club-hero-action">${isManager ? `<button class="btn-edit-club" id="btn-edit-club">✎ แก้ไขซุ้ม</button>` : ''}${action}</div>
       </div>
     </div>
     ${validInvite && !myRole ? `<div class="invite-banner">✉️ คุณได้รับเชิญเข้าซุ้มนี้ — กด "เข้าร่วมด้วยลิงก์เชิญ" ด้านบน</div>` : ''}
-    ${c.description ? `<div class="club-desc-box">${esc(c.description)}</div>` : ''}
-    ${isManager ? `
-      <div class="club-section">
-        <h2>🔗 เชิญสมาชิก</h2>
-        <p style="color:var(--muted); font-size:0.85rem; margin:0 0 10px;">แชร์ลิงก์นี้เพื่อให้ผู้เล่นเข้าซุ้มได้ทันที (ข้ามการอนุมัติ)</p>
-        <div class="invite-box">
-          <input id="invite-link" readonly placeholder="กดปุ่มเพื่อสร้างลิงก์เชิญ" value="${c.inviteToken ? esc(inviteUrl(c.inviteToken)) : ''}">
-          <button class="mini-btn accept" id="btn-invite">${c.inviteToken ? 'คัดลอกลิงก์' : 'สร้างลิงก์เชิญ'}</button>
+    <div class="club-grid ${myRole ? 'has-chat' : ''}">
+      <div class="club-main-col">
+        ${c.description ? `<div class="club-desc-box">${esc(c.description)}</div>` : ''}
+        ${isManager ? `
+          <div class="club-section">
+            <h2>🔗 เชิญสมาชิก</h2>
+            <p style="color:var(--muted); font-size:0.85rem; margin:0 0 10px;">แชร์ลิงก์นี้เพื่อให้ผู้เล่นเข้าซุ้มได้ทันที (ข้ามการอนุมัติ)</p>
+            <div class="invite-box">
+              <input id="invite-link" readonly placeholder="กดปุ่มเพื่อสร้างลิงก์เชิญ" value="${c.inviteToken ? esc(inviteUrl(c.inviteToken)) : ''}">
+              <button class="mini-btn accept" id="btn-invite">${c.inviteToken ? 'คัดลอกลิงก์' : 'สร้างลิงก์เชิญ'}</button>
+            </div>
+          </div>` : ''}
+        ${requestsBlock}
+        <div class="club-section">
+          <h2>👥 สมาชิก <span class="count">(${memberCount})</span></h2>
+          ${memberRows}
         </div>
-      </div>` : ''}
-    ${requestsBlock}
-    <div class="club-section">
-      <h2>👥 สมาชิก <span class="count">(${memberCount})</span></h2>
-      ${memberRows}
-    </div>
-    ${myRole === 'owner' ? `<div class="club-delete-bar"><button class="btn-delete-club" id="btn-delete-club">🗑 ลบซุ้มนี้</button></div>` : ''}`;
+        ${myRole === 'owner' ? `<div class="club-delete-bar"><button class="btn-delete-club" id="btn-delete-club">🗑 ลบซุ้มนี้</button></div>` : ''}
+      </div>
+      ${myRole ? `
+        <div class="club-chat-col">
+          <div class="club-chat-card">
+            <div class="ccl-head"><h2>💬 แชทซุ้ม</h2><div class="ccl-note">🔒 เฉพาะสมาชิกในซุ้มเท่านั้น</div></div>
+            <div class="ccl-stream" id="club-chat-stream"><div class="ccl-empty">กำลังโหลด…</div></div>
+            <div class="ccl-input"><input id="club-chat-text" placeholder="พิมพ์ข้อความ…" maxlength="500" autocomplete="off"><button id="club-chat-send">ส่ง</button></div>
+          </div>
+        </div>` : ''}
+    </div>`;
 
   // ผูก event
   content.querySelectorAll('[data-uid]').forEach(el => el.addEventListener('click', () => { if (el.dataset.uid) location.href = `profile.html?user=${encodeURIComponent(el.dataset.uid)}`; }));
@@ -276,7 +373,10 @@ function render(c) {
   const cancel = content.querySelector('#btn-cancel');
   const leave = content.querySelector('#btn-leave');
   if (join) join.addEventListener('click', () => set(ref(db, `clubs/${clubId}/members/${mySid}`), { role: 'member', name: myName, joinedAt: serverTimestamp() }).catch(e => console.error(e)));
-  if (request) request.addEventListener('click', () => set(ref(db, `clubs/${clubId}/requests/${mySid}`), { name: myName, ts: serverTimestamp() }).catch(e => console.error(e)));
+  if (request) request.addEventListener('click', () => {
+    set(ref(db, `clubs/${clubId}/requests/${mySid}`), { name: myName, ts: serverTimestamp() })
+      .then(() => notifyManagers(currentClub, myName)).catch(e => console.error(e));
+  });
   if (cancel) cancel.addEventListener('click', () => remove(ref(db, `clubs/${clubId}/requests/${mySid}`)).catch(e => console.error(e)));
   if (leave) leave.addEventListener('click', () => { if (confirm('ออกจากซุ้มนี้?')) remove(ref(db, `clubs/${clubId}/members/${mySid}`)).catch(e => console.error(e)); });
 
@@ -308,9 +408,103 @@ function render(c) {
   const inviteJoin = content.querySelector('#btn-invite-join');
   if (inviteJoin) inviteJoin.addEventListener('click', () =>
     set(ref(db, `clubs/${clubId}/members/${mySid}`), { role: 'member', name: myName, joinedAt: serverTimestamp() }).catch(e => console.error(e)));
+
+  const edit = content.querySelector('#btn-edit-club');
+  if (edit) edit.addEventListener('click', () => openEdit(currentClub));
+
+  // ── แชทซุ้ม (เฉพาะสมาชิก) — ใช้ข้อมูลจาก listener หลักของซุ้ม ──
+  if (myRole) {
+    clubChatMessages = Object.values(c.chat || {}).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    if (clubChatMessages.length > CLUB_CHAT_MAX) clubChatMessages = clubChatMessages.slice(-CLUB_CHAT_MAX);
+    renderClubChatStream();
+    const ci = content.querySelector('#club-chat-text');
+    const sendBtn = content.querySelector('#club-chat-send');
+    const go = () => sendClubChat(ci);
+    if (sendBtn) sendBtn.addEventListener('click', go);
+    if (ci) ci.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  }
 }
 
+// ── แก้ไขซุ้ม (เจ้าของ/แอดมิน) ──
+let edLogo = '', edCover = '';
+function fileToScaledDataURL(file, maxW = 800, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(cv.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject; img.src = url;
+  });
+}
+const edOverlay = document.getElementById('edit-overlay');
+function openEdit(c) {
+  document.getElementById('ed-name').value = c.name || '';
+  document.getElementById('ed-desc').value = c.description || '';
+  edLogo = c.logo || c.image || '';
+  edCover = c.cover || c.image || '';
+  document.getElementById('ed-logo-preview').style.backgroundImage = edLogo ? `url("${edLogo}")` : '';
+  document.getElementById('ed-cover-preview').style.backgroundImage = edCover ? `url("${edCover}")` : '';
+  document.getElementById('ed-msg').textContent = '';
+  edOverlay.classList.add('open');
+}
+function closeEdit() { edOverlay.classList.remove('open'); }
+document.getElementById('ed-cancel').addEventListener('click', closeEdit);
+edOverlay.addEventListener('click', e => { if (e.target === edOverlay) closeEdit(); });
+
+function wireEdPicker(pickId, clearId, fileId, prevId, maxW, getter, setter) {
+  document.getElementById(pickId).addEventListener('click', () => document.getElementById(fileId).click());
+  document.getElementById(clearId).addEventListener('click', () => { setter(''); document.getElementById(prevId).style.backgroundImage = ''; });
+  document.getElementById(fileId).addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try { const d = await fileToScaledDataURL(f, maxW); setter(d); document.getElementById(prevId).style.backgroundImage = `url("${d}")`; }
+    catch (err) { document.getElementById('ed-msg').textContent = 'อ่านรูปไม่สำเร็จ'; }
+  });
+}
+wireEdPicker('ed-logo-pick', 'ed-logo-clear', 'ed-logo-file', 'ed-logo-preview', 400, () => edLogo, v => edLogo = v);
+wireEdPicker('ed-cover-pick', 'ed-cover-clear', 'ed-cover-file', 'ed-cover-preview', 1200, () => edCover, v => edCover = v);
+
+document.getElementById('ed-save').addEventListener('click', async () => {
+  const name = document.getElementById('ed-name').value.trim();
+  const msg = document.getElementById('ed-msg');
+  if (!name) { msg.textContent = 'กรุณาใส่ชื่อซุ้ม'; return; }
+  msg.textContent = 'กำลังบันทึก…';
+  try {
+    await update(ref(db, `clubs/${clubId}`), {
+      name,
+      description: document.getElementById('ed-desc').value.trim(),
+      logo: edLogo || '',
+      cover: edCover || ''
+    });
+    closeEdit();
+  } catch (e) {
+    msg.textContent = (e && e.message && e.message.includes('exceed')) ? 'รูปใหญ่เกินไป ลองรูปเล็กลง' : 'บันทึกไม่สำเร็จ';
+  }
+});
+
 function inviteUrl(token) { return `${location.origin}${location.pathname}?id=${encodeURIComponent(clubId)}&invite=${encodeURIComponent(token)}`; }
+
+// แจ้งเตือนเจ้าของ/แอดมินว่ามีคำขอเข้าร่วม
+function notifyManagers(club, requesterName) {
+  if (!club || !club.members) return;
+  const note = {
+    type: 'club_request',
+    title: 'คำขอเข้าซุ้ม',
+    message: `${requesterName} ขอเข้าร่วมซุ้ม "${club.name || 'ซุ้ม'}"`,
+    link: `club.html?id=${clubId}`,
+    ts: serverTimestamp(),
+    read: false
+  };
+  Object.entries(club.members).forEach(([sid, m]) => {
+    if ((m.role === 'owner' || m.role === 'admin') && sid !== mySid) {
+      push(ref(db, `notifications/${sid}`), note).catch(() => {});
+    }
+  });
+}
 
 // โอนความเป็นเจ้าของ (atomic): คนใหม่=owner, เรา=admin
 async function transferOwner(sid) {
@@ -351,6 +545,55 @@ async function acceptRequest(sid) {
     await set(ref(db, `clubs/${clubId}/members/${sid}`), { role: 'member', name: nm, joinedAt: serverTimestamp() });
     await remove(ref(db, `clubs/${clubId}/requests/${sid}`));
   } catch (e) { console.error('รับคำขอไม่สำเร็จ:', e); }
+}
+
+// ═══════ แชทซุ้ม (เฉพาะสมาชิก — gate ฝั่ง client) ═══════
+const CLUB_CHAT_MAX = 200;
+let clubChatMessages = [];
+function chatTime(ts) { if (!ts) return ''; return new Date(ts).toLocaleString('th-TH', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+// แปลงข้อความเป็น HTML: escape ก่อน (กัน XSS) แล้วทำ URL ให้กดได้
+function linkify(text) {
+  const safe = esc(text);
+  return safe.replace(/(https?:\/\/[^\s<]+)/g, (url) =>
+    `<a href="${url}" target="_blank" rel="noopener noreferrer nofollow" class="chat-link">${url}</a>`);
+}
+function renderClubChatStream() {
+  const stream = document.getElementById('club-chat-stream');
+  if (!stream) return;
+  if (!clubChatMessages.length) { stream.innerHTML = '<div class="ccl-empty">ยังไม่มีข้อความ — เริ่มคุยกันได้เลย 👋</div>'; return; }
+  const atBottom = stream.scrollHeight - stream.scrollTop - stream.clientHeight < 80;
+  stream.innerHTML = clubChatMessages.map(m => {
+    const sid = safeId(m.uid);
+    return `<div class="ccl-msg">
+      <div class="ccl-av" data-uid="${esc(sid)}">${avatarOf(sid, m.name)}</div>
+      <div class="ccl-b">
+        <div class="ccl-meta"><span class="ccl-name" data-uid="${esc(sid)}">${esc(nameOf(sid, m.name))}</span><span class="ccl-time">${chatTime(m.ts)}</span></div>
+        <div class="ccl-text">${linkify(m.text)}</div>
+      </div></div>`;
+  }).join('');
+  stream.querySelectorAll('[data-uid]').forEach(el => el.addEventListener('click', () => { if (el.dataset.uid) location.href = `profile.html?user=${encodeURIComponent(el.dataset.uid)}`; }));
+  if (atBottom) stream.scrollTop = stream.scrollHeight;
+}
+async function sendClubChat(input) {
+  const t = input.value.trim();
+  if (!t || !mySid) return;
+  input.value = '';
+  try {
+    await push(ref(db, `clubs/${clubId}/chat`), { uid: currentUser.id, name: myName, text: t, ts: serverTimestamp() });
+    trimClubChat();
+  } catch (e) { console.error('ส่งแชทไม่สำเร็จ:', e); }
+}
+async function trimClubChat() {
+  try {
+    const snap = await get(ref(db, `clubs/${clubId}/chat`));
+    const all = [];
+    snap.forEach(ch => all.push({ key: ch.key, ts: ch.val().ts || 0 }));
+    if (all.length > CLUB_CHAT_MAX) {
+      all.sort((a, b) => a.ts - b.ts);
+      const extra = all.length - CLUB_CHAT_MAX;
+      for (let i = 0; i < extra; i++) remove(ref(db, `clubs/${clubId}/chat/${all[i].key}`)).catch(() => {});
+    }
+  } catch (e) { /* เงียบ */ }
 }
 
 if (!clubId) {

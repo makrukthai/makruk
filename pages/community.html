@@ -83,6 +83,8 @@
   .chat-name:hover { color: var(--gold); text-decoration: underline; }
   .chat-time { color: var(--muted); font-size: 0.72rem; }
   .chat-text { color: var(--text); font-size: 0.92rem; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+  .chat-link { color: var(--gold); text-decoration: underline; word-break: break-all; }
+  .chat-link:hover { color: var(--gold-light, #e3c479); }
   .chat-empty { margin: auto; color: var(--muted); text-align: center; font-style: italic; }
 
   .chat-input-bar { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); }
@@ -131,7 +133,7 @@
   .club-name { font-weight: 700; color: var(--text); font-size: 1.02rem; }
   .club-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.78rem; flex-wrap: wrap; }
   .club-badge { background: var(--gold-soft); color: var(--gold); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
-  .club-desc { color: var(--muted); font-size: 0.85rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .club-desc { color: var(--muted); font-size: 0.85rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .club-actions { margin-top: auto; padding-top: 10px; display: flex; gap: 8px; }
   .club-btn {
     flex: 1; height: 38px; border-radius: 9px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12));
@@ -213,9 +215,11 @@
     <section class="community-view" id="view-clubs">
       <div class="view-head"><h1>🏛 ซุ้ม</h1><p>สร้างหรือเข้าร่วมซุ้ม เพื่อรวมกลุ่มผู้เล่นหมากรุกไทย</p></div>
       <div class="clubs-toolbar">
-        <div style="color:var(--muted); font-size:0.88rem;" id="clubs-summary"></div>
+        <input type="text" id="clubs-search" placeholder="🔍 ค้นหาชื่อซุ้ม…" autocomplete="off"
+               style="flex:1; min-width:180px; max-width:340px; height:42px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--r-md,12px); padding:0 14px; color:var(--text); font-family:var(--font-ui,'Noto Sans Thai',sans-serif); font-size:0.9rem;">
         <button class="btn-create-club" id="btn-open-create">＋ สร้างซุ้ม</button>
       </div>
+      <div style="color:var(--muted); font-size:0.85rem; margin:-8px 0 16px;" id="clubs-summary"></div>
       <div id="my-clubs-wrap"></div>
       <div class="clubs-section-title">ซุ้มทั้งหมด <span class="count" id="all-clubs-count"></span></div>
       <div class="clubs-grid" id="all-clubs-grid"><div class="clubs-empty">กำลังโหลด…</div></div>
@@ -252,12 +256,21 @@
       <textarea id="cm-desc" maxlength="300" placeholder="ซุ้มนี้เกี่ยวกับอะไร…"></textarea>
     </div>
     <div class="club-field">
-      <label>รูปซุ้ม (ไม่บังคับ)</label>
+      <label>รูปโปรไฟล์ซุ้ม (โลโก้)</label>
       <div class="club-img-row">
-        <div class="club-img-preview" id="cm-img-preview"></div>
-        <input type="file" id="cm-img-file" accept="image/*" hidden>
-        <button type="button" class="club-btn" id="cm-img-pick" style="flex:0 0 auto; padding:0 14px;">เลือกรูป…</button>
-        <button type="button" class="club-btn" id="cm-img-clear" style="flex:0 0 auto; padding:0 14px;">ลบ</button>
+        <div class="club-img-preview" id="cm-logo-preview"></div>
+        <input type="file" id="cm-logo-file" accept="image/*" hidden>
+        <button type="button" class="club-btn" id="cm-logo-pick" style="flex:0 0 auto; padding:0 14px;">เลือกรูป…</button>
+        <button type="button" class="club-btn" id="cm-logo-clear" style="flex:0 0 auto; padding:0 14px;">ลบ</button>
+      </div>
+    </div>
+    <div class="club-field">
+      <label>รูปปกซุ้ม (แบนเนอร์ยาว)</label>
+      <div class="club-img-row">
+        <div class="club-img-preview" id="cm-cover-preview" style="width:96px; height:48px; border-radius:8px;"></div>
+        <input type="file" id="cm-cover-file" accept="image/*" hidden>
+        <button type="button" class="club-btn" id="cm-cover-pick" style="flex:0 0 auto; padding:0 14px;">เลือกรูป…</button>
+        <button type="button" class="club-btn" id="cm-cover-clear" style="flex:0 0 auto; padding:0 14px;">ลบ</button>
       </div>
     </div>
     <div class="club-field">
@@ -329,6 +342,12 @@ function authorName(uid, fallback) {
   const u = usersMap[safeId(uid)];
   return (u && u.name && u.name.trim()) ? u.name : (fallback || 'ผู้เล่น');
 }
+// แปลงข้อความเป็น HTML: escape ก่อน (กัน XSS) แล้วทำ URL ให้กดได้
+function linkify(text) {
+  const safe = esc(text);
+  return safe.replace(/(https?:\/\/[^\s<]+)/g, (url) =>
+    `<a href="${url}" target="_blank" rel="noopener noreferrer nofollow" class="chat-link">${url}</a>`);
+}
 
 function renderChat(messages) {
   const stream = document.getElementById('chat-stream');
@@ -347,7 +366,7 @@ function renderChat(messages) {
             <span class="chat-name" data-uid="${esc(sid)}">${esc(authorName(m.uid, m.name))}</span>
             <span class="chat-time">${fmtTime(m.ts)}</span>
           </div>
-          <div class="chat-text">${esc(m.text)}</div>
+          <div class="chat-text">${linkify(m.text)}</div>
         </div>
       </div>`;
   });
@@ -420,18 +439,22 @@ get(ref(db, 'users')).then(snap => { usersMap = snap.val() || {}; }).catch(() =>
 // ═══════════════════════════════════════════
 const mySid = currentUser && currentUser.id ? safeId(currentUser.id) : null;
 let clubsMap = {};
-let cmImageData = "";
+let cmLogoData = "";
+let cmCoverData = "";
 
 function memberCount(c) { return c.members ? Object.keys(c.members).length : 0; }
 function myRole(c) { return (mySid && c.members && c.members[mySid]) ? c.members[mySid].role : null; }
 function hasRequested(c) { return !!(mySid && c.requests && c.requests[mySid]); }
+const logoOf = (c) => c.logo || c.image || '';     // backward compat กับฟิลด์เดิม image
+const coverOf = (c) => c.cover || c.image || '';
 
 function clubCard(id, c) {
   const role = myRole(c);
   const requested = hasRequested(c);
   const badge = c.joinType === 'open' ? 'เข้าได้เลย' : 'ต้องอนุมัติ';
-  const logo = c.image ? `<img src="${esc(c.image)}" alt="">` : esc(String(c.name || '?').charAt(0).toUpperCase());
-  const banner = c.image ? `style="background-image:url('${esc(c.image)}')"` : '';
+  const lg = logoOf(c), cv = coverOf(c);
+  const logo = lg ? `<img src="${esc(lg)}" alt="">` : esc(String(c.name || '?').charAt(0).toUpperCase());
+  const banner = cv ? `style="background-image:url('${esc(cv)}')"` : '';
 
   let action;
   if (!mySid) {
@@ -462,12 +485,14 @@ function clubCard(id, c) {
 }
 
 function renderClubs() {
+  const q = (document.getElementById('clubs-search')?.value || '').trim().toLowerCase();
+  const match = (c) => !q || (c.name || '').toLowerCase().includes(q);
   const all = Object.entries(clubsMap).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
-  const mine = all.filter(([id, c]) => myRole(c));
+  const mine = all.filter(([id, c]) => myRole(c) && match(c));
   const myWrap = document.getElementById('my-clubs-wrap');
   const grid = document.getElementById('all-clubs-grid');
 
-  document.getElementById('clubs-summary').textContent = `ทั้งหมด ${all.length} ซุ้ม`;
+  document.getElementById('clubs-summary').textContent = q ? `ผลค้นหา "${q}"` : `ทั้งหมด ${all.length} ซุ้ม`;
 
   // ซุ้มของฉัน
   if (mine.length) {
@@ -476,10 +501,10 @@ function renderClubs() {
   } else { myWrap.innerHTML = ''; }
 
   // ซุ้มทั้งหมด (เฉพาะที่ยังไม่ได้เข้าร่วม)
-  const others = all.filter(([id, c]) => !myRole(c));
+  const others = all.filter(([id, c]) => !myRole(c) && match(c));
   document.getElementById('all-clubs-count').textContent = `(${others.length})`;
   grid.innerHTML = others.length ? others.map(([id, c]) => clubCard(id, c)).join('')
-    : '<div class="clubs-empty">ไม่มีซุ้มอื่นให้เข้าร่วมตอนนี้</div>';
+    : `<div class="clubs-empty">${q ? 'ไม่พบซุ้มที่ตรงกับคำค้นหา' : 'ไม่มีซุ้มอื่นให้เข้าร่วมตอนนี้'}</div>`;
 
   // ผูกปุ่ม
   document.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => joinClub(b.dataset.join, 'open')));
@@ -495,8 +520,27 @@ async function joinClub(clubId, mode) {
       await set(ref(db, `clubs/${clubId}/members/${mySid}`), { role: 'member', name: myName, joinedAt: serverTimestamp() });
     } else {
       await set(ref(db, `clubs/${clubId}/requests/${mySid}`), { name: myName, ts: serverTimestamp() });
+      notifyManagers(clubsMap[clubId], clubId, myName);   // แจ้งเตือนเจ้าของ/แอดมิน
     }
   } catch (e) { console.error('เข้าร่วมซุ้มไม่สำเร็จ:', e); }
+}
+
+// แจ้งเตือนเจ้าของ + แอดมินของซุ้ม ว่ามีคำขอเข้าร่วม
+function notifyManagers(club, clubId, requesterName) {
+  if (!club || !club.members) return;
+  const note = {
+    type: 'club_request',
+    title: 'คำขอเข้าซุ้ม',
+    message: `${requesterName} ขอเข้าร่วมซุ้ม "${club.name || 'ซุ้ม'}"`,
+    link: `club.html?id=${clubId}`,
+    ts: serverTimestamp(),
+    read: false
+  };
+  Object.entries(club.members).forEach(([sid, m]) => {
+    if ((m.role === 'owner' || m.role === 'admin') && sid !== mySid) {
+      push(ref(db, `notifications/${sid}`), note).catch(() => {});
+    }
+  });
 }
 
 // ── Modal สร้างซุ้ม ──
@@ -507,13 +551,15 @@ function openCreate() {
   document.getElementById('cm-desc').value = '';
   document.getElementById('cm-jointype').value = 'open';
   document.getElementById('cm-msg').textContent = '';
-  cmImageData = '';
-  document.getElementById('cm-img-preview').style.backgroundImage = '';
+  cmLogoData = ''; cmCoverData = '';
+  document.getElementById('cm-logo-preview').style.backgroundImage = '';
+  document.getElementById('cm-cover-preview').style.backgroundImage = '';
   cmOverlay.classList.add('open');
 }
 function closeCreate() { cmOverlay.classList.remove('open'); }
 
 document.getElementById('btn-open-create').addEventListener('click', openCreate);
+document.getElementById('clubs-search').addEventListener('input', renderClubs);
 document.getElementById('cm-cancel').addEventListener('click', closeCreate);
 cmOverlay.addEventListener('click', e => { if (e.target === cmOverlay) closeCreate(); });
 
@@ -532,26 +578,33 @@ function fileToScaledDataURL(file, maxW = 400, quality = 0.8) {
     img.onerror = reject; img.src = url;
   });
 }
-document.getElementById('cm-img-pick').addEventListener('click', () => document.getElementById('cm-img-file').click());
-document.getElementById('cm-img-clear').addEventListener('click', () => { cmImageData = ''; document.getElementById('cm-img-preview').style.backgroundImage = ''; });
-document.getElementById('cm-img-file').addEventListener('change', async (e) => {
-  const f = e.target.files && e.target.files[0]; if (!f) return;
-  try { cmImageData = await fileToScaledDataURL(f); document.getElementById('cm-img-preview').style.backgroundImage = `url("${cmImageData}")`; }
-  catch (err) { document.getElementById('cm-msg').textContent = 'อ่านรูปไม่สำเร็จ'; }
-});
+function wireImgPicker(pickId, clearId, fileId, previewId, maxW, setter) {
+  document.getElementById(pickId).addEventListener('click', () => document.getElementById(fileId).click());
+  document.getElementById(clearId).addEventListener('click', () => { setter(''); document.getElementById(previewId).style.backgroundImage = ''; });
+  document.getElementById(fileId).addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try { const d = await fileToScaledDataURL(f, maxW); setter(d); document.getElementById(previewId).style.backgroundImage = `url("${d}")`; }
+    catch (err) { document.getElementById('cm-msg').textContent = 'อ่านรูปไม่สำเร็จ'; }
+  });
+}
+wireImgPicker('cm-logo-pick', 'cm-logo-clear', 'cm-logo-file', 'cm-logo-preview', 400, v => cmLogoData = v);
+wireImgPicker('cm-cover-pick', 'cm-cover-clear', 'cm-cover-file', 'cm-cover-preview', 1200, v => cmCoverData = v);
 
 document.getElementById('cm-save').addEventListener('click', async () => {
   const name = document.getElementById('cm-name').value.trim();
   const msg = document.getElementById('cm-msg');
   if (!name) { msg.textContent = 'กรุณาใส่ชื่อซุ้ม'; return; }
   if (!mySid) { msg.textContent = 'กรุณาเข้าสู่ระบบ'; return; }
+  const ownedCount = Object.values(clubsMap).filter(c => c.ownerUid === mySid).length;
+  if (ownedCount >= 5) { msg.textContent = 'คุณสร้างซุ้มได้สูงสุด 5 ซุ้มต่อคน'; return; }
   msg.textContent = 'กำลังสร้าง…';
   const myName = currentUser.name || currentUser.email || 'ผู้เล่น';
   const newRef = push(ref(db, 'clubs'));
   const data = {
     name,
     description: document.getElementById('cm-desc').value.trim(),
-    image: cmImageData || '',
+    logo: cmLogoData || '',
+    cover: cmCoverData || '',
     joinType: document.getElementById('cm-jointype').value,
     ownerUid: mySid,
     ownerName: myName,
