@@ -453,6 +453,33 @@ function ensureResumeGameStyles() {
   document.head.appendChild(style);
 }
 
+// เด้งเข้าห้องแข่งขันทัวร์อัตโนมัติ — ถ้าผู้เล่นมีคู่ในรอบปัจจุบันที่ยังไม่จบ
+// เริ่มเด้งตั้งแต่ 1 นาทีก่อนเวลาเริ่ม · กัน redirect loop (ไม่เด้งถ้าอยู่ในห้องนั้นแล้ว)
+async function checkTournamentRedirect(safeId) {
+  if (!safeId) return;
+  const path = window.location.pathname;
+  let snap;
+  try { snap = await get(ref(db, 'tournaments')); } catch (e) { return; }
+  const all = snap.val() || {};
+  const now = Date.now();
+  for (const [tid, t] of Object.entries(all)) {
+    if (!t || !t.started || t.finished || !t.players || !t.players[safeId]) continue;
+    if (t.startAt && now < t.startAt - 60000) continue;       // ยังไม่ถึง 1 นาทีก่อนเริ่ม
+    const pr = t.rounds && t.rounds[t.currentRound] && t.rounds[t.currentRound].pairings;
+    if (!pr) continue;
+    const myPg = Object.values(pr).find(p =>
+      (p.white === safeId || p.black === safeId) && p.black != null && p.result == null && p.room);
+    if (!myPg) continue;
+    const color = myPg.white === safeId ? 'w' : 'b';
+    const target = myPg.room;
+    // อยู่ในห้องนี้อยู่แล้ว → ไม่ต้องเด้ง (กัน loop)
+    const params = new URLSearchParams(window.location.search);
+    if (path.endsWith('play-online.html') && params.get('room') === target) return;
+    window.location.href = `/pages/play-online.html?room=${encodeURIComponent(target)}&color=${color}`;
+    return;
+  }
+}
+
 function renderResumeGameButton() {
   // ลบปุ่มเดิมถ้ามี
   const old = document.getElementById("resume-game-fab");
@@ -554,6 +581,11 @@ function initAuth() {
   if (authState.currentUser) {
     // ผู้ใช้ที่ล็อกอินค้างอยู่แล้ว — แจกรหัสผู้เล่นให้ถ้ายังไม่มี
     ensureMyPlayerId(authState.currentUser);
+    // เด้งเข้าห้องแข่งขันทัวร์อัตโนมัติ (ถ้ามีคู่ที่กำลังแข่ง)
+    try {
+      const sid = String(authState.currentUser.id || authState.currentUser.email).replace(/[.#$\[\]]/g, '_');
+      checkTournamentRedirect(sid);
+    } catch (e) {}
   }
   if (!authState.currentUser && isProfilePage()) {
     redirectToLoginPage();

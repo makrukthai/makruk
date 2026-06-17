@@ -1136,6 +1136,7 @@ let moveCount = 0;
 
 let selectedMinutes = null;
 let timeW = 600, timeB = 600;
+let gameBonus = 0;   // โบนัสเวลา/ตา (Fischer increment) วินาที
 let clockInterval = null;
 let gameRef = null, gameListener = null;
 
@@ -1698,6 +1699,11 @@ function fbToBoard(fb) {
 
 async function pushMoveToFirebase(move, promoted, captured, endReason) {
   if (!gameRef) return;
+  // ⏱ โบนัสเวลา (Fischer increment): บวกให้ฝ่ายที่เพิ่งเดิน (= myColor) ก่อน sync
+  if (gameBonus > 0 && !endReason) {
+    if (myColor === 'w') timeW += gameBonus; else if (myColor === 'b') timeB += gameBonus;
+    updateClocks();
+  }
   // ข้อมูลตาเดิน (ไม่เก็บ board เต็ม — ประหยัดพื้นที่ คำนวณย้อนหลังได้จาก from/to/promoted)
   const moveData = {
     from: move.from, to: move.to,
@@ -2596,6 +2602,7 @@ async function startGame(gid) {
   gameOver = false; capturedByW = []; capturedByB = []; moveCount = 0;
   timeW = data.minutes * 60; timeB = data.minutes * 60;
   selectedMinutes = data.minutes;
+  gameBonus = data.bonus || 0;
   gameRanked = (data.ranked !== false); // ค่าเริ่มต้น = คิด ELO (เกมจับคู่สุ่มถือว่าจัดอันดับ)
   gameTournament = data.tournament || null; // context ทัวร์นาเมนต์ (ถ้ามี)
 

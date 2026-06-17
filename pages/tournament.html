@@ -228,18 +228,30 @@
     </div>
     <div class="tn-row2">
       <div class="tn-field"><label>ประเภท</label>
-        <select id="f-type"><option value="swiss">Swiss Pairing</option><option value="knockout">Knockout</option></select>
+        <select id="f-type"><option value="swiss">Swiss Pairing</option><option value="roundrobin">Round Robin (พบกันหมด)</option><option value="knockout">Knockout</option></select>
       </div>
-      <div class="tn-field"><label>เวลาต่อเกม (นาที)</label>
-        <select id="f-time"><option value="5">5 นาที</option><option value="10" selected>10 นาที</option><option value="30">30 นาที</option><option value="custom">กำหนดเอง</option></select>
+      <div class="tn-field"><label>เวลาต่อเกม</label>
+        <select id="f-time"><option value="5">5 นาที</option><option value="10" selected>10 นาที</option><option value="30">30 นาที</option><option value="custom">กำหนดเอง (+ โบนัส)</option></select>
       </div>
     </div>
-    <div class="tn-field" id="f-time-custom-wrap" style="display:none;">
-      <label>เวลากำหนดเอง (นาที)</label><input type="number" id="f-time-custom" min="1" max="180" value="15">
+    <div class="tn-row2" id="f-time-custom-wrap" style="display:none;">
+      <div class="tn-field"><label>เวลาหลัก (นาที)</label><input type="number" id="f-time-main" min="1" max="180" value="15"></div>
+      <div class="tn-field"><label>โบนัส/ตา (วินาที)</label><input type="number" id="f-time-bonus" min="0" max="60" value="10"></div>
+    </div>
+    <div class="tn-field" id="f-rounds-wrap" style="display:none;">
+      <label>จำนวนรอบ (Swiss)</label>
+      <select id="f-rounds-mode"><option value="auto">Auto (คำนวณตามผู้เล่น)</option><option value="manual">กำหนดเอง</option></select>
+      <input type="number" id="f-rounds-num" min="1" max="30" value="5" style="display:none; margin-top:8px;">
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:6px;" id="f-rounds-hint">Auto = ปัดขึ้น(log₂ จำนวนผู้เล่น) เช่น 8 คน → 3 รอบ</div>
     </div>
     <div class="tn-row2">
       <div class="tn-field"><label>ผู้เล่นขั้นต่ำ</label><input type="number" id="f-min" min="2" max="512" value="4"></div>
       <div class="tn-field"><label>ผู้เล่นสูงสุด</label><input type="number" id="f-max" min="2" max="512" value="32"></div>
+    </div>
+    <div class="tn-field">
+      <label>เวลาเข้าร่วม / Late Time (นาที)</label>
+      <input type="number" id="f-late" min="1" max="60" value="5">
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:6px;">ถ้าฝ่ายตรงข้ามไม่เข้าภายในเวลานี้ ฝ่ายที่อยู่ในเกมชนะ · ไม่เข้าทั้งคู่ = แพ้ทั้งคู่</div>
     </div>
     <div class="tn-field">
       <div class="tn-toggles">
@@ -280,7 +292,7 @@ const currentUser = loadUser();
 const mySid = currentUser ? safeId(currentUser.id || currentUser.email) : null;
 const isAdmin = !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
 
-const TYPE_LABEL = { swiss: 'Swiss', knockout: 'Knockout' };
+const TYPE_LABEL = { swiss: 'Swiss', roundrobin: 'Round Robin', knockout: 'Knockout' };
 
 // ── สถานะทัวร์ ──
 function tnStatus(t) {
@@ -333,7 +345,7 @@ function renderList() {
         <div class="tn-card-title">${esc(t.name)}</div>
         <div class="tn-tags">
           <span class="tn-tag gold">${TYPE_LABEL[t.type] || t.type}</span>
-          <span class="tn-tag">${esc(String(t.timeControl))} นาที</span>
+          <span class="tn-tag">${esc(String(t.timeControl))}${t.bonus ? '+' + t.bonus : ''} นาที</span>
           <span class="tn-tag">${t.rated ? 'Rated' : 'Unrated'}</span>
           ${t.private ? '<span class="tn-tag">🔒 Private</span>' : ''}
         </div>
@@ -385,12 +397,12 @@ function renderDetail(id, t) {
   if (isAdmin) {
     const canStart = !t.started && cnt >= (t.minPlayers || 2);
     const allDone = t.started && !t.finished && roundComplete(t, t.currentRound);
+    const moreRounds = t.type === 'knockout' ? true : (t.currentRound < (t.totalRounds || 99));
     adminBar = `<div class="tn-admin-bar">
-      <span class="lbl">🛠 แอดมิน${t.started ? ' · รอบ ' + t.currentRound : ''}</span>
+      <span class="lbl">🛠 แอดมิน${t.started ? ' · รอบ ' + t.currentRound + (t.totalRounds ? '/' + t.totalRounds : '') : ''}</span>
       ${canStart ? `<button class="tn-btn-primary" id="btn-start">▶ เริ่มทัวร์นาเมนต์</button>` : ''}
       ${!t.started && cnt < (t.minPlayers || 2) ? `<span class="lbl" style="color:#e0796f;margin:0;">ต้องมีผู้เล่น ≥ ${t.minPlayers} คน</span>` : ''}
-      ${t.started && !t.finished && t.type === 'swiss' ? `<button class="tn-btn-primary" id="btn-next" ${allDone ? '' : 'disabled style="opacity:.5"'}>จับคู่รอบถัดไป →</button>` : ''}
-      ${t.started && !t.finished && t.type === 'knockout' ? `<button class="tn-btn-primary" id="btn-next" ${allDone ? '' : 'disabled style="opacity:.5"'}>รอบถัดไป →</button>` : ''}
+      ${t.started && !t.finished && moreRounds ? `<button class="tn-btn-primary" id="btn-next" ${allDone ? '' : 'disabled style="opacity:.5"'}>จับคู่รอบถัดไป →</button>` : ''}
       ${t.started && !t.finished ? `<button class="tn-btn-ghost" id="btn-announce">📢 ประกาศรอบนี้</button>` : ''}
       ${t.started && !t.finished ? `<button class="tn-btn-ghost" id="btn-finish">🏁 จบทัวร์นาเมนต์</button>` : ''}
       <button class="tn-btn-danger" id="btn-del-tn">🗑 ลบ</button>
@@ -477,9 +489,12 @@ function renderInfoTab(id, t, s, cnt) {
       <div class="tn-rules">
         <h3>📋 กฎการแข่งขัน</h3>
         <div class="tn-rule-row"><span class="k">ระบบ</span><span class="v">${TYPE_LABEL[t.type] || t.type}</span></div>
-        <div class="tn-rule-row"><span class="k">เวลาต่อเกม</span><span class="v">${esc(String(t.timeControl))} นาที</span></div>
+        <div class="tn-rule-row"><span class="k">เวลาต่อเกม</span><span class="v">${esc(String(t.timeControl))}${t.bonus ? ' + ' + t.bonus + ' วิ/ตา' : ''} นาที</span></div>
+        ${t.type === 'swiss' ? `<div class="tn-rule-row"><span class="k">จำนวนรอบ</span><span class="v">${t.totalRounds || (t.swissRoundsMode === 'manual' ? t.swissRounds : 'Auto ≈ ' + swissTotalRounds(t, cnt))} รอบ</span></div>` : ''}
+        ${t.type === 'roundrobin' ? `<div class="tn-rule-row"><span class="k">จำนวนรอบ</span><span class="v">${t.totalRounds || (cnt % 2 === 0 ? cnt - 1 : cnt)} รอบ (พบกันหมด)</span></div>` : ''}
         <div class="tn-rule-row"><span class="k">ประเภทเรต</span><span class="v">${t.rated ? 'Rated (คิดเรต)' : 'Unrated'}</span></div>
         <div class="tn-rule-row"><span class="k">ผู้เล่น</span><span class="v">${t.minPlayers}–${t.maxPlayers} คน</span></div>
+        <div class="tn-rule-row"><span class="k">เวลาเข้าร่วม</span><span class="v">${t.lateMin || 5} นาที</span></div>
         <div class="tn-rule-row"><span class="k">เริ่มแข่ง</span><span class="v">${fmtDate(t.startAt)}</span></div>
         <div class="tn-rule-row"><span class="k">ปิดรับสมัคร</span><span class="v">${fmtDate(t.regCloseAt)}</span></div>
       </div>
@@ -529,12 +544,17 @@ if (isAdmin) {
   document.getElementById('btn-create-tn').addEventListener('click', openCreate);
 }
 function openCreate() {
-  ['f-name','f-desc','f-start','f-regclose','f-time-custom'].forEach(i => { const el = document.getElementById(i); if (el.type !== 'number') el.value = ''; });
+  ['f-name','f-desc','f-start','f-regclose'].forEach(i => { document.getElementById(i).value = ''; });
   document.getElementById('f-type').value = 'swiss';
   document.getElementById('f-time').value = '10';
+  document.getElementById('f-time-main').value = '15'; document.getElementById('f-time-bonus').value = '10';
   document.getElementById('f-min').value = '4'; document.getElementById('f-max').value = '32';
+  document.getElementById('f-late').value = '5';
+  document.getElementById('f-rounds-mode').value = 'auto'; document.getElementById('f-rounds-num').value = '5';
+  document.getElementById('f-rounds-num').style.display = 'none';
   document.getElementById('f-rated').checked = true; document.getElementById('f-private').checked = false;
   document.getElementById('f-time-custom-wrap').style.display = 'none';
+  document.getElementById('f-rounds-wrap').style.display = 'block';  // swiss = default
   coverData = '';
   const cp = document.getElementById('f-cover-pick'); cp.className = 'tn-cover-pick'; cp.textContent = 'คลิกเพื่อเลือกรูปปก (ไม่บังคับ)'; cp.style.backgroundImage = '';
   document.getElementById('tn-modal-msg').textContent = '';
@@ -544,7 +564,14 @@ function closeCreate() { overlay.classList.remove('open'); }
 document.getElementById('tn-cancel').addEventListener('click', closeCreate);
 overlay.addEventListener('click', e => { if (e.target === overlay) closeCreate(); });
 document.getElementById('f-time').addEventListener('change', e => {
-  document.getElementById('f-time-custom-wrap').style.display = e.target.value === 'custom' ? 'block' : 'none';
+  document.getElementById('f-time-custom-wrap').style.display = e.target.value === 'custom' ? 'grid' : 'none';
+});
+document.getElementById('f-type').addEventListener('change', e => {
+  document.getElementById('f-rounds-wrap').style.display = e.target.value === 'swiss' ? 'block' : 'none';
+});
+document.getElementById('f-rounds-mode').addEventListener('change', e => {
+  document.getElementById('f-rounds-num').style.display = e.target.value === 'manual' ? 'block' : 'none';
+  document.getElementById('f-rounds-hint').style.display = e.target.value === 'auto' ? 'block' : 'none';
 });
 
 // รูปปก: ย่อเป็น base64
@@ -573,11 +600,18 @@ document.getElementById('tn-save').addEventListener('click', async () => {
   const startV = document.getElementById('f-start').value;
   const regV = document.getElementById('f-regclose').value;
   const timeSel = document.getElementById('f-time').value;
-  const timeControl = timeSel === 'custom' ? parseInt(document.getElementById('f-time-custom').value, 10) : parseInt(timeSel, 10);
+  const isCustom = timeSel === 'custom';
+  const timeControl = isCustom ? parseInt(document.getElementById('f-time-main').value, 10) : parseInt(timeSel, 10);
+  const bonus = isCustom ? Math.max(0, parseInt(document.getElementById('f-time-bonus').value, 10) || 0) : 0;
+  const type = document.getElementById('f-type').value;
+  const roundsMode = document.getElementById('f-rounds-mode').value;
+  const roundsNum = parseInt(document.getElementById('f-rounds-num').value, 10) || 5;
+  const lateMin = Math.max(1, parseInt(document.getElementById('f-late').value, 10) || 5);
   const minP = parseInt(document.getElementById('f-min').value, 10);
   const maxP = parseInt(document.getElementById('f-max').value, 10);
   if (!name) { msg.textContent = 'กรุณาใส่ชื่อทัวร์นาเมนต์'; return; }
   if (!startV || !regV) { msg.textContent = 'กรุณาระบุวันเวลาเริ่มและปิดรับสมัคร'; return; }
+  if (isCustom && (!timeControl || timeControl < 1)) { msg.textContent = 'กรุณาระบุเวลาหลัก'; return; }
   const startAt = new Date(startV).getTime(), regCloseAt = new Date(regV).getTime();
   if (regCloseAt > startAt) { msg.textContent = 'เวลาปิดรับสมัครต้องไม่เกินเวลาเริ่มแข่ง'; return; }
   if (minP > maxP) { msg.textContent = 'ผู้เล่นขั้นต่ำต้องไม่เกินสูงสุด'; return; }
@@ -585,8 +619,11 @@ document.getElementById('tn-save').addEventListener('click', async () => {
   try {
     await set(push(ref(db, 'tournaments')), {
       name, cover: coverData || '', description: document.getElementById('f-desc').value.trim(),
-      startAt, regCloseAt, type: document.getElementById('f-type').value,
-      timeControl, minPlayers: minP, maxPlayers: maxP,
+      startAt, regCloseAt, type,
+      timeControl, bonus, lateMin,
+      swissRoundsMode: type === 'swiss' ? roundsMode : null,
+      swissRounds: (type === 'swiss' && roundsMode === 'manual') ? roundsNum : null,
+      minPlayers: minP, maxPlayers: maxP,
       rated: document.getElementById('f-rated').checked, private: document.getElementById('f-private').checked,
       started: false, finished: false,
       createdBy: mySid, createdByName: currentUser.name || currentUser.email, createdAt: serverTimestamp()
@@ -597,6 +634,36 @@ document.getElementById('tn-save').addEventListener('click', async () => {
 
 // ═══════════ เฟส 2: Pairing / Standings / Results ═══════════
 function nextPow2(n) { let p = 1; while (p < n) p *= 2; return p; }
+function swissTotalRounds(t, n) {
+  if (t.swissRoundsMode === 'manual' && t.swissRounds) return t.swissRounds;
+  return Math.max(1, Math.ceil(Math.log2(Math.max(2, n))));
+}
+
+// ตารางพบกันหมด (circle method) → คืน array ของรอบ, แต่ละรอบ = array ของ [a,b] (b เป็น '' = bye)
+function roundRobinSchedule(uids) {
+  const arr = uids.slice();
+  if (arr.length % 2 === 1) arr.push('');   // เติม bye ถ้าจำนวนคี่
+  const n = arr.length;
+  const rounds = [];
+  const fixed = arr[0];
+  let rest = arr.slice(1);
+  for (let r = 0; r < n - 1; r++) {
+    const row = [fixed, ...rest];
+    const pairs = [];
+    for (let i = 0; i < n / 2; i++) pairs.push([row[i], row[n - 1 - i]]);
+    rounds.push(pairs);
+    rest = [rest[rest.length - 1], ...rest.slice(0, rest.length - 1)];
+  }
+  return rounds;
+}
+function rrPairingsFromPairs(t, pairs) {
+  return pairs.map(([a, b]) => {
+    if (!a || !b) { const u = a || b; const inf = pgInfo(t, u); return { white: u, whiteName: inf.name, whiteAvatar: inf.avatar, black: null, blackName: null, result: 'bye' }; }
+    const ai = pgInfo(t, a), bi = pgInfo(t, b);
+    return { white: a, whiteName: ai.name, whiteAvatar: ai.avatar, black: b, blackName: bi.name, blackAvatar: bi.avatar, result: null };
+  });
+}
+
 
 // คำนวณสถิติผู้เล่นจากทุกรอบ
 function computeStandings(t) {
@@ -743,10 +810,11 @@ async function createPairingRooms(tid, round, pairings, t) {
     await set(gref, {
       w: { uid: pg.white, name: pg.whiteName, avatar: pg.whiteAvatar || '' },
       b: { uid: pg.black, name: pg.blackName, avatar: pg.blackAvatar || '' },
-      minutes: t.timeControl, turn: 'w', board: INITIAL_FB,
+      minutes: t.timeControl, bonus: t.bonus || 0, turn: 'w', board: INITIAL_FB,
       timeW: t.timeControl * 60, timeB: t.timeControl * 60, moveCount: 0,
-      startedAt: serverTimestamp(), conn_w: true, conn_b: true,
-      ranked: !!t.rated, tournament: { tid, round, pair: String(i), type: t.type }
+      startedAt: serverTimestamp(), conn_w: false, conn_b: false,
+      ranked: !!t.rated,
+      tournament: { tid, round, pair: String(i), type: t.type, lateMin: t.lateMin || 5 }
     });
     pg.room = gref.key;
   }
@@ -765,13 +833,23 @@ async function startTournament(id, t) {
   if (!isAdmin) return;
   const cnt = playerCount(t);
   if (cnt < (t.minPlayers || 2)) { alert('ผู้เล่นไม่พอ'); return; }
-  let pairings;
-  if (t.type === 'knockout') pairings = genKnockoutR1(t);
-  else { const st = computeStandings(t); pairings = genSwiss(t, st); }
+  let pairings, extra = {};
+  if (t.type === 'knockout') {
+    pairings = genKnockoutR1(t);
+  } else if (t.type === 'roundrobin') {
+    const uids = Object.entries(t.players || {}).sort((a, b) => (b[1].rating || 0) - (a[1].rating || 0)).map(([uid]) => uid);
+    const sched = roundRobinSchedule(uids);
+    extra.rrSchedule = sched.map(rd => rd.map(([a, b]) => [a || '', b || '']));
+    extra.totalRounds = sched.length;
+    pairings = rrPairingsFromPairs(t, sched[0]);
+  } else {
+    const st = computeStandings(t); pairings = genSwiss(t, st);
+    extra.totalRounds = swissTotalRounds(t, cnt);
+  }
   try {
     await createPairingRooms(id, 1, pairings, t);
     await update(ref(db, `tournaments/${id}`), {
-      started: true, currentRound: 1, [`rounds/1/pairings`]: arrToObj(pairings),
+      started: true, currentRound: 1, [`rounds/1/pairings`]: arrToObj(pairings), ...extra,
       announcement: { round: 1, text: 'การแข่งขันเริ่มแล้ว! กรุณาเข้าห้องแข่งขันของคุณ', ts: Date.now() }
     });
     await notifyAllPlayers(t, id, '🏆 ทัวร์นาเมนต์เริ่มแล้ว', `${t.name} — รอบที่ 1 เริ่มแล้ว เข้าห้องแข่งขันได้เลย`);
@@ -794,7 +872,15 @@ async function nextRound(id, t) {
     await createPairingRooms(id, nextNum, pairings, t);
     await update(ref(db, `tournaments/${id}`), { currentRound: nextNum, [`rounds/${nextNum}/pairings`]: arrToObj(pairings),
       announcement: { round: nextNum, text: `รอบที่ ${nextNum} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`, ts: Date.now() } });
+  } else if (t.type === 'roundrobin') {
+    if (t.currentRound >= (t.totalRounds || 0)) { alert('ครบทุกรอบแล้ว กด "จบทัวร์นาเมนต์" เพื่อสรุปผล'); return; }
+    const pairs = t.rrSchedule[t.currentRound];   // index = currentRound (0-based ของรอบถัดไป)
+    const pairings = rrPairingsFromPairs(t, pairs);
+    await createPairingRooms(id, nextNum, pairings, t);
+    await update(ref(db, `tournaments/${id}`), { currentRound: nextNum, [`rounds/${nextNum}/pairings`]: arrToObj(pairings),
+      announcement: { round: nextNum, text: `รอบที่ ${nextNum} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`, ts: Date.now() } });
   } else {
+    if (t.currentRound >= (t.totalRounds || 0)) { alert('ครบจำนวนรอบ Swiss แล้ว กด "จบทัวร์นาเมนต์" เพื่อสรุปผล'); return; }
     const st = computeStandings(t);
     const pairings = genSwiss(t, st);
     await createPairingRooms(id, nextNum, pairings, t);
