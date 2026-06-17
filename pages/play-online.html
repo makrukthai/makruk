@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
 <link rel="stylesheet" href="../game.css">
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
-<link rel="stylesheet" href="../theme-refresh.css">
 <script type="module" src="../auth.js"></script>
 <script src="../game.js"></script>
 <style>
@@ -2025,6 +2024,7 @@ function abortGame(fromOpponent = false, customSub = '') {
 // ════════════════════════════════════════════════
 let eloApplied = false;
 let gameRanked = true;   // เกมนี้คิด ELO หรือไม่ (จาก data.ranked)
+let gameTournament = null; // {tid, round, pair} ถ้าเป็นเกมทัวร์นาเมนต์
 // คะแนน/จำนวนเกม "ก่อนเริ่มเกม" ของทั้งสองฝ่าย (เก็บไว้เพื่อคำนวณ ELO ตอนจบ)
 let preMyElo = START_ELO, preOppElo = START_ELO, preMyGames = 0, preOppGames = 0, preEloMode = 'rapid';
 
@@ -2106,6 +2106,30 @@ async function endGame(reason, winner) {
           gameData.endedAt = serverTimestamp();
           gameData.moves = movesData;
           await set(ref(db, `game_history/${gameId}`), gameData);
+        }
+
+        // 🏆 เขียนผลกลับทัวร์นาเมนต์ (ฝ่ายขาวเป็นผู้เขียน กันซ้ำ)
+        if (gameTournament && gameTournament.tid != null) {
+          const tPath = `tournaments/${gameTournament.tid}/rounds/${gameTournament.round}/pairings/${gameTournament.pair}`;
+          if (gameTournament.type === 'knockout' && winner === null) {
+            // เสมอใน Knockout → สร้างเกมใหม่ให้แข่งซ้ำ (สลับสี) แทนการบันทึกผลเสมอ
+            try {
+              const rmRef = push(ref(db, 'games'));
+              await set(rmRef, {
+                w: { uid: myUid,  name: myName,  avatar: myAvatar  },   // คงสีเดิม (ปุ่มเข้าห้องคำนวณสีจากคู่เดิม)
+                b: { uid: oppUid, name: oppName, avatar: oppAvatar },
+                minutes: selectedMinutes, turn: 'w', board: boardToFB(window.INITIAL_BOARD),
+                timeW: selectedMinutes * 60, timeB: selectedMinutes * 60, moveCount: 0,
+                startedAt: serverTimestamp(), conn_w: true, conn_b: true,
+                ranked: gameRanked, rematchOf: gameId,
+                tournament: { tid: gameTournament.tid, round: gameTournament.round, pair: gameTournament.pair, type: 'knockout' }
+              });
+              await update(ref(db, tPath), { room: rmRef.key, result: null, drawReplay: (gameTournament.replayCount || 0) + 1 });
+            } catch (e) {}
+          } else {
+            const tRes = winner === 'w' ? '1-0' : winner === 'b' ? '0-1' : '½-½';
+            try { await set(ref(db, `${tPath}/result`), tRes); } catch (e) {}
+          }
         }
 
         // กรณีแพ้/ชนะจากการขาดการเชื่อมต่อ: ผู้ชนะเขียนประวัติ "แพ้" ให้ฝ่ายที่หลุดด้วย
@@ -2191,6 +2215,12 @@ async function endGame(reason, winner) {
   emoji.textContent = msg.emoji;
   title.textContent = msg.title;
   sub.textContent = msg.sub;
+
+  // Knockout เสมอ → ต้องแข่งใหม่
+  if (gameTournament && gameTournament.type === 'knockout' && winner === null) {
+    title.textContent = 'เสมอ — ต้องแข่งใหม่';
+    sub.innerHTML = 'รอบน็อกเอาต์ต้องมีผู้ชนะ ระบบสร้างเกมใหม่ให้แล้ว<br><a href="tournament.html#t=' + gameTournament.tid + '" style="color:var(--gold);font-weight:700;">→ กลับไปทัวร์เพื่อแข่งใหม่</a>';
+  }
 
   document.getElementById('gameover-overlay').classList.remove('hidden');
   document.getElementById('btn-resign').disabled = true;
@@ -2567,6 +2597,7 @@ async function startGame(gid) {
   timeW = data.minutes * 60; timeB = data.minutes * 60;
   selectedMinutes = data.minutes;
   gameRanked = (data.ranked !== false); // ค่าเริ่มต้น = คิด ELO (เกมจับคู่สุ่มถือว่าจัดอันดับ)
+  gameTournament = data.tournament || null; // context ทัวร์นาเมนต์ (ถ้ามี)
 
   document.getElementById('chat-input').disabled = false;
   document.getElementById('chat-send-btn').disabled = false;

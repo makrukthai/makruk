@@ -671,6 +671,9 @@
   .elo-section     { animation: fadeUp 0.4s 0.1s ease both; }
   .h2h-section     { animation: fadeUp 0.4s 0.15s ease both; }
   .history-section { animation: fadeUp 0.4s 0.2s ease both; }
+  .tn-medal-box { flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:10px 6px; text-align:center; }
+  .tn-medal-box .m { font-size:1.4rem; line-height:1; }
+  .tn-medal-box .c { font-weight:800; font-size:1.1rem; color:var(--text); margin-top:4px; }
   
   .btn-replay-link {
     background: transparent; border: 1px solid rgba(128,128,128,0.3);
@@ -816,6 +819,15 @@
       </div>
     </div>
 
+    <!-- ทัวร์นาเมนต์ -->
+    <div class="clubs-section" id="profile-tournaments-section" style="margin-top:18px;">
+      <p class="section-title">🏆 ทัวร์นาเมนต์</p>
+      <div id="profile-tn-medals" style="display:flex; gap:10px; margin-bottom:12px;"></div>
+      <div id="profile-tn-list" style="display:flex; flex-direction:column; gap:10px;">
+        <div style="color:var(--muted); font-size:0.88rem;">กำลังโหลด…</div>
+      </div>
+    </div>
+
     <!-- ประวัติการเล่นด้วยกัน (แสดงเฉพาะตอนดูโปรไฟล์คนอื่น) -->
     <div class="h2h-section hidden" id="h2h-section">
       <p class="section-title">ประวัติการเล่นด้วยกัน</p>
@@ -913,14 +925,63 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (isViewingOther) {
     await initViewOtherProfile(getSafeId(viewUserId), current, mySafeUid);
     renderUserClubs(getSafeId(viewUserId));
+    renderUserTournaments(getSafeId(viewUserId));
   } else {
     if (!current) return;
     await initOwnProfile(current, mySafeUid);
-    if (mySafeUid) renderUserClubs(mySafeUid);
+    if (mySafeUid) { renderUserClubs(mySafeUid); renderUserTournaments(mySafeUid); }
   }
 });
 
 // ── แสดงซุ้มที่ผู้เล่นเป็นสมาชิก ──
+// ═══════════════════════════════════════════════════════════
+//   ทัวร์นาเมนต์: เหรียญ + สถิติ + ประวัติ
+// ═══════════════════════════════════════════════════════════
+async function renderUserTournaments(targetSafeId) {
+  const medalsEl = document.getElementById('profile-tn-medals');
+  const listEl = document.getElementById('profile-tn-list');
+  if (!listEl || !targetSafeId) return;
+  const escp = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  try {
+    const snap = await get(ref(db, `user_tournaments/${targetSafeId}`));
+    const data = snap.val() || {};
+    const entries = Object.entries(data).sort((a, b) => (b[1].finishedAt || 0) - (a[1].finishedAt || 0));
+    if (!entries.length) {
+      if (medalsEl) medalsEl.innerHTML = '';
+      listEl.innerHTML = '<div style="color:var(--muted); font-size:0.88rem;">ยังไม่เคยแข่งทัวร์นาเมนต์</div>';
+      return;
+    }
+    // สถิติรวม
+    let gold = 0, silver = 0, bronze = 0, best = 999;
+    entries.forEach(([id, r]) => {
+      if (r.medal === 'gold') gold++; else if (r.medal === 'silver') silver++; else if (r.medal === 'bronze') bronze++;
+      if (r.rank && r.rank < best) best = r.rank;
+    });
+    if (medalsEl) medalsEl.innerHTML = `
+      <div class="tn-medal-box"><div class="m">🥇</div><div class="c">${gold}</div></div>
+      <div class="tn-medal-box"><div class="m">🥈</div><div class="c">${silver}</div></div>
+      <div class="tn-medal-box"><div class="m">🥉</div><div class="c">${bronze}</div></div>
+      <div class="tn-medal-box"><div class="m" style="font-size:0.95rem;color:var(--muted);">แข่ง</div><div class="c">${entries.length}</div></div>
+      <div class="tn-medal-box"><div class="m" style="font-size:0.95rem;color:var(--muted);">อันดับดีสุด</div><div class="c">#${best === 999 ? '-' : best}</div></div>`;
+    const medalIcon = { gold: '🥇', silver: '🥈', bronze: '🥉' };
+    listEl.innerHTML = entries.map(([id, r]) => {
+      const badge = r.medal ? medalIcon[r.medal] : `#${r.rank}`;
+      const d = r.finishedAt ? new Date(r.finishedAt) : null;
+      const ds = d ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}` : '';
+      return `<a href="tournament.html#t=${encodeURIComponent(id)}" style="display:flex; align-items:center; gap:12px; padding:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg2); text-decoration:none;">
+        <div style="width:42px;height:42px;border-radius:10px;flex-shrink:0;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:var(--gold);">${badge}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:var(--text);">${escp(r.tournamentName || 'ทัวร์นาเมนต์')}</div>
+          <div style="font-size:0.78rem;color:var(--muted);">อันดับ ${r.rank}/${r.totalPlayers} · ${r.score} แต้ม · ${r.wins}-${r.draws}-${r.losses}</div>
+        </div>
+        <span style="color:var(--muted);">›</span>
+      </a>`;
+    }).join('');
+  } catch (e) {
+    listEl.innerHTML = '<div style="color:var(--muted); font-size:0.88rem;">โหลดทัวร์นาเมนต์ไม่ได้</div>';
+  }
+}
+
 async function renderUserClubs(targetSafeId) {
   const listEl = document.getElementById('profile-clubs-list');
   if (!listEl || !targetSafeId) return;

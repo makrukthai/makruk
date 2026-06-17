@@ -3,23 +3,172 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RUKTHAI - Thai Chess Online</title>
+<title>RUKTHAI - ทัวร์นาเมนต์</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
-<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <link rel="stylesheet" href="../theme-refresh.css">
+<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <script type="module" src="../auth.js"></script>
+<style>
+  .home-page-body .main { height: auto; min-height: calc(100vh - 60px); display: block; }
+  .tn-wrap { max-width: 1080px; margin: 0 auto; padding: 26px 16px 90px; }
+  .tn-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .tn-head h1 { font-size: 1.8rem; margin: 0 0 4px; }
+  .tn-head p { color: var(--muted); margin: 0; font-size: 0.95rem; }
+  .btn-create-tn { background: var(--gold); color: #1a1305; border: none; height: 44px; padding: 0 20px; border-radius: var(--r-md,12px); font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); display: none; }
+  .btn-create-tn:hover { background: var(--gold-light,#e3c479); }
+
+  /* ── filter tabs ── */
+  .tn-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tn-tab { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); cursor: pointer; font-size: 0.88rem; font-weight: 600; }
+  .tn-tab.active { background: var(--gold-soft); color: var(--gold); border-color: var(--gold); }
+
+  /* ── card grid ── */
+  .tn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 18px; }
+  .tn-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); overflow: hidden; cursor: pointer; box-shadow: var(--shadow-1); transition: transform 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; }
+  .tn-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); border-color: var(--gold); }
+  .tn-cover { height: 130px; background: linear-gradient(135deg, #3a2f1a, #1f1a12); background-size: cover; background-position: center; position: relative; display: flex; align-items: flex-end; }
+  .tn-cover .tn-status { position: absolute; top: 10px; right: 10px; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+  .st-open { background: #2e7d52; color: #fff; }
+  .st-closed { background: #b8860b; color: #fff; }
+  .st-ongoing { background: #c0392b; color: #fff; }
+  .st-finished { background: #555; color: #ddd; }
+  .st-upcoming { background: #34699a; color: #fff; }
+  .tn-card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .tn-card-title { font-weight: 700; font-size: 1.08rem; color: var(--text); line-height: 1.3; }
+  .tn-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tn-tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); }
+  .tn-tag.gold { color: var(--gold); border-color: var(--gold); }
+  .tn-card-meta { display: flex; justify-content: space-between; align-items: center; margin-top: auto; font-size: 0.82rem; color: var(--muted); }
+  .tn-players-bar { height: 6px; background: var(--bg); border-radius: 4px; overflow: hidden; margin-top: 2px; }
+  .tn-players-fill { height: 100%; background: var(--gold); }
+  .tn-empty { color: var(--muted); text-align: center; padding: 60px 0; font-style: italic; }
+
+  /* ── detail ── */
+  .tn-back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; cursor: pointer; }
+  .tn-back:hover { color: var(--gold); }
+  .tn-detail-cover { height: 200px; border-radius: var(--r-lg,16px); background: linear-gradient(135deg, #3a2f1a, #1f1a12); background-size: cover; background-position: center; margin-bottom: 18px; position: relative; }
+  .tn-detail-cover .tn-status { position: absolute; top: 14px; right: 14px; padding: 5px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 700; }
+  .tn-detail-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+  @media (max-width: 800px) { .tn-detail-layout { grid-template-columns: 1fr; } }
+  .tn-detail h1 { font-size: 1.6rem; margin: 0 0 10px; }
+  .tn-desc { color: var(--text); line-height: 1.7; white-space: pre-wrap; margin-bottom: 20px; }
+  .tn-rules { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); padding: 18px 20px; margin-bottom: 18px; }
+  .tn-rules h3 { margin: 0 0 12px; font-size: 1rem; }
+  .tn-rule-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  .tn-rule-row:last-child { border-bottom: none; }
+  .tn-rule-row .k { color: var(--muted); }
+  .tn-rule-row .v { color: var(--text); font-weight: 600; }
+  .tn-side { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); padding: 20px; position: sticky; top: 80px; }
+  .tn-count-big { font-size: 2rem; font-weight: 800; color: var(--text); }
+  .tn-count-big span { font-size: 1rem; color: var(--muted); font-weight: 500; }
+  .tn-countdown { color: var(--gold); font-weight: 600; font-size: 0.95rem; margin: 10px 0 16px; }
+  .btn-register { width: 100%; height: 48px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 1rem; background: var(--gold); color: #1a1305; }
+  .btn-register:hover { background: var(--gold-light,#e3c479); }
+  .btn-register.leave { background: transparent; border: 1px solid #c5544a; color: #e0796f; }
+  .btn-register:disabled { opacity: 0.5; cursor: default; }
+  .tn-reg-msg { font-size: 0.82rem; color: var(--muted); text-align: center; margin-top: 8px; min-height: 16px; }
+  .tn-players-list { margin-top: 22px; }
+  .tn-players-list h3 { font-size: 1rem; margin: 0 0 12px; }
+  .tn-player { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .tn-player:last-child { border-bottom: none; }
+  .tn-player img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: var(--bg); }
+  .tn-player .pn { font-weight: 600; font-size: 0.9rem; }
+  .tn-player .pr { margin-left: auto; color: var(--muted); font-size: 0.82rem; }
+  .tn-admin-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tn-admin-actions button { height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-size: 0.83rem; font-weight: 600; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .tn-admin-actions .del:hover { border-color: #c5544a; color: #e0796f; }
+
+  /* ── rounds / pairings / standings ── */
+  .tn-subtabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tn-subtab { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+  .tn-subtab.active { background: var(--gold-soft); color: var(--gold); border-color: var(--gold); }
+  .tn-admin-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; padding: 14px; background: var(--bg2); border: 1px solid var(--gold); border-radius: 12px; align-items: center; }
+  .tn-admin-bar .lbl { font-size: 0.85rem; color: var(--muted); margin-right: auto; }
+  .tn-admin-bar button { height: 40px; padding: 0 18px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.88rem; }
+  .tn-btn-primary { background: var(--gold); color: #1a1305; }
+  .tn-btn-ghost { background: transparent; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)) !important; color: var(--text); }
+  .tn-btn-danger { background: transparent; border: 1px solid #c5544a !important; color: #e0796f; }
+
+  .round-block { margin-bottom: 24px; }
+  .round-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  .round-title .badge { font-size: 0.72rem; padding: 2px 10px; border-radius: 999px; background: var(--bg2); border: 1px solid var(--border); color: var(--muted); font-weight: 600; }
+  .pairing { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }
+  .pairing .side { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .pairing .side.right { justify-content: flex-end; }
+  .pairing .side img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: var(--bg); flex-shrink: 0; }
+  .pairing .side .nm { font-weight: 600; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pairing .side.win .nm { color: var(--gold); }
+  .pairing .side .clr { font-size: 0.62rem; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); flex-shrink: 0; }
+  .pairing .mid { text-align: center; min-width: 90px; }
+  .pairing .mid .vs { color: var(--muted); font-weight: 700; font-size: 0.9rem; }
+  .pairing .mid .res { font-weight: 800; color: var(--text); font-size: 1rem; }
+  .pairing-bye { background: var(--bg2); border: 1px dashed var(--gold); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+  .pairing-bye .nm { font-weight: 600; } .pairing-bye .tag { margin-left: auto; color: var(--gold); font-weight: 700; font-size: 0.85rem; }
+  .res-btns { display: flex; gap: 6px; justify-content: center; margin-top: 8px; grid-column: 1 / -1; }
+  .res-btns button { flex: 1; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; font-size: 0.78rem; font-weight: 600; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .res-btns button:hover { border-color: var(--gold); color: var(--gold); }
+
+  .standings-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .standings-table th { text-align: left; color: var(--muted); font-weight: 600; font-size: 0.78rem; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .standings-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+  .standings-table tr:last-child td { border-bottom: none; }
+  .standings-table .rk { font-weight: 700; color: var(--muted); width: 36px; }
+  .standings-table .pl { display: flex; align-items: center; gap: 8px; }
+  .standings-table .pl img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--bg); }
+  .standings-table .sc { font-weight: 800; color: var(--gold); }
+  .standings-table tr.top1 td { background: rgba(212,175,85,0.08); }
+  .standings-table .medal { font-size: 1rem; }
+
+  /* ── announce + join ── */
+  .tn-announce { background: linear-gradient(135deg, rgba(212,175,85,0.16), rgba(212,175,85,0.06)); border: 1px solid var(--gold); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; color: var(--text); font-weight: 600; }
+  .join-btn { background: var(--gold) !important; color: #1a1305 !important; border: none !important; font-weight: 700; padding: 0 16px; height: 34px; border-radius: 8px; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); margin-left: auto; }
+  .join-btn:hover { background: var(--gold-light,#e3c479) !important; }
+
+  /* ── bracket ── */
+  .bk-wrap { display: flex; gap: 24px; overflow-x: auto; padding: 10px 4px 20px; align-items: flex-start; }
+  .bk-col { min-width: 180px; display: flex; flex-direction: column; justify-content: space-around; gap: 16px; flex: 1; }
+  .bk-col-title { text-align: center; font-size: 0.8rem; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+  .bk-match { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .bk-match.champ { border-color: var(--gold); }
+  .bk-p { padding: 10px 12px; font-size: 0.88rem; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bk-p:last-child { border-bottom: none; }
+  .bk-p.win { color: var(--gold); background: rgba(212,175,85,0.08); }
+  .bk-p .bye { color: var(--gold); opacity: 0.7; }
+
+  /* ── create modal ── */
+  .tn-modal-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.7); display: none; align-items: flex-start; justify-content: center; padding: 24px; overflow-y: auto; }
+  .tn-modal-overlay.open { display: flex; }
+  .tn-modal { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-lg,16px); width: 100%; max-width: 640px; padding: 26px; box-shadow: var(--shadow-2); margin: auto; }
+  .tn-modal h2 { margin: 0 0 18px; font-size: 1.35rem; }
+  .tn-field { margin-bottom: 15px; }
+  .tn-field label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .tn-field input[type=text], .tn-field input[type=number], .tn-field input[type=datetime-local], .tn-field select, .tn-field textarea {
+    width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.93rem; box-sizing: border-box; }
+  .tn-field textarea { resize: vertical; min-height: 70px; }
+  .tn-field input:focus, .tn-field select:focus, .tn-field textarea:focus { outline: none; border-color: var(--gold); }
+  .tn-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .tn-row2 { grid-template-columns: 1fr; } }
+  .tn-cover-pick { border: 2px dashed var(--border); border-radius: 12px; padding: 14px; text-align: center; cursor: pointer; color: var(--muted); font-size: 0.85rem; background: var(--bg2); }
+  .tn-cover-pick.has { padding: 0; border-style: solid; overflow: hidden; height: 120px; background-size: cover; background-position: center; }
+  .tn-toggles { display: flex; gap: 20px; flex-wrap: wrap; }
+  .tn-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
+  .tn-actions { display: flex; gap: 12px; margin-top: 22px; }
+  .tn-actions button { flex: 1; height: 48px; border-radius: 12px; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .tn-cancel { background: transparent; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); color: var(--text); }
+  .tn-save { background: var(--gold); border: none; color: #1a1305; }
+  .tn-modal-msg { font-size: 0.84rem; color: #e0796f; min-height: 18px; margin-top: 8px; }
+  .tn-loading { text-align: center; color: var(--muted); padding: 70px 0; }
+</style>
 </head>
 <body class="home-page-body">
 <header class="topbar">
     <div class="left">
-        <a href="play.html" class="logo">
-            <div class="logo-icon">
-                <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
-                <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
-            </div>
-        </a>
+        <a href="play.html" class="logo"><div class="logo-icon">
+            <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+            <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+        </div></a>
         <nav class="nav">
             <a href="play.html">เล่น</a>
             <a href="tournament.html">ทัวร์นาเมนต์</a>
@@ -34,13 +183,766 @@
         <button class="login">เข้าสู่ระบบ</button>
     </div>
 </header>
+
 <main class="main">
-    <section class="hero">
-        <div class="hero-content">
-            <h1>ทัวร์นาเมนต์</h1>
-            <p>เข้าร่วมการแข่งขันและแสดงความสามารถของคุณ</p>
-        </div>
-    </section>
+  <div class="tn-wrap" id="tn-list-view">
+    <div class="tn-head">
+      <div><h1>🏆 ทัวร์นาเมนต์</h1><p>เข้าร่วมการแข่งขันหมากรุกไทยและแสดงฝีมือของคุณ</p></div>
+      <button class="btn-create-tn" id="btn-create-tn">＋ สร้างทัวร์นาเมนต์</button>
+    </div>
+    <div class="tn-tabs" id="tn-tabs">
+      <div class="tn-tab active" data-filter="all">ทั้งหมด</div>
+      <div class="tn-tab" data-filter="open">เปิดรับสมัคร</div>
+      <div class="tn-tab" data-filter="ongoing">กำลังแข่ง</div>
+      <div class="tn-tab" data-filter="finished">จบแล้ว</div>
+    </div>
+    <div class="tn-grid" id="tn-grid"><div class="tn-loading">กำลังโหลด…</div></div>
+  </div>
+
+  <div class="tn-wrap" id="tn-detail-view" style="display:none;">
+    <div class="tn-back" id="tn-back">← กลับไปรายการทัวร์</div>
+    <div id="tn-detail-content"><div class="tn-loading">กำลังโหลด…</div></div>
+  </div>
 </main>
+
+<!-- สร้างทัวร์นาเมนต์ -->
+<div class="tn-modal-overlay" id="tn-modal-overlay">
+  <div class="tn-modal">
+    <h2>สร้างทัวร์นาเมนต์</h2>
+    <div class="tn-field">
+      <label>ชื่อทัวร์นาเมนต์ *</label>
+      <input type="text" id="f-name" maxlength="80" placeholder="เช่น Makruk Weekly #1">
+    </div>
+    <div class="tn-field">
+      <label>รูปปก</label>
+      <div class="tn-cover-pick" id="f-cover-pick">คลิกเพื่อเลือกรูปปก (ไม่บังคับ)</div>
+      <input type="file" id="f-cover-input" accept="image/*" style="display:none;">
+    </div>
+    <div class="tn-field">
+      <label>คำอธิบาย</label>
+      <textarea id="f-desc" maxlength="600" placeholder="รายละเอียด / กฎการแข่งขัน"></textarea>
+    </div>
+    <div class="tn-row2">
+      <div class="tn-field"><label>วันเวลาเริ่มแข่ง *</label><input type="datetime-local" id="f-start"></div>
+      <div class="tn-field"><label>ปิดรับสมัคร *</label><input type="datetime-local" id="f-regclose"></div>
+    </div>
+    <div class="tn-row2">
+      <div class="tn-field"><label>ประเภท</label>
+        <select id="f-type"><option value="swiss">Swiss Pairing</option><option value="knockout">Knockout</option></select>
+      </div>
+      <div class="tn-field"><label>เวลาต่อเกม (นาที)</label>
+        <select id="f-time"><option value="5">5 นาที</option><option value="10" selected>10 นาที</option><option value="30">30 นาที</option><option value="custom">กำหนดเอง</option></select>
+      </div>
+    </div>
+    <div class="tn-field" id="f-time-custom-wrap" style="display:none;">
+      <label>เวลากำหนดเอง (นาที)</label><input type="number" id="f-time-custom" min="1" max="180" value="15">
+    </div>
+    <div class="tn-row2">
+      <div class="tn-field"><label>ผู้เล่นขั้นต่ำ</label><input type="number" id="f-min" min="2" max="512" value="4"></div>
+      <div class="tn-field"><label>ผู้เล่นสูงสุด</label><input type="number" id="f-max" min="2" max="512" value="32"></div>
+    </div>
+    <div class="tn-field">
+      <div class="tn-toggles">
+        <label class="tn-toggle"><input type="checkbox" id="f-rated" checked> Rated (คิดเรต)</label>
+        <label class="tn-toggle"><input type="checkbox" id="f-private"> Private (ส่วนตัว)</label>
+      </div>
+    </div>
+    <div class="tn-modal-msg" id="tn-modal-msg"></div>
+    <div class="tn-actions">
+      <button class="tn-cancel" id="tn-cancel">ยกเลิก</button>
+      <button class="tn-save" id="tn-save">สร้างทัวร์นาเมนต์</button>
+    </div>
+  </div>
+</div>
+
+<script src="../game.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, set, remove, onValue, get, update, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const db = getDatabase(initializeApp(firebaseConfig));
+
+const ADMIN_EMAILS = ['wachangngoen95@gmail.com'];
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeId = (id) => id ? String(id).replace(/[.#$\[\]]/g, '_') : '';
+function loadUser() { try { return JSON.parse(localStorage.getItem('rukthai_current_user')) || null; } catch (e) { return null; } }
+const currentUser = loadUser();
+const mySid = currentUser ? safeId(currentUser.id || currentUser.email) : null;
+const isAdmin = !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
+
+const TYPE_LABEL = { swiss: 'Swiss', knockout: 'Knockout' };
+
+// ── สถานะทัวร์ ──
+function tnStatus(t) {
+  if (t.finished) return 'finished';
+  if (t.started) return 'ongoing';
+  const now = Date.now();
+  if (t.regCloseAt && now >= t.regCloseAt) return (t.startAt && now >= t.startAt) ? 'ongoing' : 'closed';
+  return 'open';
+}
+const STATUS_TH = { open: 'เปิดรับสมัคร', closed: 'ปิดรับสมัคร', ongoing: 'กำลังแข่ง', finished: 'จบแล้ว', upcoming: 'เร็ว ๆ นี้' };
+
+function fmtDate(ms) {
+  if (!ms) return '-';
+  const d = new Date(ms);
+  const m = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${d.getDate()} ${m[d.getMonth()]} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function countdown(ms) {
+  if (!ms) return '';
+  const diff = ms - Date.now();
+  if (diff <= 0) return 'เริ่มแล้ว';
+  const d = Math.floor(diff / 86400000), h = Math.floor(diff % 86400000 / 3600000), mn = Math.floor(diff % 3600000 / 60000);
+  if (d > 0) return `อีก ${d} วัน ${h} ชม.`;
+  if (h > 0) return `อีก ${h} ชม. ${mn} นาที`;
+  return `อีก ${mn} นาที`;
+}
+function playerCount(t) { return t.players ? Object.keys(t.players).length : 0; }
+
+// ═══════════ รายการทัวร์ ═══════════
+let allTournaments = {};
+let activeFilter = 'all';
+
+function renderList() {
+  const grid = document.getElementById('tn-grid');
+  let entries = Object.entries(allTournaments);
+  entries.sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+  if (activeFilter !== 'all') entries = entries.filter(([id, t]) => {
+    const s = tnStatus(t);
+    return activeFilter === 'open' ? s === 'open'
+      : activeFilter === 'ongoing' ? (s === 'ongoing' || s === 'closed')
+      : activeFilter === 'finished' ? s === 'finished' : true;
+  });
+  if (!entries.length) { grid.innerHTML = '<div class="tn-empty">ยังไม่มีทัวร์นาเมนต์ในหมวดนี้</div>'; return; }
+  grid.innerHTML = entries.map(([id, t]) => {
+    const s = tnStatus(t), cnt = playerCount(t), pct = t.maxPlayers ? Math.min(100, cnt / t.maxPlayers * 100) : 0;
+    const cover = t.cover ? `style="background-image:url('${t.cover}')"` : '';
+    return `<div class="tn-card" data-id="${esc(id)}">
+      <div class="tn-cover" ${cover}><span class="tn-status st-${s}">${STATUS_TH[s]}</span></div>
+      <div class="tn-card-body">
+        <div class="tn-card-title">${esc(t.name)}</div>
+        <div class="tn-tags">
+          <span class="tn-tag gold">${TYPE_LABEL[t.type] || t.type}</span>
+          <span class="tn-tag">${esc(String(t.timeControl))} นาที</span>
+          <span class="tn-tag">${t.rated ? 'Rated' : 'Unrated'}</span>
+          ${t.private ? '<span class="tn-tag">🔒 Private</span>' : ''}
+        </div>
+        <div class="tn-players-bar"><div class="tn-players-fill" style="width:${pct}%"></div></div>
+        <div class="tn-card-meta">
+          <span>👥 ${cnt}/${t.maxPlayers}</span>
+          <span>${s === 'open' ? '🕒 ' + countdown(t.regCloseAt) : '📅 ' + fmtDate(t.startAt)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.tn-card').forEach(c => c.addEventListener('click', () => { location.hash = '#t=' + c.dataset.id; }));
+}
+
+document.getElementById('tn-tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.tn-tab'); if (!tab) return;
+  document.querySelectorAll('.tn-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active'); activeFilter = tab.dataset.filter; renderList();
+});
+
+// ═══════════ รายละเอียดทัวร์ ═══════════
+let detailUnsub = null, currentDetailId = null;
+
+function showDetail(id) {
+  document.getElementById('tn-list-view').style.display = 'none';
+  document.getElementById('tn-detail-view').style.display = 'block';
+  currentDetailId = id;
+  if (detailUnsub) detailUnsub();
+  detailUnsub = onValue(ref(db, `tournaments/${id}`), (snap) => renderDetail(id, snap.val()));
+}
+function showListView() {
+  if (detailUnsub) { detailUnsub(); detailUnsub = null; }
+  currentDetailId = null;
+  document.getElementById('tn-detail-view').style.display = 'none';
+  document.getElementById('tn-list-view').style.display = 'block';
+}
+
+let detailTab = 'info';
+
+function renderDetail(id, t) {
+  const wrap = document.getElementById('tn-detail-content');
+  if (!t) { wrap.innerHTML = '<div class="tn-empty">ไม่พบทัวร์นาเมนต์นี้ (อาจถูกลบ)</div>'; return; }
+  const s = tnStatus(t), cnt = playerCount(t);
+  const cover = t.cover ? `style="background-image:url('${t.cover}')"` : '';
+  if (!t.started) detailTab = 'info';
+
+  // แถบควบคุมแอดมิน
+  let adminBar = '';
+  if (isAdmin) {
+    const canStart = !t.started && cnt >= (t.minPlayers || 2);
+    const allDone = t.started && !t.finished && roundComplete(t, t.currentRound);
+    adminBar = `<div class="tn-admin-bar">
+      <span class="lbl">🛠 แอดมิน${t.started ? ' · รอบ ' + t.currentRound : ''}</span>
+      ${canStart ? `<button class="tn-btn-primary" id="btn-start">▶ เริ่มทัวร์นาเมนต์</button>` : ''}
+      ${!t.started && cnt < (t.minPlayers || 2) ? `<span class="lbl" style="color:#e0796f;margin:0;">ต้องมีผู้เล่น ≥ ${t.minPlayers} คน</span>` : ''}
+      ${t.started && !t.finished && t.type === 'swiss' ? `<button class="tn-btn-primary" id="btn-next" ${allDone ? '' : 'disabled style="opacity:.5"'}>จับคู่รอบถัดไป →</button>` : ''}
+      ${t.started && !t.finished && t.type === 'knockout' ? `<button class="tn-btn-primary" id="btn-next" ${allDone ? '' : 'disabled style="opacity:.5"'}>รอบถัดไป →</button>` : ''}
+      ${t.started && !t.finished ? `<button class="tn-btn-ghost" id="btn-announce">📢 ประกาศรอบนี้</button>` : ''}
+      ${t.started && !t.finished ? `<button class="tn-btn-ghost" id="btn-finish">🏁 จบทัวร์นาเมนต์</button>` : ''}
+      <button class="tn-btn-danger" id="btn-del-tn">🗑 ลบ</button>
+    </div>`;
+  }
+
+  let body;
+  if (!t.started) {
+    body = renderInfoTab(id, t, s, cnt);
+  } else {
+    const tabs = `<div class="tn-subtabs">
+      <div class="tn-subtab ${detailTab==='pairings'?'active':''}" data-tab="pairings">⚔️ คู่แข่งขัน</div>
+      ${t.type === 'knockout' ? `<div class="tn-subtab ${detailTab==='bracket'?'active':''}" data-tab="bracket">🏆 สายการแข่ง</div>` : ''}
+      <div class="tn-subtab ${detailTab==='standings'?'active':''}" data-tab="standings">📊 ตารางคะแนน</div>
+      <div class="tn-subtab ${detailTab==='info'?'active':''}" data-tab="info">📋 รายละเอียด</div>
+    </div>`;
+    let inner = detailTab === 'standings' ? renderStandingsTab(t)
+              : detailTab === 'bracket' ? renderBracketTab(t)
+              : detailTab === 'info' ? renderInfoTab(id, t, s, cnt)
+              : renderPairingsTab(t);
+    body = tabs + inner;
+  }
+
+  // แบนเนอร์ประกาศ (รอบปัจจุบัน) + ปุ่มเข้าห้องของผู้เล่น
+  let banner = '';
+  if (t.started && !t.finished && t.announcement && t.announcement.round === t.currentRound) {
+    const myPg = findMyPairing(t);
+    const joinBtn = (myPg && myPg.room && !myPg.result) ? `<button class="join-btn" onclick="location.href='play-online.html?room=${esc(myPg.room)}&color=${myPg.white===mySid?'w':'b'}'">▶ เข้าห้องแข่งขัน</button>` : '';
+    banner = `<div class="tn-announce">📢 ${esc(t.announcement.text)} ${joinBtn}</div>`;
+  }
+
+  wrap.innerHTML = `
+    ${adminBar}
+    ${banner}
+    <div class="tn-detail-cover" ${cover}><span class="tn-status st-${s}">${STATUS_TH[s]}</span></div>
+    ${body}`;
+
+  // events
+  const regB = document.getElementById('btn-reg');
+  if (regB) { const joined = mySid && t.players && t.players[mySid]; regB.addEventListener('click', () => toggleRegister(id, t, joined, cnt >= t.maxPlayers)); }
+  const delB = document.getElementById('btn-del-tn');
+  if (delB) delB.addEventListener('click', async () => { if (!confirm('ลบทัวร์นาเมนต์นี้ถาวร?')) return; try { await remove(ref(db, `tournaments/${id}`)); location.hash = ''; } catch (e) { alert('ลบไม่สำเร็จ'); } });
+  const startB = document.getElementById('btn-start');
+  if (startB) startB.addEventListener('click', () => startTournament(id, t));
+  const nextB = document.getElementById('btn-next');
+  if (nextB && !nextB.disabled) nextB.addEventListener('click', () => nextRound(id, t));
+  const finB = document.getElementById('btn-finish');
+  if (finB) finB.addEventListener('click', async () => { if (!confirm('จบทัวร์นาเมนต์นี้? จะคำนวณอันดับสุดท้าย')) return; await finishTournament(id, t); });
+  const annB = document.getElementById('btn-announce');
+  if (annB) annB.addEventListener('click', async () => {
+    const text = `รอบที่ ${t.currentRound} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`;
+    try {
+      await set(ref(db, `tournaments/${id}/announcement`), { round: t.currentRound, text, ts: Date.now() });
+      await notifyAllPlayers(t, id, '📢 ประกาศการแข่งขัน', `${t.name} — ${text}`);
+      alert('ส่งประกาศแล้ว');
+    } catch (e) { alert('ส่งไม่สำเร็จ'); }
+  });
+  document.querySelectorAll('.tn-subtab').forEach(tab => tab.addEventListener('click', () => { detailTab = tab.dataset.tab; renderDetail(id, t); }));
+  // result buttons (admin)
+  if (isAdmin) document.querySelectorAll('[data-result]').forEach(btn => btn.addEventListener('click', () => {
+    reportResult(id, +btn.dataset.round, btn.dataset.pair, btn.dataset.result);
+  }));
+}
+
+function renderInfoTab(id, t, s, cnt) {
+  const joined = mySid && t.players && t.players[mySid];
+  const full = cnt >= t.maxPlayers;
+  const players = t.players ? Object.entries(t.players).sort((a, b) => (b[1].rating || 0) - (a[1].rating || 0)) : [];
+  let regBtn = '';
+  if (!t.started) {
+    if (s === 'open') {
+      if (joined) regBtn = `<button class="btn-register leave" id="btn-reg">ยกเลิกการสมัคร</button>`;
+      else if (full) regBtn = `<button class="btn-register" disabled>เต็มแล้ว</button>`;
+      else regBtn = `<button class="btn-register" id="btn-reg">สมัครเข้าแข่ง</button>`;
+    } else if (s === 'closed') {
+      regBtn = joined ? `<button class="btn-register" disabled>✓ สมัครแล้ว รอเริ่มแข่ง</button>` : `<button class="btn-register" disabled>ปิดรับสมัครแล้ว</button>`;
+    }
+    if (!currentUser && s === 'open') regBtn = `<button class="btn-register" onclick="location.href='play.html'">เข้าสู่ระบบเพื่อสมัคร</button>`;
+  }
+  return `<div class="tn-detail-layout">
+    <div class="tn-detail">
+      <h1>${esc(t.name)}</h1>
+      ${t.description ? `<div class="tn-desc">${esc(t.description)}</div>` : ''}
+      <div class="tn-rules">
+        <h3>📋 กฎการแข่งขัน</h3>
+        <div class="tn-rule-row"><span class="k">ระบบ</span><span class="v">${TYPE_LABEL[t.type] || t.type}</span></div>
+        <div class="tn-rule-row"><span class="k">เวลาต่อเกม</span><span class="v">${esc(String(t.timeControl))} นาที</span></div>
+        <div class="tn-rule-row"><span class="k">ประเภทเรต</span><span class="v">${t.rated ? 'Rated (คิดเรต)' : 'Unrated'}</span></div>
+        <div class="tn-rule-row"><span class="k">ผู้เล่น</span><span class="v">${t.minPlayers}–${t.maxPlayers} คน</span></div>
+        <div class="tn-rule-row"><span class="k">เริ่มแข่ง</span><span class="v">${fmtDate(t.startAt)}</span></div>
+        <div class="tn-rule-row"><span class="k">ปิดรับสมัคร</span><span class="v">${fmtDate(t.regCloseAt)}</span></div>
+      </div>
+      <div class="tn-players-list">
+        <h3>👥 ผู้สมัคร (${cnt})</h3>
+        ${players.length ? players.map(([uid, p]) => `<div class="tn-player">
+          <img src="${esc(p.avatar || '../Images/default-avatar.png')}" onerror="this.src='../Images/default-avatar.png'">
+          <span class="pn">${esc(p.name)}</span>${t.rated ? `<span class="pr">เรต ${p.rating || '-'}</span>` : ''}
+        </div>`).join('') : '<div class="tn-empty" style="padding:20px 0;">ยังไม่มีผู้สมัคร</div>'}
+      </div>
+    </div>
+    <div>
+      <div class="tn-side">
+        <div class="tn-count-big">${cnt}<span> / ${t.maxPlayers} คน</span></div>
+        <div class="tn-countdown">${s === 'open' ? '🕒 ปิดรับสมัคร ' + countdown(t.regCloseAt) : s === 'closed' ? '⏳ เริ่มแข่ง ' + countdown(t.startAt) : STATUS_TH[s]}</div>
+        ${regBtn}
+        <div class="tn-reg-msg" id="tn-reg-msg"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function toggleRegister(id, t, joined, full) {
+  const msg = document.getElementById('tn-reg-msg');
+  if (!currentUser) { location.href = 'play.html'; return; }
+  try {
+    if (joined) {
+      await remove(ref(db, `tournaments/${id}/players/${mySid}`));
+    } else {
+      if (full) { msg.textContent = 'ทัวร์เต็มแล้ว'; return; }
+      // ดึงเรตผู้เล่น
+      let rating = 0;
+      try { const us = await get(ref(db, `users/${mySid}/elo`)); const e = us.val() || {}; rating = e.standard || e.rapid || e.blitz || 0; } catch (e) {}
+      await set(ref(db, `tournaments/${id}/players/${mySid}`), {
+        name: currentUser.name || currentUser.email, avatar: currentUser.avatar || '', rating, joinedAt: Date.now()
+      });
+    }
+  } catch (e) { msg.textContent = 'ดำเนินการไม่สำเร็จ'; }
+}
+
+// ═══════════ สร้างทัวร์ (modal) ═══════════
+const overlay = document.getElementById('tn-modal-overlay');
+let coverData = '';
+
+if (isAdmin) {
+  document.getElementById('btn-create-tn').style.display = 'inline-block';
+  document.getElementById('btn-create-tn').addEventListener('click', openCreate);
+}
+function openCreate() {
+  ['f-name','f-desc','f-start','f-regclose','f-time-custom'].forEach(i => { const el = document.getElementById(i); if (el.type !== 'number') el.value = ''; });
+  document.getElementById('f-type').value = 'swiss';
+  document.getElementById('f-time').value = '10';
+  document.getElementById('f-min').value = '4'; document.getElementById('f-max').value = '32';
+  document.getElementById('f-rated').checked = true; document.getElementById('f-private').checked = false;
+  document.getElementById('f-time-custom-wrap').style.display = 'none';
+  coverData = '';
+  const cp = document.getElementById('f-cover-pick'); cp.className = 'tn-cover-pick'; cp.textContent = 'คลิกเพื่อเลือกรูปปก (ไม่บังคับ)'; cp.style.backgroundImage = '';
+  document.getElementById('tn-modal-msg').textContent = '';
+  overlay.classList.add('open');
+}
+function closeCreate() { overlay.classList.remove('open'); }
+document.getElementById('tn-cancel').addEventListener('click', closeCreate);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeCreate(); });
+document.getElementById('f-time').addEventListener('change', e => {
+  document.getElementById('f-time-custom-wrap').style.display = e.target.value === 'custom' ? 'block' : 'none';
+});
+
+// รูปปก: ย่อเป็น base64
+document.getElementById('f-cover-pick').addEventListener('click', () => document.getElementById('f-cover-input').click());
+document.getElementById('f-cover-input').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 1000, scale = Math.min(1, max / img.width);
+      const cv = document.createElement('canvas'); cv.width = img.width * scale; cv.height = img.height * scale;
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      coverData = cv.toDataURL('image/jpeg', 0.82);
+      const cp = document.getElementById('f-cover-pick'); cp.className = 'tn-cover-pick has'; cp.textContent = ''; cp.style.backgroundImage = `url('${coverData}')`;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('tn-save').addEventListener('click', async () => {
+  const msg = document.getElementById('tn-modal-msg');
+  if (!isAdmin) { msg.textContent = 'เฉพาะแอดมิน'; return; }
+  const name = document.getElementById('f-name').value.trim();
+  const startV = document.getElementById('f-start').value;
+  const regV = document.getElementById('f-regclose').value;
+  const timeSel = document.getElementById('f-time').value;
+  const timeControl = timeSel === 'custom' ? parseInt(document.getElementById('f-time-custom').value, 10) : parseInt(timeSel, 10);
+  const minP = parseInt(document.getElementById('f-min').value, 10);
+  const maxP = parseInt(document.getElementById('f-max').value, 10);
+  if (!name) { msg.textContent = 'กรุณาใส่ชื่อทัวร์นาเมนต์'; return; }
+  if (!startV || !regV) { msg.textContent = 'กรุณาระบุวันเวลาเริ่มและปิดรับสมัคร'; return; }
+  const startAt = new Date(startV).getTime(), regCloseAt = new Date(regV).getTime();
+  if (regCloseAt > startAt) { msg.textContent = 'เวลาปิดรับสมัครต้องไม่เกินเวลาเริ่มแข่ง'; return; }
+  if (minP > maxP) { msg.textContent = 'ผู้เล่นขั้นต่ำต้องไม่เกินสูงสุด'; return; }
+  msg.textContent = 'กำลังสร้าง…';
+  try {
+    await set(push(ref(db, 'tournaments')), {
+      name, cover: coverData || '', description: document.getElementById('f-desc').value.trim(),
+      startAt, regCloseAt, type: document.getElementById('f-type').value,
+      timeControl, minPlayers: minP, maxPlayers: maxP,
+      rated: document.getElementById('f-rated').checked, private: document.getElementById('f-private').checked,
+      started: false, finished: false,
+      createdBy: mySid, createdByName: currentUser.name || currentUser.email, createdAt: serverTimestamp()
+    });
+    closeCreate();
+  } catch (e) { msg.textContent = 'สร้างไม่สำเร็จ: ' + (e.code || ''); }
+});
+
+// ═══════════ เฟส 2: Pairing / Standings / Results ═══════════
+function nextPow2(n) { let p = 1; while (p < n) p *= 2; return p; }
+
+// คำนวณสถิติผู้เล่นจากทุกรอบ
+function computeStandings(t) {
+  const stat = {};
+  const init = (uid) => {
+    if (stat[uid]) return;
+    const p = (t.players && t.players[uid]) || {};
+    stat[uid] = { uid, name: p.name || 'ผู้เล่น', avatar: p.avatar || '', rating: p.rating || 0,
+      score: 0, wins: 0, draws: 0, losses: 0, hadBye: false, opps: [], oppRes: {}, cw: 0, cb: 0 };
+  };
+  const upTo = t.currentRound || 0;
+  for (let rd = 1; rd <= upTo; rd++) {
+    const pr = t.rounds && t.rounds[rd] && t.rounds[rd].pairings;
+    if (!pr) continue;
+    Object.values(pr).forEach(pg => {
+      if (pg.black == null || pg.result === 'bye') {  // BYE
+        if (pg.white) { init(pg.white); stat[pg.white].score += 1; stat[pg.white].hadBye = true; }
+        return;
+      }
+      init(pg.white); init(pg.black);
+      stat[pg.white].cw++; stat[pg.black].cb++;
+      stat[pg.white].opps.push(pg.black); stat[pg.black].opps.push(pg.white);
+      if (pg.result === '1-0') {
+        stat[pg.white].score += 1; stat[pg.white].wins++; stat[pg.black].losses++;
+        stat[pg.white].oppRes[pg.black] = 'w'; stat[pg.black].oppRes[pg.white] = 'l';
+      } else if (pg.result === '0-1') {
+        stat[pg.black].score += 1; stat[pg.black].wins++; stat[pg.white].losses++;
+        stat[pg.black].oppRes[pg.white] = 'w'; stat[pg.white].oppRes[pg.black] = 'l';
+      } else if (pg.result === '½-½') {
+        stat[pg.white].score += 0.5; stat[pg.black].score += 0.5; stat[pg.white].draws++; stat[pg.black].draws++;
+        stat[pg.white].oppRes[pg.black] = 'd'; stat[pg.black].oppRes[pg.white] = 'd';
+      }
+    });
+  }
+  // ผู้เล่นที่ยังไม่มีผล
+  if (t.players) Object.keys(t.players).forEach(init);
+  // tiebreaks: Buchholz + Sonneborn-Berger
+  Object.values(stat).forEach(s => {
+    s.buch = s.opps.reduce((a, o) => a + (stat[o] ? stat[o].score : 0), 0);
+    s.sb = s.opps.reduce((a, o) => {
+      const r = s.oppRes[o], os = stat[o] ? stat[o].score : 0;
+      return a + (r === 'w' ? os : r === 'd' ? os * 0.5 : 0);
+    }, 0);
+  });
+  // เรียงอันดับ: คะแนน > Buchholz > SB > เจอกันตรง > เรต
+  const arr = Object.values(stat).sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.buch !== a.buch) return b.buch - a.buch;
+    if (b.sb !== a.sb) return b.sb - a.sb;
+    if (a.oppRes[b.uid] === 'w') return -1;
+    if (a.oppRes[b.uid] === 'l') return 1;
+    return b.rating - a.rating;
+  });
+  return arr;
+}
+
+function roundComplete(t, rd) {
+  const pr = t.rounds && t.rounds[rd] && t.rounds[rd].pairings;
+  if (!pr) return false;
+  return Object.values(pr).every(pg => {
+    if (pg.black == null || pg.result === 'bye') return true;
+    if (t.type === 'knockout') return pg.result === '1-0' || pg.result === '0-1';
+    return !!pg.result;
+  });
+}
+
+function pgInfo(t, uid) { const p = (t.players && t.players[uid]) || {}; return { name: p.name || 'ผู้เล่น', avatar: p.avatar || '' }; }
+
+// สร้างคู่ Swiss
+function genSwiss(t, standings) {
+  const pool = standings.slice();
+  const out = [];
+  let bye = null;
+  if (pool.length % 2 === 1) {
+    let idx = -1;
+    for (let i = pool.length - 1; i >= 0; i--) { if (!pool[i].hadBye) { idx = i; break; } }
+    if (idx === -1) idx = pool.length - 1;
+    bye = pool.splice(idx, 1)[0];
+  }
+  const used = new Set();
+  for (let i = 0; i < pool.length; i++) {
+    if (used.has(pool[i].uid)) continue;
+    let j = -1;
+    for (let k = i + 1; k < pool.length; k++) { if (!used.has(pool[k].uid) && !pool[i].opps.includes(pool[k].uid)) { j = k; break; } }
+    if (j === -1) for (let k = i + 1; k < pool.length; k++) { if (!used.has(pool[k].uid)) { j = k; break; } }
+    if (j === -1) continue;
+    used.add(pool[i].uid); used.add(pool[j].uid);
+    // สี: ให้ขาวกับคนที่จับขาวน้อยกว่า
+    let a = pool[i], b = pool[j];
+    if (b.cw < a.cw) { const tmp = a; a = b; b = tmp; }
+    out.push({ white: a.uid, whiteName: a.name, whiteAvatar: a.avatar, black: b.uid, blackName: b.name, blackAvatar: b.avatar, result: null });
+  }
+  if (bye) out.push({ white: bye.uid, whiteName: bye.name, whiteAvatar: bye.avatar, black: null, blackName: null, result: 'bye' });
+  return out;
+}
+
+// สร้างคู่ Knockout รอบแรก
+function genKnockoutR1(t) {
+  const players = Object.entries(t.players || {}).map(([uid, p]) => ({ uid, name: p.name, avatar: p.avatar || '', rating: p.rating || 0 }))
+    .sort((a, b) => b.rating - a.rating);
+  const size = nextPow2(players.length);
+  const slots = []; for (let i = 0; i < size; i++) slots.push(players[i] || null);
+  const out = [];
+  for (let k = 0; k < size / 2; k++) {
+    const a = slots[k], b = slots[size - 1 - k];
+    if (a && b) out.push({ white: a.uid, whiteName: a.name, whiteAvatar: a.avatar, black: b.uid, blackName: b.name, blackAvatar: b.avatar, result: null });
+    else if (a && !b) out.push({ white: a.uid, whiteName: a.name, whiteAvatar: a.avatar, black: null, blackName: null, result: 'bye' });
+    else if (!a && b) out.push({ white: b.uid, whiteName: b.name, whiteAvatar: b.avatar, black: null, blackName: null, result: 'bye' });
+  }
+  return out;
+}
+
+// สร้างคู่ Knockout รอบถัดไป จากผู้ชนะรอบปัจจุบัน
+function genKnockoutNext(t) {
+  const pr = t.rounds[t.currentRound].pairings;
+  const winners = Object.keys(pr).sort((a, b) => +a - +b).map(k => {
+    const pg = pr[k];
+    if (pg.result === 'bye' || pg.result === '1-0') return pg.white;
+    if (pg.result === '0-1') return pg.black;
+    return null;
+  }).filter(Boolean);
+  const out = [];
+  for (let i = 0; i < winners.length; i += 2) {
+    const a = winners[i], b = winners[i + 1];
+    const ai = pgInfo(t, a);
+    if (b == null) { out.push({ white: a, whiteName: ai.name, whiteAvatar: ai.avatar, black: null, blackName: null, result: 'bye' }); continue; }
+    const bi = pgInfo(t, b);
+    out.push({ white: a, whiteName: ai.name, whiteAvatar: ai.avatar, black: b, blackName: bi.name, blackAvatar: bi.avatar, result: null });
+  }
+  return { pairings: out, winners };
+}
+
+function arrToObj(arr) { const o = {}; arr.forEach((p, i) => o[i] = p); return o; }
+
+// encode กระดานเริ่มต้น (รูปแบบเดียวกับ play-online boardToFB)
+const INITIAL_FB = (window.INITIAL_BOARD || []).map(row => row.map(c => c || '').join(','));
+
+// สร้างห้องเกมจริงให้แต่ละคู่ (ไม่รวม BYE) แล้วผูก roomId กับ pairing
+async function createPairingRooms(tid, round, pairings, t) {
+  for (let i = 0; i < pairings.length; i++) {
+    const pg = pairings[i];
+    if (pg.black == null || pg.result === 'bye') continue;
+    const gref = push(ref(db, 'games'));
+    await set(gref, {
+      w: { uid: pg.white, name: pg.whiteName, avatar: pg.whiteAvatar || '' },
+      b: { uid: pg.black, name: pg.blackName, avatar: pg.blackAvatar || '' },
+      minutes: t.timeControl, turn: 'w', board: INITIAL_FB,
+      timeW: t.timeControl * 60, timeB: t.timeControl * 60, moveCount: 0,
+      startedAt: serverTimestamp(), conn_w: true, conn_b: true,
+      ranked: !!t.rated, tournament: { tid, round, pair: String(i), type: t.type }
+    });
+    pg.room = gref.key;
+  }
+}
+
+// แจ้งเตือนผู้เล่นทั้งหมด
+async function notifyAllPlayers(t, tid, title, message) {
+  if (!t.players) return;
+  const link = `tournament.html#t=${tid}`;
+  await Promise.all(Object.keys(t.players).map(sid =>
+    push(ref(db, `notifications/${sid}`), { type: 'tournament', title, message, link, ts: Date.now(), read: false }).catch(() => {})
+  ));
+}
+
+async function startTournament(id, t) {
+  if (!isAdmin) return;
+  const cnt = playerCount(t);
+  if (cnt < (t.minPlayers || 2)) { alert('ผู้เล่นไม่พอ'); return; }
+  let pairings;
+  if (t.type === 'knockout') pairings = genKnockoutR1(t);
+  else { const st = computeStandings(t); pairings = genSwiss(t, st); }
+  try {
+    await createPairingRooms(id, 1, pairings, t);
+    await update(ref(db, `tournaments/${id}`), {
+      started: true, currentRound: 1, [`rounds/1/pairings`]: arrToObj(pairings),
+      announcement: { round: 1, text: 'การแข่งขันเริ่มแล้ว! กรุณาเข้าห้องแข่งขันของคุณ', ts: Date.now() }
+    });
+    await notifyAllPlayers(t, id, '🏆 ทัวร์นาเมนต์เริ่มแล้ว', `${t.name} — รอบที่ 1 เริ่มแล้ว เข้าห้องแข่งขันได้เลย`);
+    detailTab = 'pairings';
+  } catch (e) { alert('เริ่มไม่สำเร็จ: ' + (e.code || '')); }
+}
+
+async function reportResult(id, rd, pairId, result) {
+  if (!isAdmin) return;
+  try { await set(ref(db, `tournaments/${id}/rounds/${rd}/pairings/${pairId}/result`), result); } catch (e) { alert('บันทึกผลไม่สำเร็จ'); }
+}
+
+async function nextRound(id, t) {
+  if (!isAdmin) return;
+  if (!roundComplete(t, t.currentRound)) { alert('รอบนี้ยังมีคู่ที่ไม่มีผล'); return; }
+  const nextNum = t.currentRound + 1;
+  if (t.type === 'knockout') {
+    const { pairings, winners } = genKnockoutNext(t);
+    if (winners.length <= 1) { await finishTournament(id, t); return; }
+    await createPairingRooms(id, nextNum, pairings, t);
+    await update(ref(db, `tournaments/${id}`), { currentRound: nextNum, [`rounds/${nextNum}/pairings`]: arrToObj(pairings),
+      announcement: { round: nextNum, text: `รอบที่ ${nextNum} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`, ts: Date.now() } });
+  } else {
+    const st = computeStandings(t);
+    const pairings = genSwiss(t, st);
+    await createPairingRooms(id, nextNum, pairings, t);
+    await update(ref(db, `tournaments/${id}`), { currentRound: nextNum, [`rounds/${nextNum}/pairings`]: arrToObj(pairings),
+      announcement: { round: nextNum, text: `รอบที่ ${nextNum} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`, ts: Date.now() } });
+  }
+  await notifyAllPlayers(t, id, '📢 รอบใหม่เริ่มแล้ว', `${t.name} — รอบที่ ${nextNum} เริ่มแล้ว เข้าห้องแข่งขันได้เลย`);
+  detailTab = 'pairings';
+}
+
+async function finishTournament(id, t) {
+  if (!isAdmin) return;
+  try {
+    const arr = computeStandings(t);
+    const total = arr.length;
+    const medalOf = (i) => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
+    // บันทึกผลให้ผู้เล่นแต่ละคน (สำหรับเหรียญ/ประวัติในโปรไฟล์)
+    const writes = arr.map((s, i) => set(ref(db, `user_tournaments/${s.uid}/${id}`), {
+      tournamentName: t.name, type: t.type, rank: i + 1, totalPlayers: total,
+      medal: medalOf(i), score: s.score, wins: s.wins, draws: s.draws, losses: s.losses,
+      finishedAt: Date.now()
+    }).catch(() => {}));
+    await Promise.all(writes);
+    // เก็บอันดับสุดท้ายไว้ในทัวร์ + ประกาศแชมป์
+    const finalRanks = arr.map((s, i) => ({ uid: s.uid, name: s.name, rank: i + 1, score: s.score, medal: medalOf(i) }));
+    await update(ref(db, `tournaments/${id}`), { finished: true, finalRanks });
+    if (arr[0]) await notifyAllPlayers(t, id, '🏁 ทัวร์นาเมนต์จบแล้ว', `${t.name} — แชมป์คือ ${arr[0].name} 🥇`);
+    detailTab = 'standings';
+  } catch (e) { alert('ไม่สำเร็จ'); }
+}
+
+// ── render: คู่แข่งขัน ──
+function renderPairingsTab(t) {
+  let html = '';
+  for (let rd = t.currentRound; rd >= 1; rd--) {
+    const pr = t.rounds && t.rounds[rd] && t.rounds[rd].pairings;
+    if (!pr) continue;
+    const done = roundComplete(t, rd);
+    html += `<div class="round-block"><div class="round-title">รอบที่ ${rd} <span class="badge">${done ? 'จบรอบแล้ว' : 'กำลังแข่ง'}</span></div>`;
+    Object.keys(pr).sort((a, b) => +a - +b).forEach(k => {
+      const pg = pr[k];
+      if (pg.black == null || pg.result === 'bye') {
+        html += `<div class="pairing-bye"><img class="" src="${esc(pg.whiteAvatar || '../Images/default-avatar.png')}" style="width:30px;height:30px;border-radius:50%;" onerror="this.src='../Images/default-avatar.png'"><span class="nm">${esc(pg.whiteName)}</span><span class="tag">BYE +1</span></div>`;
+        return;
+      }
+      const wWin = pg.result === '1-0', bWin = pg.result === '0-1', draw = pg.result === '½-½';
+      const resTxt = pg.result ? (draw ? '½ – ½' : pg.result.replace('-', ' – ')) : '<span class="vs">VS</span>';
+      const resBtns = (isAdmin && !pg.result) ? `<div class="res-btns">
+        <button data-round="${rd}" data-pair="${k}" data-result="1-0">${esc(pg.whiteName)} ชนะ</button>
+        ${t.type !== 'knockout' ? `<button data-round="${rd}" data-pair="${k}" data-result="½-½">เสมอ</button>` : ''}
+        <button data-round="${rd}" data-pair="${k}" data-result="0-1">${esc(pg.blackName)} ชนะ</button>
+      </div>` : '';
+      let actionRow = '';
+      if (rd === t.currentRound && !pg.result && pg.room) {
+        if (mySid && (mySid === pg.white || mySid === pg.black)) {
+          const myCol = mySid === pg.white ? 'w' : 'b';
+          actionRow = `<div class="res-btns"><button class="join-btn" onclick="location.href='play-online.html?room=${esc(pg.room)}&color=${myCol}'">▶ เข้าห้องแข่งขันของคุณ</button></div>`;
+        } else {
+          actionRow = `<div class="res-btns"><button onclick="location.href='watch.html'">👁 ดูสด</button></div>`;
+        }
+      }
+      html += `<div class="pairing">
+        <div class="side ${wWin ? 'win' : ''}"><img src="${esc(pg.whiteAvatar || '../Images/default-avatar.png')}" onerror="this.src='../Images/default-avatar.png'"><span class="nm">${esc(pg.whiteName)}</span><span class="clr">ขาว</span></div>
+        <div class="mid"><div class="${pg.result ? 'res' : ''}">${resTxt}</div></div>
+        <div class="side right ${bWin ? 'win' : ''}"><span class="clr">ดำ</span><span class="nm">${esc(pg.blackName)}</span><img src="${esc(pg.blackAvatar || '../Images/default-avatar.png')}" onerror="this.src='../Images/default-avatar.png'"></div>
+        ${actionRow}${resBtns}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  return html || '<div class="tn-empty">ยังไม่มีคู่แข่งขัน</div>';
+}
+
+// หาคู่ของฉันในรอบปัจจุบัน
+function findMyPairing(t) {
+  if (!mySid || !t.rounds || !t.rounds[t.currentRound]) return null;
+  const pr = t.rounds[t.currentRound].pairings || {};
+  return Object.values(pr).find(pg => pg.white === mySid || pg.black === mySid) || null;
+}
+
+// ── render: สายการแข่ง (Knockout bracket) ──
+function renderBracketTab(t) {
+  let cols = '';
+  for (let rd = 1; rd <= t.currentRound; rd++) {
+    const pr = t.rounds && t.rounds[rd] && t.rounds[rd].pairings;
+    if (!pr) continue;
+    const rname = roundName(t, rd);
+    let boxes = '';
+    Object.keys(pr).sort((a, b) => +a - +b).forEach(k => {
+      const pg = pr[k];
+      const wWin = pg.result === '1-0' || pg.result === 'bye';
+      const bWin = pg.result === '0-1';
+      boxes += `<div class="bk-match">
+        <div class="bk-p ${wWin ? 'win' : ''}">${esc(pg.whiteName || '-')}</div>
+        <div class="bk-p ${bWin ? 'win' : ''}">${pg.black == null ? '<span class="bye">BYE</span>' : esc(pg.blackName)}</div>
+      </div>`;
+    });
+    cols += `<div class="bk-col"><div class="bk-col-title">${rname}</div>${boxes}</div>`;
+  }
+  if (t.finished) {
+    const st = computeStandings(t);
+    if (st[0]) cols += `<div class="bk-col"><div class="bk-col-title">แชมป์</div><div class="bk-match champ"><div class="bk-p win">🥇 ${esc(st[0].name)}</div></div></div>`;
+  }
+  return `<div class="bk-wrap">${cols || '<div class="tn-empty">ยังไม่มีสาย</div>'}</div>`;
+}
+
+function roundName(t, rd) {
+  const pr = t.rounds[rd] && t.rounds[rd].pairings;
+  const n = pr ? Object.keys(pr).length : 0;
+  if (n === 1) return 'รอบชิงชนะเลิศ';
+  if (n === 2) return 'รอบรองชนะเลิศ';
+  if (n === 4) return 'รอบ 8 คน';
+  return `รอบ ${rd}`;
+}
+
+// ── render: ตารางคะแนน ──
+function renderStandingsTab(t) {
+  const arr = computeStandings(t);
+  if (!arr.length) return '<div class="tn-empty">ยังไม่มีข้อมูล</div>';
+  const medals = ['🥇', '🥈', '🥉'];
+  const rows = arr.map((s, i) => `<tr class="${i === 0 && t.finished ? 'top1' : ''}">
+    <td class="rk">${t.finished && i < 3 ? `<span class="medal">${medals[i]}</span>` : (i + 1)}</td>
+    <td><span class="pl"><img src="${esc(s.avatar || '../Images/default-avatar.png')}" onerror="this.src='../Images/default-avatar.png'">${esc(s.name)}</span></td>
+    <td class="sc">${s.score}</td>
+    <td>${s.buch.toFixed(1)}</td>
+    <td>${s.sb.toFixed(1)}</td>
+    <td>${s.wins}-${s.draws}-${s.losses}</td>
+  </tr>`).join('');
+  return `<table class="standings-table">
+    <thead><tr><th>#</th><th>ผู้เล่น</th><th>คะแนน</th><th>Buchholz</th><th>SB</th><th>ช-ส-พ</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div style="color:var(--muted);font-size:0.78rem;margin-top:12px;">Tie-break: Buchholz (คะแนนรวมคู่แข่ง) · SB (Sonneborn-Berger) · เจอกันตรง</div>`;
+}
+
+// ═══════════ Routing ═══════════
+function route() {
+  const h = location.hash;
+  const m = h.match(/#t=(.+)/);
+  if (m) showDetail(m[1]); else showListView();
+}
+window.addEventListener('hashchange', route);
+document.getElementById('tn-back').addEventListener('click', () => { location.hash = ''; });
+
+onValue(ref(db, 'tournaments'), (snap) => { allTournaments = snap.val() || {}; renderList(); route(); },
+  (err) => { document.getElementById('tn-grid').innerHTML = '<div class="tn-empty">โหลดทัวร์ไม่ได้ (เช็ค Rules: tournaments)</div>'; });
+
+// อัปเดต countdown ทุกนาที
+setInterval(() => { if (currentDetailId && allTournaments[currentDetailId]) renderDetail(currentDetailId, allTournaments[currentDetailId]); else renderList(); }, 60000);
+</script>
 </body>
 </html>
