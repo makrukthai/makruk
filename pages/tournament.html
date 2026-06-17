@@ -403,6 +403,7 @@ function renderDetail(id, t) {
       ${canStart ? `<button class="tn-btn-primary" id="btn-start">▶ เริ่มทัวร์นาเมนต์</button>` : ''}
       ${!t.started && cnt < (t.minPlayers || 2) ? `<span class="lbl" style="color:#e0796f;margin:0;">ต้องมีผู้เล่น ≥ ${t.minPlayers} คน</span>` : ''}
       ${t.started && !t.finished && moreRounds ? `<button class="tn-btn-primary" id="btn-next" ${allDone ? '' : 'disabled style="opacity:.5"'}>จับคู่รอบถัดไป →</button>` : ''}
+      ${t.started && !t.finished ? `<button class="tn-btn-ghost" id="btn-checklate">⏱ ตรวจผลค้าง</button>` : ''}
       ${t.started && !t.finished ? `<button class="tn-btn-ghost" id="btn-announce">📢 ประกาศรอบนี้</button>` : ''}
       ${t.started && !t.finished ? `<button class="tn-btn-ghost" id="btn-finish">🏁 จบทัวร์นาเมนต์</button>` : ''}
       <button class="tn-btn-danger" id="btn-del-tn">🗑 ลบ</button>
@@ -451,6 +452,11 @@ function renderDetail(id, t) {
   if (nextB && !nextB.disabled) nextB.addEventListener('click', () => nextRound(id, t));
   const finB = document.getElementById('btn-finish');
   if (finB) finB.addEventListener('click', async () => { if (!confirm('จบทัวร์นาเมนต์นี้? จะคำนวณอันดับสุดท้าย')) return; await finishTournament(id, t); });
+  const clB = document.getElementById('btn-checklate');
+  if (clB) clB.addEventListener('click', async () => {
+    const n = await adjudicateLateGames(id, t);
+    alert(n > 0 ? `ตัดสินผลคู่ที่ไม่มาแข่ง ${n} คู่แล้ว` : 'ยังไม่มีคู่ที่เลยเวลาเข้าร่วม หรือผู้เล่นเข้าครบแล้ว');
+  });
   const annB = document.getElementById('btn-announce');
   if (annB) annB.addEventListener('click', async () => {
     const text = `รอบที่ ${t.currentRound} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`;
@@ -695,6 +701,9 @@ function computeStandings(t) {
       } else if (pg.result === '½-½') {
         stat[pg.white].score += 0.5; stat[pg.black].score += 0.5; stat[pg.white].draws++; stat[pg.black].draws++;
         stat[pg.white].oppRes[pg.black] = 'd'; stat[pg.black].oppRes[pg.white] = 'd';
+      } else if (pg.result === 'double') {
+        stat[pg.white].losses++; stat[pg.black].losses++;   // ไม่มาทั้งคู่ = แพ้ทั้งคู่
+        stat[pg.white].oppRes[pg.black] = 'l'; stat[pg.black].oppRes[pg.white] = 'l';
       }
     });
   }
@@ -725,6 +734,7 @@ function roundComplete(t, rd) {
   if (!pr) return false;
   return Object.values(pr).every(pg => {
     if (pg.black == null || pg.result === 'bye') return true;
+    if (pg.result === 'double') return true;
     if (t.type === 'knockout') return pg.result === '1-0' || pg.result === '0-1';
     return !!pg.result;
   });
@@ -798,6 +808,30 @@ function genKnockoutNext(t) {
 
 function arrToObj(arr) { const o = {}; arr.forEach((p, i) => o[i] = p); return o; }
 
+// ตรวจคู่ที่ไม่มีใครเข้าแข่งจนเลยเวลา (late) → ตัดสินผล
+// มาคนเดียว = คนนั้นชนะ · ไม่มาทั้งคู่ = แพ้ทั้งคู่ (double)
+async function adjudicateLateGames(id, t) {
+  if (!isAdmin) return 0;
+  const pr = t.rounds && t.rounds[t.currentRound] && t.rounds[t.currentRound].pairings;
+  if (!pr) return 0;
+  let changed = 0;
+  for (const k of Object.keys(pr)) {
+    const pg = pr[k];
+    if (pg.result || pg.black == null || !pg.room) continue;
+    let g; try { g = (await get(ref(db, `games/${pg.room}`))).val(); } catch (e) { continue; }
+    if (!g) continue;
+    const lateMin = (g.tournament && g.tournament.lateMin) || t.lateMin || 5;
+    const started = g.startedAt || 0;
+    if (!started || Date.now() <= started + lateMin * 60000) continue;  // ยังไม่เลยเวลาเข้าร่วม
+    const wArr = !!g.arrived_w, bArr = !!g.arrived_b;
+    if (wArr && bArr) continue;   // มาทั้งคู่ → ปล่อยให้แข่ง
+    const res = (wArr && !bArr) ? '1-0' : (!wArr && bArr) ? '0-1' : 'double';
+    await set(ref(db, `tournaments/${id}/rounds/${t.currentRound}/pairings/${k}/result`), res);
+    changed++;
+  }
+  return changed;
+}
+
 // encode กระดานเริ่มต้น (รูปแบบเดียวกับ play-online boardToFB)
 const INITIAL_FB = (window.INITIAL_BOARD || []).map(row => row.map(c => c || '').join(','));
 
@@ -864,7 +898,9 @@ async function reportResult(id, rd, pairId, result) {
 
 async function nextRound(id, t) {
   if (!isAdmin) return;
-  if (!roundComplete(t, t.currentRound)) { alert('รอบนี้ยังมีคู่ที่ไม่มีผล'); return; }
+  await adjudicateLateGames(id, t);
+  try { const fresh = (await get(ref(db, `tournaments/${id}`))).val(); if (fresh) t = fresh; } catch (e) {}
+  if (!roundComplete(t, t.currentRound)) { alert('รอบนี้ยังมีคู่ที่ไม่มีผล (ถ้ามีคนไม่มาแข่ง รอจนเลยเวลาเข้าร่วมแล้วลองใหม่)'); return; }
   const nextNum = t.currentRound + 1;
   if (t.type === 'knockout') {
     const { pairings, winners } = genKnockoutNext(t);
@@ -926,8 +962,8 @@ function renderPairingsTab(t) {
         html += `<div class="pairing-bye"><img class="" src="${esc(pg.whiteAvatar || '../Images/default-avatar.png')}" style="width:30px;height:30px;border-radius:50%;" onerror="this.src='../Images/default-avatar.png'"><span class="nm">${esc(pg.whiteName)}</span><span class="tag">BYE +1</span></div>`;
         return;
       }
-      const wWin = pg.result === '1-0', bWin = pg.result === '0-1', draw = pg.result === '½-½';
-      const resTxt = pg.result ? (draw ? '½ – ½' : pg.result.replace('-', ' – ')) : '<span class="vs">VS</span>';
+      const wWin = pg.result === '1-0', bWin = pg.result === '0-1', draw = pg.result === '½-½', dbl = pg.result === 'double';
+      const resTxt = !pg.result ? '<span class="vs">VS</span>' : dbl ? '⊘ แพ้ทั้งคู่' : draw ? '½ – ½' : pg.result.replace('-', ' – ');
       const resBtns = (isAdmin && !pg.result) ? `<div class="res-btns">
         <button data-round="${rd}" data-pair="${k}" data-result="1-0">${esc(pg.whiteName)} ชนะ</button>
         ${t.type !== 'knockout' ? `<button data-round="${rd}" data-pair="${k}" data-result="½-½">เสมอ</button>` : ''}

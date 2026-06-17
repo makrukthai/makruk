@@ -1552,6 +1552,19 @@ function updateMoveBadge() {
 // ════════════════════════════════════════════════
 //   CLOCK CONTROLS
 // ════════════════════════════════════════════════
+function checkLateForfeit() {
+  if (gameOver || !isTournamentGame) return;
+  // คู่ต่อสู้ยังไม่เคยเข้ามา และเลยเวลาเข้าร่วม (late) → เราชนะโดยปริยาย
+  if (!oppArrived && Date.now() > tStartedAt + tLateMin * 60000) {
+    if (lateWatcher) { clearInterval(lateWatcher); lateWatcher = null; }
+    if (gameTournament && gameTournament.tid != null) {
+      const res = myColor === 'w' ? '1-0' : '0-1';
+      try { set(ref(db, `tournaments/${gameTournament.tid}/rounds/${gameTournament.round}/pairings/${gameTournament.pair}/result`), res); } catch (e) {}
+    }
+    endGame('opponent-noshow', myColor);
+  }
+}
+
 function startClock() {
   stopClock();
   clockInterval = setInterval(() => {
@@ -1564,6 +1577,7 @@ function startClock() {
 
 function stopClock() {
   if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+  if (lateWatcher) { clearInterval(lateWatcher); lateWatcher = null; }
 }
 
 // ════════════════════════════════════════════════
@@ -1832,7 +1846,8 @@ function listenToGame(gid) {
     const data = snap.val();
 
     const oppColor = window.opposite(myColor);
-    if (data[`conn_${oppColor}`] === false && !gameOver) {
+    if (isTournamentGame && data[`arrived_${oppColor}`]) oppArrived = true;
+    if (data[`conn_${oppColor}`] === false && !gameOver && (!isTournamentGame || oppArrived)) {
       startDisconnectCountdown();
     } else {
       cancelDisconnectCountdown();
@@ -2031,6 +2046,7 @@ function abortGame(fromOpponent = false, customSub = '') {
 let eloApplied = false;
 let gameRanked = true;   // เกมนี้คิด ELO หรือไม่ (จาก data.ranked)
 let gameTournament = null; // {tid, round, pair} ถ้าเป็นเกมทัวร์นาเมนต์
+let isTournamentGame = false, tLateMin = 5, tStartedAt = 0, oppArrived = false, lateWatcher = null;
 // คะแนน/จำนวนเกม "ก่อนเริ่มเกม" ของทั้งสองฝ่าย (เก็บไว้เพื่อคำนวณ ELO ตอนจบ)
 let preMyElo = START_ELO, preOppElo = START_ELO, preMyGames = 0, preOppGames = 0, preEloMode = 'rapid';
 
@@ -2214,7 +2230,8 @@ async function endGame(reason, winner) {
     'draw-offer': { emoji: '🤝', title: 'เสมอ!', sub: 'ตกลงเสมอกัน' },
     'draw-threefold': { emoji: '🔁', title: 'เสมอ!', sub: 'รุกล้อซ้ำ 3 ครั้ง' },
     'draw-sakdikradan': { emoji: '📋', title: 'เสมอ!', sub: 'นับศักดิ์กระดานครบ 64 ตา' },
-    'draw-sakdimak': { emoji: '♟', title: 'เสมอ!', sub: 'นับศักดิ์หมากครบกำหนด' }
+    'draw-sakdimak': { emoji: '♟', title: 'เสมอ!', sub: 'นับศักดิ์หมากครบกำหนด' },
+    'opponent-noshow': { emoji: '⏱️', title: 'คุณชนะโดยปริยาย', sub: 'คู่ต่อสู้ไม่เข้าห้องแข่งขันตามเวลาที่กำหนด' }
   };
 
   const msg = resultMessages[reason] || { emoji: '🏁', title: 'จบเกม', sub: 'เกมสิ้นสุดลง' };
@@ -2605,6 +2622,20 @@ async function startGame(gid) {
   gameBonus = data.bonus || 0;
   gameRanked = (data.ranked !== false); // ค่าเริ่มต้น = คิด ELO (เกมจับคู่สุ่มถือว่าจัดอันดับ)
   gameTournament = data.tournament || null; // context ทัวร์นาเมนต์ (ถ้ามี)
+  // ── ตรรกะทัวร์: นาฬิกาขาวเดินทันที + เวลาเข้าร่วม (late) ──
+  isTournamentGame = !!data.tournament;
+  oppArrived = false;
+  if (isTournamentGame) {
+    tLateMin = data.tournament.lateMin || 5;
+    tStartedAt = data.startedAt || Date.now();
+    // ทำเครื่องหมายว่าเราเข้ามาแล้ว
+    update(ref(db, `games/${gid}`), { [`arrived_${myColor}`]: true }).catch(() => {});
+    // นาฬิกาขาวเดินตั้งแต่เกมเริ่ม แม้ยังไม่มีใครเข้า (หักเวลาที่ผ่านไปก่อนตาแรก)
+    if ((data.moveCount || 0) === 0) {
+      const elapsed = Math.floor((Date.now() - tStartedAt) / 1000);
+      if (elapsed > 0) timeW = Math.max(0, timeW - elapsed);
+    }
+  }
 
   document.getElementById('chat-input').disabled = false;
   document.getElementById('chat-send-btn').disabled = false;
@@ -2653,6 +2684,10 @@ async function startGame(gid) {
   updateStatus();
   updateMoveBadge();
   startClock();
+  if (isTournamentGame) {
+    if (lateWatcher) clearInterval(lateWatcher);
+    lateWatcher = setInterval(checkLateForfeit, 3000);
+  }
 
   addChatMsg(null, `จับคู่สำเร็จ! คุณเล่นหมาก${myColor==='w'?'ขาว':'ดำ'}`, true);
   addChatMsg(null, `เวลา ${data.minutes} นาที · ${gameRanked ? 'จัดอันดับ (คิด ELO)' : 'ไม่จัดอันดับ'}`, true);
