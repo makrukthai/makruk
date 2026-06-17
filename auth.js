@@ -1,6 +1,6 @@
 // 📌 1. นำเข้า getApps และ getApp เพิ่มเข้ามา
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, update, get, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, update, get, set, push, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 import { createProfileModal, openProfileModal, renderProfileMenu, setProfileSubmitHandler, closeProfileDropdown, closeProfileModal } from "./profile.js";
 import { createNotificationButton } from "./notification.js";
@@ -453,6 +453,260 @@ function ensureResumeGameStyles() {
   document.head.appendChild(style);
 }
 
+// ═══════════════════════════════════════════════════════════
+//   AUTO-START ทัวร์นาเมนต์ตามเวลา (client trigger + transaction กัน race)
+// ═══════════════════════════════════════════════════════════
+const TN_INITIAL_FB = [
+  'Rb,Nb,Bb,Qb,Kb,Bb,Nb,Rb', ',,,,,,,', 'Pb,Pb,Pb,Pb,Pb,Pb,Pb,Pb', ',,,,,,,',
+  ',,,,,,,', 'Pw,Pw,Pw,Pw,Pw,Pw,Pw,Pw', ',,,,,,,', 'Rw,Nw,Bw,Kw,Qw,Bw,Nw,Rw'
+];
+function tnSafe(id) { return id ? String(id).replace(/[.#$\[\]]/g, '_') : ''; }
+function tnPgInfo(t, uid) { const p = (t.players && t.players[uid]) || {}; return { name: p.name || 'ผู้เล่น', avatar: p.avatar || '' }; }
+function tnArrToObj(arr) { const o = {}; arr.forEach((p, i) => o[i] = p); return o; }
+function tnNextPow2(n) { let p = 1; while (p < n) p *= 2; return p; }
+function tnSwissTotal(t, n) {
+  if (t.swissRoundsMode === 'manual' && t.swissRounds) return t.swissRounds;
+  return Math.max(1, Math.ceil(Math.log2(Math.max(2, n))));
+}
+function tnGenSwissR1(t) {
+  const pool = Object.entries(t.players).map(([uid, p]) => ({ uid, name: p.name, avatar: p.avatar || '', rating: p.rating || 0 })).sort((a, b) => b.rating - a.rating);
+  const out = []; let bye = null;
+  if (pool.length % 2 === 1) bye = pool.pop();
+  for (let k = 0; k < pool.length; k += 2) {
+    const a = pool[k], b = pool[k + 1];
+    out.push({ white: a.uid, whiteName: a.name, whiteAvatar: a.avatar, black: b.uid, blackName: b.name, blackAvatar: b.avatar, result: null });
+  }
+  if (bye) out.push({ white: bye.uid, whiteName: bye.name, whiteAvatar: bye.avatar, black: null, blackName: null, result: 'bye' });
+  return out;
+}
+function tnGenKnockoutR1(t) {
+  const players = Object.entries(t.players).map(([uid, p]) => ({ uid, name: p.name, avatar: p.avatar || '', rating: p.rating || 0 })).sort((a, b) => b.rating - a.rating);
+  const size = tnNextPow2(players.length), slots = [];
+  for (let i = 0; i < size; i++) slots.push(players[i] || null);
+  const out = [];
+  for (let k = 0; k < size / 2; k++) {
+    const a = slots[k], b = slots[size - 1 - k];
+    if (a && b) out.push({ white: a.uid, whiteName: a.name, whiteAvatar: a.avatar, black: b.uid, blackName: b.name, blackAvatar: b.avatar, result: null });
+    else if (a) out.push({ white: a.uid, whiteName: a.name, whiteAvatar: a.avatar, black: null, blackName: null, result: 'bye' });
+    else if (b) out.push({ white: b.uid, whiteName: b.name, whiteAvatar: b.avatar, black: null, blackName: null, result: 'bye' });
+  }
+  return out;
+}
+function tnRoundRobinSchedule(uids) {
+  const arr = uids.slice(); if (arr.length % 2 === 1) arr.push('');
+  const n = arr.length, rounds = [], fixed = arr[0]; let rest = arr.slice(1);
+  for (let r = 0; r < n - 1; r++) {
+    const row = [fixed, ...rest], pairs = [];
+    for (let i = 0; i < n / 2; i++) pairs.push([row[i], row[n - 1 - i]]);
+    rounds.push(pairs);
+    rest = [rest[rest.length - 1], ...rest.slice(0, rest.length - 1)];
+  }
+  return rounds;
+}
+function tnRRPairings(t, pairs) {
+  return pairs.map(([a, b]) => {
+    if (!a || !b) { const u = a || b; const inf = tnPgInfo(t, u); return { white: u, whiteName: inf.name, whiteAvatar: inf.avatar, black: null, blackName: null, result: 'bye' }; }
+    const ai = tnPgInfo(t, a), bi = tnPgInfo(t, b);
+    return { white: a, whiteName: ai.name, whiteAvatar: ai.avatar, black: b, blackName: bi.name, blackAvatar: bi.avatar, result: null };
+  });
+}
+async function tnCreateRooms(tid, round, pairings, t) {
+  for (let i = 0; i < pairings.length; i++) {
+    const pg = pairings[i];
+    if (pg.black == null || pg.result === 'bye') continue;
+    const gref = push(ref(db, 'games'));
+    await set(gref, {
+      w: { uid: pg.white, name: pg.whiteName, avatar: pg.whiteAvatar || '' },
+      b: { uid: pg.black, name: pg.blackName, avatar: pg.blackAvatar || '' },
+      minutes: t.timeControl, bonus: t.bonus || 0, turn: 'w', board: TN_INITIAL_FB,
+      timeW: t.timeControl * 60, timeB: t.timeControl * 60, moveCount: 0,
+      startedAt: serverTimestamp(), conn_w: false, conn_b: false, ranked: !!t.rated,
+      tournament: { tid, round, pair: String(i), type: t.type, lateMin: t.lateMin || 5 }
+    });
+    pg.room = gref.key;
+  }
+}
+async function tnNotifyAll(t, tid, title, message) {
+  if (!t.players) return;
+  const link = `tournament.html#t=${tid}`;
+  await Promise.all(Object.keys(t.players).map(sid =>
+    push(ref(db, `notifications/${sid}`), { type: 'tournament', title, message, link, ts: Date.now(), read: false }).catch(() => {})));
+}
+async function tnBuildFirstRound(id, t) {
+  const cnt = Object.keys(t.players).length;
+  let pairings, extra = {};
+  if (t.type === 'knockout') pairings = tnGenKnockoutR1(t);
+  else if (t.type === 'roundrobin') {
+    const uids = Object.entries(t.players).sort((a, b) => (b[1].rating || 0) - (a[1].rating || 0)).map(([u]) => u);
+    const sched = tnRoundRobinSchedule(uids);
+    extra.rrSchedule = sched.map(rd => rd.map(([a, b]) => [a || '', b || '']));
+    extra.totalRounds = sched.length;
+    pairings = tnRRPairings(t, sched[0]);
+  } else { pairings = tnGenSwissR1(t); extra.totalRounds = tnSwissTotal(t, cnt); }
+  await tnCreateRooms(id, 1, pairings, t);
+  await update(ref(db, `tournaments/${id}`), {
+    currentRound: 1, [`rounds/1/pairings`]: tnArrToObj(pairings), ...extra,
+    announcement: { round: 1, text: 'การแข่งขันเริ่มแล้ว! กรุณาเข้าห้องแข่งขันของคุณ', ts: Date.now() }
+  });
+  tnNotifyAll(t, id, '🏆 ทัวร์นาเมนต์เริ่มแล้ว', `${t.name} — รอบที่ 1 เริ่มแล้ว เข้าห้องแข่งขันได้เลย`);
+}
+async function autoStartDueTournaments() {
+  let snap; try { snap = await get(ref(db, 'tournaments')); } catch (e) { return; }
+  const all = snap.val() || {}, now = Date.now();
+  for (const [id, t] of Object.entries(all)) {
+    if (!t || t.started || t.finished || !t.startAt || now < t.startAt) continue;
+    const cnt = t.players ? Object.keys(t.players).length : 0;
+    if (cnt < (t.minPlayers || 2)) continue;     // ผู้เล่นไม่พอ → ไม่เริ่มอัตโนมัติ
+    let won = false;
+    try {
+      const txn = await runTransaction(ref(db, `tournaments/${id}/started`), cur => cur ? undefined : true);
+      won = txn.committed;     // ผู้ที่เปลี่ยน false→true ได้สำเร็จเท่านั้นที่เป็นคนเริ่ม
+    } catch (e) { continue; }
+    if (!won) continue;
+    try { await tnBuildFirstRound(id, t); } catch (e) { console.error('auto-start error', e); }
+  }
+}
+
+// ── เครื่องยนต์เดินทัวร์อัตโนมัติ: adjudicate → นับถอยหลัง → จับรอบถัดไป → จบเอง ──
+function tnComputeStandings(t) {
+  const stat = {};
+  const init = (uid) => { if (stat[uid]) return; const p = (t.players && t.players[uid]) || {};
+    stat[uid] = { uid, name: p.name || 'ผู้เล่น', avatar: p.avatar || '', rating: p.rating || 0, score: 0, wins: 0, draws: 0, losses: 0, hadBye: false, opps: [], oppRes: {}, cw: 0, cb: 0 }; };
+  for (let rd = 1; rd <= (t.currentRound || 0); rd++) {
+    const pr = t.rounds && t.rounds[rd] && t.rounds[rd].pairings; if (!pr) continue;
+    Object.values(pr).forEach(pg => {
+      if (pg.black == null || pg.result === 'bye') { if (pg.white) { init(pg.white); stat[pg.white].score += 1; stat[pg.white].hadBye = true; } return; }
+      init(pg.white); init(pg.black); stat[pg.white].cw++; stat[pg.black].cb++;
+      stat[pg.white].opps.push(pg.black); stat[pg.black].opps.push(pg.white);
+      if (pg.result === '1-0') { stat[pg.white].score++; stat[pg.white].wins++; stat[pg.black].losses++; stat[pg.white].oppRes[pg.black] = 'w'; stat[pg.black].oppRes[pg.white] = 'l'; }
+      else if (pg.result === '0-1') { stat[pg.black].score++; stat[pg.black].wins++; stat[pg.white].losses++; stat[pg.black].oppRes[pg.white] = 'w'; stat[pg.white].oppRes[pg.black] = 'l'; }
+      else if (pg.result === '½-½') { stat[pg.white].score += 0.5; stat[pg.black].score += 0.5; stat[pg.white].draws++; stat[pg.black].draws++; stat[pg.white].oppRes[pg.black] = 'd'; stat[pg.black].oppRes[pg.white] = 'd'; }
+      else if (pg.result === 'double') { stat[pg.white].losses++; stat[pg.black].losses++; stat[pg.white].oppRes[pg.black] = 'l'; stat[pg.black].oppRes[pg.white] = 'l'; }
+    });
+  }
+  if (t.players) Object.keys(t.players).forEach(init);
+  Object.values(stat).forEach(s => {
+    s.buch = s.opps.reduce((a, o) => a + (stat[o] ? stat[o].score : 0), 0);
+    s.sb = s.opps.reduce((a, o) => { const r = s.oppRes[o], os = stat[o] ? stat[o].score : 0; return a + (r === 'w' ? os : r === 'd' ? os * 0.5 : 0); }, 0);
+  });
+  return Object.values(stat).sort((a, b) => (b.score - a.score) || (b.buch - a.buch) || (b.sb - a.sb) ||
+    (a.oppRes[b.uid] === 'w' ? -1 : a.oppRes[b.uid] === 'l' ? 1 : b.rating - a.rating));
+}
+function tnRoundComplete(t, rd) {
+  const pr = t.rounds && t.rounds[rd] && t.rounds[rd].pairings; if (!pr) return false;
+  return Object.values(pr).every(pg => {
+    if (pg.black == null || pg.result === 'bye' || pg.result === 'double') return true;
+    if (t.type === 'knockout') return pg.result === '1-0' || pg.result === '0-1';
+    return !!pg.result;
+  });
+}
+function tnGenSwissNext(t, standings) {
+  const pool = standings.slice(); const out = []; let bye = null;
+  if (pool.length % 2 === 1) { let idx = -1; for (let i = pool.length - 1; i >= 0; i--) if (!pool[i].hadBye) { idx = i; break; } if (idx === -1) idx = pool.length - 1; bye = pool.splice(idx, 1)[0]; }
+  const used = new Set();
+  for (let i = 0; i < pool.length; i++) {
+    if (used.has(pool[i].uid)) continue; let j = -1;
+    for (let k = i + 1; k < pool.length; k++) if (!used.has(pool[k].uid) && !pool[i].opps.includes(pool[k].uid)) { j = k; break; }
+    if (j === -1) for (let k = i + 1; k < pool.length; k++) if (!used.has(pool[k].uid)) { j = k; break; }
+    if (j === -1) continue; used.add(pool[i].uid); used.add(pool[j].uid);
+    let a = pool[i], b = pool[j]; if (b.cw < a.cw) { const tmp = a; a = b; b = tmp; }
+    out.push({ white: a.uid, whiteName: a.name, whiteAvatar: a.avatar, black: b.uid, blackName: b.name, blackAvatar: b.avatar, result: null });
+  }
+  if (bye) out.push({ white: bye.uid, whiteName: bye.name, whiteAvatar: bye.avatar, black: null, blackName: null, result: 'bye' });
+  return out;
+}
+function tnGenKnockoutNext(t) {
+  const pr = t.rounds[t.currentRound].pairings;
+  const winners = Object.keys(pr).sort((a, b) => +a - +b).map(k => { const pg = pr[k]; if (pg.result === 'bye' || pg.result === '1-0') return pg.white; if (pg.result === '0-1') return pg.black; return null; }).filter(Boolean);
+  const out = [];
+  for (let i = 0; i < winners.length; i += 2) {
+    const a = winners[i], b = winners[i + 1], ai = tnPgInfo(t, a);
+    if (b == null) { out.push({ white: a, whiteName: ai.name, whiteAvatar: ai.avatar, black: null, blackName: null, result: 'bye' }); continue; }
+    const bi = tnPgInfo(t, b); out.push({ white: a, whiteName: ai.name, whiteAvatar: ai.avatar, black: b, blackName: bi.name, blackAvatar: bi.avatar, result: null });
+  }
+  return { pairings: out, winners };
+}
+async function tnAdjudicateLate(id, t) {
+  const pr = t.rounds && t.rounds[t.currentRound] && t.rounds[t.currentRound].pairings; if (!pr) return false;
+  let changed = false;
+  for (const k of Object.keys(pr)) {
+    const pg = pr[k]; if (pg.result || pg.black == null || !pg.room) continue;
+    let g; try { g = (await get(ref(db, `games/${pg.room}`))).val(); } catch (e) { continue; }
+    if (!g) continue;
+    const lateMin = (g.tournament && g.tournament.lateMin) || t.lateMin || 5;
+    const started = g.startedAt || 0;
+    if (!started || Date.now() <= started + lateMin * 60000) continue;
+    const wArr = !!g.arrived_w, bArr = !!g.arrived_b; if (wArr && bArr) continue;
+    const res = (wArr && !bArr) ? '1-0' : (!wArr && bArr) ? '0-1' : 'double';
+    try { await set(ref(db, `tournaments/${id}/rounds/${t.currentRound}/pairings/${k}/result`), res); changed = true; pg.result = res; } catch (e) {}
+  }
+  return changed;
+}
+async function tnFinish(id, t) {
+  const arr = tnComputeStandings(t); const total = arr.length;
+  const medalOf = (i) => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : null;
+  await Promise.all(arr.map((s, i) => set(ref(db, `user_tournaments/${s.uid}/${id}`), {
+    tournamentName: t.name, type: t.type, rank: i + 1, totalPlayers: total, medal: medalOf(i),
+    score: s.score, wins: s.wins, draws: s.draws, losses: s.losses, finishedAt: Date.now()
+  }).catch(() => {})));
+  const finalRanks = arr.map((s, i) => ({ uid: s.uid, name: s.name, rank: i + 1, score: s.score, medal: medalOf(i) }));
+  await update(ref(db, `tournaments/${id}`), { finished: true, finalRanks });
+  if (arr[0]) tnNotifyAll(t, id, '🏁 ทัวร์นาเมนต์จบแล้ว', `${t.name} — แชมป์คือ ${arr[0].name} 🥇`);
+}
+async function tnAdvance(id, t) {
+  const nextNum = t.currentRound + 1;
+  // คว้าสิทธิ์เลื่อนรอบ (กัน race): เปลี่ยน currentRound R→R+1 ได้คนเดียว
+  let won = false;
+  try { const txn = await runTransaction(ref(db, `tournaments/${id}/currentRound`), cur => cur === t.currentRound ? nextNum : undefined); won = txn.committed; } catch (e) { return; }
+  if (!won) return;
+  let pairings, extra = {};
+  if (t.type === 'knockout') {
+    const r = tnGenKnockoutNext(t); if (r.winners.length <= 1) { await tnFinish(id, t); return; } pairings = r.pairings;
+  } else if (t.type === 'roundrobin') {
+    if (t.currentRound >= (t.totalRounds || 0)) { await tnFinish(id, t); return; }
+    pairings = tnRRPairings(t, (t.rrSchedule || [])[t.currentRound] || []);
+  } else {
+    if (t.currentRound >= (t.totalRounds || 0)) { await tnFinish(id, t); return; }
+    pairings = tnGenSwissNext(t, tnComputeStandings(t));
+  }
+  await tnCreateRooms(id, nextNum, pairings, t);
+  await update(ref(db, `tournaments/${id}`), {
+    [`rounds/${nextNum}/pairings`]: tnArrToObj(pairings), roundEndedAt: null,
+    announcement: { round: nextNum, text: `รอบที่ ${nextNum} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`, ts: Date.now() }
+  });
+  tnNotifyAll(t, id, '📢 รอบใหม่เริ่มแล้ว', `${t.name} — รอบที่ ${nextNum} เริ่มแล้ว`);
+}
+async function progressTournaments() {
+  let snap; try { snap = await get(ref(db, 'tournaments')); } catch (e) { return; }
+  const all = snap.val() || {}, now = Date.now();
+  for (const [id, t] of Object.entries(all)) {
+    if (!t || !t.started || t.finished || !t.currentRound) continue;
+    // 1) ตัดสินคู่ที่เลยเวลาเข้าร่วมอัตโนมัติ
+    let tt = t;
+    try { if (await tnAdjudicateLate(id, tt)) { const fr = (await get(ref(db, `tournaments/${id}`))).val(); if (fr) tt = fr; } } catch (e) {}
+    // 2) รอบยังไม่จบ → ข้าม
+    if (!tnRoundComplete(tt, tt.currentRound)) continue;
+    // 3) รอบจบ → ตั้งเวลาเริ่มนับถอยหลัง (ครั้งเดียว)
+    if (!tt.roundEndedAt) {
+      try { await runTransaction(ref(db, `tournaments/${id}/roundEndedAt`), cur => cur ? undefined : Date.now()); } catch (e) {}
+      continue;
+    }
+    // 4) ครบเวลาพัก → จับรอบถัดไป / จบทัวร์
+    const breakMs = (tt.breakMin != null ? tt.breakMin : 2) * 60000;
+    if (now >= tt.roundEndedAt + breakMs) {
+      const lastRound = (tt.type !== 'knockout') && (tt.currentRound >= (tt.totalRounds || 0));
+      try { if (lastRound) await tnFinishGuarded(id, tt); else await tnAdvance(id, tt); } catch (e) { console.error('progress error', e); }
+    }
+  }
+}
+async function tnFinishGuarded(id, t) {
+  // กัน finish ซ้ำด้วย transaction บน finished
+  let won = false;
+  try { const txn = await runTransaction(ref(db, `tournaments/${id}/finished`), cur => cur ? undefined : true); won = txn.committed; } catch (e) { return; }
+  if (!won) return;
+  await tnFinish(id, t);
+}
+
 // เด้งเข้าห้องแข่งขันทัวร์อัตโนมัติ — ถ้าผู้เล่นมีคู่ในรอบปัจจุบันที่ยังไม่จบ
 // เริ่มเด้งตั้งแต่ 1 นาทีก่อนเวลาเริ่ม · กัน redirect loop (ไม่เด้งถ้าอยู่ในห้องนั้นแล้ว)
 async function checkTournamentRedirect(safeId) {
@@ -581,12 +835,17 @@ function initAuth() {
   if (authState.currentUser) {
     // ผู้ใช้ที่ล็อกอินค้างอยู่แล้ว — แจกรหัสผู้เล่นให้ถ้ายังไม่มี
     ensureMyPlayerId(authState.currentUser);
-    // เด้งเข้าห้องแข่งขันทัวร์อัตโนมัติ (ถ้ามีคู่ที่กำลังแข่ง)
-    try {
-      const sid = String(authState.currentUser.id || authState.currentUser.email).replace(/[.#$\[\]]/g, '_');
-      checkTournamentRedirect(sid);
-    } catch (e) {}
   }
+  // ทัวร์นาเมนต์: เริ่มอัตโนมัติตามเวลา แล้วเด้งผู้เล่นเข้าห้อง (ทำงานทุกหน้า)
+  const sidForTn = authState.currentUser ? String(authState.currentUser.id || authState.currentUser.email).replace(/[.#$\[\]]/g, '_') : null;
+  const runTnCycle = async () => {
+    try { await autoStartDueTournaments(); } catch (e) {}
+    try { await progressTournaments(); } catch (e) {}
+    if (sidForTn) { try { await checkTournamentRedirect(sidForTn); } catch (e) {} }
+  };
+  runTnCycle();
+  // เช็คซ้ำทุก 20 วิ เผื่อเปิดหน้าค้างไว้จนถึงเวลาเริ่ม/รอบใหม่
+  setInterval(runTnCycle, 20000);
   if (!authState.currentUser && isProfilePage()) {
     redirectToLoginPage();
     return;
