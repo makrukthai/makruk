@@ -94,7 +94,31 @@ export function rollDailyDelta(record, delta, today) {
     rec.todayDate  = today;
     rec.todayDelta = delta;
   }
+  // เก็บ delta รายวันสำหรับสรุปย้อนหลัง 30 วัน (ตัดของเก่ากว่า 35 วันทิ้ง)
+  const days = { ...(rec.days || {}) };
+  days[today] = (Number(days[today]) || 0) + delta;
+  const cutoff = dateKeyDaysAgo(35);
+  for (const k of Object.keys(days)) { if (k < cutoff) delete days[k]; }
+  rec.days = days;
   return rec;
+}
+
+// คีย์วันที่ของ n วันก่อน (เทียบสตริง YYYY-MM-DD ได้ตรง)
+export function dateKeyDaysAgo(n, fromTs) {
+  const d = fromTs ? new Date(fromTs) : new Date();
+  d.setDate(d.getDate() - n);
+  return dateKey(d.getTime());
+}
+
+// ผลรวม delta ในช่วง n วันล่าสุด (ค่าเริ่มต้น 30) — สำหรับป้ายแนวโน้ม
+export function sumRecentDelta(record, n = 30) {
+  if (!record || !record.days) return 0;
+  const cutoff = dateKeyDaysAgo(n - 1);   // รวมวันนี้ด้วย → 30 วันล่าสุด
+  let sum = 0;
+  for (const [k, v] of Object.entries(record.days)) {
+    if (k >= cutoff) sum += Number(v) || 0;
+  }
+  return sum;
 }
 
 // ดึงส่วนต่างที่ควร "แสดง" บนป้ายมุมขวาบน

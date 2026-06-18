@@ -332,7 +332,7 @@ function renderFriendList() {
     item.className = "friend-item";
     item.innerHTML = `
       <div class="friend-item-header">
-        <div class="friend-item-left">
+        <div class="friend-item-left friend-open-profile" data-id="${friend.id}" style="cursor:pointer;">
           <div class="friend-item-avatar" style="background: linear-gradient(135deg, #d6b16b, #f0d8a1); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1a1a1a; flex-shrink: 0; overflow: hidden;">
             ${avatarHtml}
           </div>
@@ -342,8 +342,7 @@ function renderFriendList() {
           </div>
         </div>
         <div class="friend-item-actions">
-          <button type="button" class="friend-action-btn friend-play" data-id="${friend.id}" title="เชิญเล่น">🎮</button>
-          <button type="button" class="friend-action-btn friend-profile" data-id="${friend.id}" title="ดูโปรไฟล์">👤</button>
+          <button type="button" class="friend-action-btn friend-play" data-id="${friend.id}" title="ชวนเล่น">🎮</button>
           <button type="button" class="friend-remove" data-id="${friend.id}" title="ลบเพื่อน">✕</button>
         </div>
       </div>
@@ -1103,6 +1102,13 @@ function handleFriendListClick(event) {
     return;
   }
 
+  // กดที่รูป/ชื่อเพื่อน → เข้าโปรไฟล์หลักของเพื่อนเลย
+  const openProfile = event.target.closest(".friend-open-profile");
+  if (openProfile) {
+    window.location.href = `/pages/profile.html?user=${encodeURIComponent(openProfile.dataset.id)}`;
+    return;
+  }
+
   const playBtn = event.target.closest("button.friend-play");
   if (playBtn) {
     const friendId = playBtn.dataset.id;
@@ -1110,14 +1116,6 @@ function handleFriendListClick(event) {
     if (friend) {
       showTimeSelectionModal(friend); 
     }
-    return;
-  }
-
-  const profileBtn = event.target.closest("button.friend-profile");
-  if (profileBtn) {
-    const friendId = profileBtn.dataset.id;
-    const friend = onlineFriends.find(u => u.id === friendId);
-    if (friend) showFriendProfile(friend);
     return;
   }
 }

@@ -27,6 +27,16 @@
     gap: 24px;
   }
 
+  /* คอลัมน์ซ้าย: การ์ดข้อมูล + การ์ดเหรียญ ไหลลงกัน */
+  .profile-left {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+  .medal-card { padding: 22px 24px 24px; }
+
   /* คอลัมน์ขวา: ELO → ผลการเล่นด้วยกัน → ประวัติ ไหลต่อกันเอง */
   .profile-right {
     grid-column: 2;
@@ -160,9 +170,10 @@
 
   .profile-name-row {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 6px;
     margin-bottom: 6px;
     text-align: center;
   }
@@ -263,11 +274,11 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(214,177,107,0.1);
-    border: 1px solid rgba(214,177,107,0.3);
-    border-radius: 100px;
-    padding: 7px 8px 7px 16px;
-    margin-bottom: 24px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 0;
+    justify-content: center;
   }
   .player-id-label {
     font-size: 0.72rem;
@@ -280,22 +291,42 @@
     font-size: 1rem;
     font-weight: 700;
     letter-spacing: 2px;
-    color: #d6b16b;
+    color: var(--text);
   }
   .player-id-copy {
-    background: rgba(214,177,107,0.15);
-    border: 1px solid rgba(214,177,107,0.3);
-    border-radius: 50%;
-    width: 28px; height: 28px;
+    background: transparent;
+    border: none;
+    width: 26px; height: 26px;
     cursor: pointer;
-    color: #d6b16b;
-    font-size: 13px;
+    color: var(--muted);
+    font-size: 14px;
     display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
+    transition: color 0.2s;
     flex-shrink: 0;
   }
-  .player-id-copy:hover { background: rgba(214,177,107,0.28); }
-  .player-id-copy.copied { background: #22c55e; border-color:#22c55e; color:#fff; }
+  .player-id-copy:hover { color: var(--text); }
+  .player-id-copy.copied { color: #22c55e; }
+
+  /* โลโก้ซุ้มเล็ก ๆ ในกล่องข้อมูล */
+  .club-logos { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 4px; }
+  .club-logo-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(128,128,128,0.25); background: rgba(128,128,128,0.08); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 0; transition: all .2s; }
+  .club-logo-btn:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .club-logo-btn img { width: 100%; height: 100%; object-fit: cover; }
+  .club-logo-btn .club-initial { font-weight: 800; color: var(--gold); font-size: 1.1rem; }
+
+  /* เหรียญรางวัลทัวร์ — กล่องเล็ก ๆ ตามอันดับ */
+  .tn-medal-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 4px; }
+  .tn-medal-cell { aspect-ratio: 1; border-radius: 10px; border: 1px solid; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; transition: transform .15s, box-shadow .15s; position: relative; }
+  .tn-medal-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .tn-medal-cell.gold   { background: rgba(247,200,70,0.16);  border-color: rgba(247,200,70,0.6); }
+  .tn-medal-cell.silver { background: rgba(192,200,212,0.16); border-color: rgba(192,200,212,0.6); }
+  .tn-medal-cell.bronze { background: rgba(205,127,80,0.16);  border-color: rgba(205,127,80,0.6); }
+
+  /* ปุ่มยืนยัน/ยกเลิกเปลี่ยนรูปโปรไฟล์ (เล็ก ๆ เหมือนแก้ชื่อ) */
+  .avatar-confirm { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  .avatar-confirm.hidden { display: none; }
+  .avatar-action-btn { padding: 5px 14px; border-radius: 8px; border: 1px solid var(--gold); background: var(--gold); color: #1a1305; font-weight: 700; font-size: 0.8rem; cursor: pointer; font-family: inherit; }
+  .avatar-action-btn.cancel { background: transparent; color: var(--muted); border-color: rgba(128,128,128,0.3); }
 
   .profile-divider {
     width: 100%;
@@ -731,6 +762,7 @@
       <button class="btn-back-game" id="btn-back-game">← ย้อนกลับ</button>
     </div>
 
+    <div class="profile-left">
     <div class="profile-card">
       <div class="avatar-wrap">
         <div class="avatar-ring"></div>
@@ -739,6 +771,10 @@
         </div>
         <button id="upload-avatar-btn" title="เปลี่ยนรูปโปรไฟล์">＋</button>
         <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
+      </div>
+      <div id="avatar-confirm-box" class="avatar-confirm hidden">
+        <button type="button" id="avatar-save-btn" class="avatar-action-btn">ยืนยันรูป</button>
+        <button type="button" id="avatar-cancel-btn" class="avatar-action-btn cancel">ยกเลิก</button>
       </div>
 
       <div class="profile-name-row">
@@ -751,13 +787,16 @@
         <button type="button" id="username-cancel-btn" class="username-action-btn cancel">ยกเลิก</button>
       </div>
 
-      <div class="rank-badge">⚔ นักรบผู้ฝึกหัด</div>
-
       <!-- รหัสผู้เล่น (ใช้ค้นหาเพื่อน) -->
       <div class="player-id-box" id="player-id-box">
         <span class="player-id-label">รหัสผู้เล่น</span>
         <span class="player-id-value" id="player-id-value">—</span>
         <button type="button" class="player-id-copy" id="player-id-copy" title="คัดลอกรหัส">⧉</button>
+      </div>
+
+      <!-- ซุ้มที่เข้าร่วม (โลโก้เล็ก ๆ กดเข้าได้) -->
+      <div id="profile-clubs-wrap" style="margin-top:12px; display:none;">
+        <div class="club-logos" id="profile-clubs-list"></div>
       </div>
 
       <div class="profile-divider"></div>
@@ -786,6 +825,13 @@
       </div>
     </div>
 
+    <!-- เหรียญรางวัลทัวร์นาเมนต์ (กล่องแยก) -->
+    <div class="profile-card medal-card" id="profile-tn-wrap" style="display:none;">
+      <p class="section-title" style="margin-bottom:12px;">🏆 เหรียญรางวัล</p>
+      <div class="tn-medal-grid" id="profile-tn-medals"></div>
+    </div>
+    </div>
+
     <div class="profile-right">
     <div class="elo-section">
       <p class="section-title">คะแนน ELO</p>
@@ -808,23 +854,6 @@
           <div class="elo-value" id="elo-standard">—</div>
           <span class="elo-trend trend-flat" id="trend-standard">—</span>
         </div>
-      </div>
-    </div>
-
-    <!-- ซุ้มที่ผู้เล่นอยู่ -->
-    <div class="clubs-section" id="profile-clubs-section" style="margin-top:18px;">
-      <p class="section-title">🏛 ซุ้มที่เข้าร่วม</p>
-      <div id="profile-clubs-list" style="display:flex; flex-direction:column; gap:10px;">
-        <div style="color:var(--muted); font-size:0.88rem;">กำลังโหลด…</div>
-      </div>
-    </div>
-
-    <!-- ทัวร์นาเมนต์ -->
-    <div class="clubs-section" id="profile-tournaments-section" style="margin-top:18px;">
-      <p class="section-title">🏆 ทัวร์นาเมนต์</p>
-      <div id="profile-tn-medals" style="display:flex; gap:10px; margin-bottom:12px;"></div>
-      <div id="profile-tn-list" style="display:flex; flex-direction:column; gap:10px;">
-        <div style="color:var(--muted); font-size:0.88rem;">กำลังโหลด…</div>
       </div>
     </div>
 
@@ -886,7 +915,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, get, update, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import { START_ELO, getDisplayDelta, dateKey, ELO_MODES } from "../elo.js";
+import { START_ELO, getDisplayDelta, dateKey, ELO_MODES, sumRecentDelta } from "../elo.js";
 import { ensurePlayerId, formatPlayerId } from "../playerid.js";
 
 // ── Firebase Config ──
@@ -939,74 +968,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ═══════════════════════════════════════════════════════════
 async function renderUserTournaments(targetSafeId) {
   const medalsEl = document.getElementById('profile-tn-medals');
-  const listEl = document.getElementById('profile-tn-list');
-  if (!listEl || !targetSafeId) return;
+  const wrap = document.getElementById('profile-tn-wrap');
+  if (!medalsEl || !targetSafeId) return;
   const escp = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   try {
     const snap = await get(ref(db, `user_tournaments/${targetSafeId}`));
     const data = snap.val() || {};
-    const entries = Object.entries(data).sort((a, b) => (b[1].finishedAt || 0) - (a[1].finishedAt || 0));
-    if (!entries.length) {
-      if (medalsEl) medalsEl.innerHTML = '';
-      listEl.innerHTML = '<div style="color:var(--muted); font-size:0.88rem;">ยังไม่เคยแข่งทัวร์นาเมนต์</div>';
-      return;
-    }
-    // สถิติรวม
-    let gold = 0, silver = 0, bronze = 0, best = 999;
-    entries.forEach(([id, r]) => {
-      if (r.medal === 'gold') gold++; else if (r.medal === 'silver') silver++; else if (r.medal === 'bronze') bronze++;
-      if (r.rank && r.rank < best) best = r.rank;
-    });
-    if (medalsEl) medalsEl.innerHTML = `
-      <div class="tn-medal-box"><div class="m">🥇</div><div class="c">${gold}</div></div>
-      <div class="tn-medal-box"><div class="m">🥈</div><div class="c">${silver}</div></div>
-      <div class="tn-medal-box"><div class="m">🥉</div><div class="c">${bronze}</div></div>
-      <div class="tn-medal-box"><div class="m" style="font-size:0.95rem;color:var(--muted);">แข่ง</div><div class="c">${entries.length}</div></div>
-      <div class="tn-medal-box"><div class="m" style="font-size:0.95rem;color:var(--muted);">อันดับดีสุด</div><div class="c">#${best === 999 ? '-' : best}</div></div>`;
+    // เอาเฉพาะที่ได้เหรียญ (อันดับ 1-3) แล้วเรียง ทอง → เงิน → ทองแดง
+    const order = { gold: 1, silver: 2, bronze: 3 };
+    const medalOf = (r) => r.medal || (r.rank === 1 ? 'gold' : r.rank === 2 ? 'silver' : r.rank === 3 ? 'bronze' : null);
+    const entries = Object.entries(data)
+      .map(([id, r]) => [id, r, medalOf(r)])
+      .filter(([, , m]) => m)
+      .sort((a, b) => (order[a[2]] - order[b[2]]) || ((b[1].finishedAt || 0) - (a[1].finishedAt || 0)));
+    if (!entries.length) { if (wrap) wrap.style.display = 'none'; return; }
     const medalIcon = { gold: '🥇', silver: '🥈', bronze: '🥉' };
-    listEl.innerHTML = entries.map(([id, r]) => {
-      const badge = r.medal ? medalIcon[r.medal] : `#${r.rank}`;
-      const d = r.finishedAt ? new Date(r.finishedAt) : null;
-      const ds = d ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}` : '';
-      return `<a href="tournament.html#t=${encodeURIComponent(id)}" style="display:flex; align-items:center; gap:12px; padding:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg2); text-decoration:none;">
-        <div style="width:42px;height:42px;border-radius:10px;flex-shrink:0;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:var(--gold);">${badge}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;color:var(--text);">${escp(r.tournamentName || 'ทัวร์นาเมนต์')}</div>
-          <div style="font-size:0.78rem;color:var(--muted);">อันดับ ${r.rank}/${r.totalPlayers} · ${r.score} แต้ม · ${r.wins}-${r.draws}-${r.losses}</div>
-        </div>
-        <span style="color:var(--muted);">›</span>
-      </a>`;
-    }).join('');
+    medalsEl.innerHTML = entries.map(([id, r, m]) =>
+      `<div class="tn-medal-cell ${m}" title="${escp(r.tournamentName || 'ทัวร์นาเมนต์')} · อันดับ ${r.rank}/${r.totalPlayers}" onclick="location.href='tournament.html#t=${encodeURIComponent(id)}'">${medalIcon[m]}</div>`
+    ).join('');
+    if (wrap) wrap.style.display = 'block';
   } catch (e) {
-    listEl.innerHTML = '<div style="color:var(--muted); font-size:0.88rem;">โหลดทัวร์นาเมนต์ไม่ได้</div>';
+    if (wrap) wrap.style.display = 'none';
   }
 }
 
 async function renderUserClubs(targetSafeId) {
   const listEl = document.getElementById('profile-clubs-list');
+  const wrap = document.getElementById('profile-clubs-wrap');
   if (!listEl || !targetSafeId) return;
+  const escp = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   try {
     const snap = await get(ref(db, 'clubs'));
     const clubs = snap.val() || {};
     const mine = Object.entries(clubs).filter(([id, c]) => c.members && c.members[targetSafeId]);
-    if (!mine.length) { listEl.innerHTML = '<div style="color:var(--muted); font-size:0.88rem;">ยังไม่ได้เข้าร่วมซุ้มใด</div>'; return; }
-    const roleLabel = { owner: '👑 เจ้าของ', admin: '⭐ แอดมิน', member: 'สมาชิก' };
-    const escp = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    if (!mine.length) { if (wrap) wrap.style.display = 'none'; return; }
     listEl.innerHTML = mine.map(([id, c]) => {
       const lg = c.logo || c.image || '';
-      const logo = lg ? `<img src="${escp(lg)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : escp(String(c.name || '?').charAt(0).toUpperCase());
-      const role = c.members[targetSafeId].role;
-      return `<a href="club.html?id=${encodeURIComponent(id)}" style="display:flex; align-items:center; gap:12px; padding:10px; border:1px solid var(--border); border-radius:12px; background:var(--bg2); text-decoration:none;">
-        <div style="width:42px;height:42px;border-radius:10px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#7a5230,#c8a24a);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">${logo}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;color:var(--text);">${escp(c.name || 'ซุ้ม')}</div>
-          <div style="font-size:0.78rem;color:var(--muted);">${roleLabel[role] || 'สมาชิก'} · 👥 ${c.members ? Object.keys(c.members).length : 0} คน</div>
-        </div>
-        <span style="color:var(--muted);">›</span>
-      </a>`;
+      const inner = lg ? `<img src="${escp(lg)}" alt="">` : `<span class="club-initial">${escp(String(c.name || '?').charAt(0).toUpperCase())}</span>`;
+      return `<button class="club-logo-btn" title="${escp(c.name || 'ซุ้ม')}" onclick="location.href='club.html?id=${encodeURIComponent(id)}'">${inner}</button>`;
     }).join('');
+    if (wrap) wrap.style.display = 'block';
   } catch (e) {
-    listEl.innerHTML = '<div style="color:var(--muted); font-size:0.88rem;">โหลดซุ้มไม่ได้</div>';
+    if (wrap) wrap.style.display = 'none';
   }
 }
 
@@ -1077,7 +1080,13 @@ async function initOwnProfile(current, safeUid) {
   // โหลดประวัติของตัวเอง
   await loadGameHistory(safeUid, current.name || 'คุณ', true);
 
-  // ── ระบบจัดการอัปโหลดรูปภาพ (เฉพาะโปรไฟล์ตัวเอง) ──
+  // ── เปลี่ยนรูปโปรไฟล์: เลือกรูป → แสดงตัวอย่าง → ยืนยัน/ยกเลิก ──
+  const avatarConfirmBox = document.getElementById('avatar-confirm-box');
+  const avatarSaveBtn = document.getElementById('avatar-save-btn');
+  const avatarCancelBtn = document.getElementById('avatar-cancel-btn');
+  let pendingAvatar = null;
+  const prevAvatarSrc = () => current.avatar || '/Images/LOGO.png';
+
   document.getElementById('upload-avatar-btn').addEventListener('click', () => {
     document.getElementById('avatar-file-input').click();
   });
@@ -1086,18 +1095,31 @@ async function initOwnProfile(current, safeUid) {
     const f = e.target.files[0];
     if (!f) return;
     const r = new FileReader();
-    r.onload = async () => {
-      preview.src = r.result;
-      current.avatar = r.result;
-      saveCurrent(current);
-
-      const users = loadUsers();
-      const idx = users.findIndex(u => u.email === current.email);
-      if (idx !== -1) { users[idx] = current; saveUsers(users); }
-
-      try { await update(ref(db, `users/${safeUid}`), { avatar: r.result }); } catch(err){}
+    r.onload = () => {
+      pendingAvatar = r.result;
+      preview.src = r.result;                 // แสดงตัวอย่างก่อน (ยังไม่บันทึก)
+      avatarConfirmBox.classList.remove('hidden');
     };
     r.readAsDataURL(f);
+  });
+
+  avatarSaveBtn.addEventListener('click', async () => {
+    if (!pendingAvatar) { avatarConfirmBox.classList.add('hidden'); return; }
+    current.avatar = pendingAvatar;
+    saveCurrent(current);
+    const users = loadUsers();
+    const idx = users.findIndex(u => u.email === current.email);
+    if (idx !== -1) { users[idx] = current; saveUsers(users); }
+    try { await update(ref(db, `users/${safeUid}`), { avatar: pendingAvatar }); } catch (err) {}
+    pendingAvatar = null;
+    avatarConfirmBox.classList.add('hidden');
+  });
+
+  avatarCancelBtn.addEventListener('click', () => {
+    pendingAvatar = null;
+    preview.src = prevAvatarSrc();            // คืนรูปเดิม
+    document.getElementById('avatar-file-input').value = '';
+    avatarConfirmBox.classList.add('hidden');
   });
 
   // ── ระบบแก้ไขชื่อ (เฉพาะโปรไฟล์ตัวเอง) ──
@@ -1301,8 +1323,8 @@ async function renderElo(safeId) {
     const valEl = document.getElementById('elo-' + mode);
     if (valEl) valEl.textContent = (elo[mode] != null) ? elo[mode] : START_ELO;
 
-    // ป้ายบวก/ลบรายวัน (ของวันก่อนหน้าล่าสุด)
-    const delta = getDisplayDelta(daily[mode], today);
+    // ป้ายแนวโน้ม: ผลรวม +/- ย้อนหลัง 30 วัน (เลื่อนหน้าต่างอัตโนมัติ)
+    const delta = sumRecentDelta(daily[mode], 30);
     setEloTrend(mode, delta);
   });
 }
@@ -1312,20 +1334,11 @@ function setEloTrend(mode, delta) {
   const el = document.getElementById('trend-' + mode);
   if (!el) return;
   el.classList.remove('trend-up', 'trend-down', 'trend-flat');
-
-  if (delta === null || delta === undefined) {
-    el.classList.add('trend-flat');
-    el.textContent = '—';
-  } else if (delta > 0) {
-    el.classList.add('trend-up');
-    el.textContent = '↑ +' + delta;
-  } else if (delta < 0) {
-    el.classList.add('trend-down');
-    el.textContent = '↓ ' + delta; // delta เป็นค่าลบอยู่แล้ว
-  } else {
-    el.classList.add('trend-flat');
-    el.textContent = '— 0';
-  }
+  el.title = 'รวม 30 วันล่าสุด';
+  const d = Number(delta) || 0;
+  if (d > 0) { el.classList.add('trend-up'); el.textContent = '+' + d; }
+  else if (d < 0) { el.classList.add('trend-down'); el.textContent = String(d); }
+  else { el.classList.add('trend-flat'); el.textContent = '0'; }
 }
 
 // ═══════════════════════════════════════════════════════════

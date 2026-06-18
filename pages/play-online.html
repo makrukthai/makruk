@@ -143,6 +143,7 @@
             <button class="btn-action" id="btn-draw" disabled>🤝 ขอเสมอ</button>
           </div>
           <button class="btn-action" id="btn-abort" disabled style="display:none; width:100%; flex:0 0 auto;">✖ ยกเลิกเกม</button>
+          <button class="btn-action" id="btn-count-board" style="display:none; width:100%; flex:0 0 auto;">📿 ขอนับศักดิ์กระดาน</button>
           <div id="special-rules-info" style="display:none; font-size:12px; color:var(--muted); padding:8px 12px; background:rgba(255,200,0,0.08); border:1px solid rgba(255,200,0,0.2); border-radius:10px; line-height:1.5; margin-top:4px;"></div>
         </div>
 
@@ -356,6 +357,7 @@ let activeTab = 'chat';    // 'chat' | 'moves'
 let sakdiKradanActive = false;
 let sakdiKradanCount = 0;
 let sakdiKradanFleeColor = null;
+let sakdiKradanLastChance = false;   // ครบ 64 แล้ว — ฝ่ายไล่เหลือเดินอีก 1 ตา
 
 let sakdiMakActive = false;
 let sakdiMakCount = 0;
@@ -910,31 +912,15 @@ function doMove(move) {
     document.getElementById('draw-toast').classList.add('hidden');
   }
 
-  // ศักดิ์กระดาน
+  // ═══ การนับศักดิ์ ═══
+  let forcedEnd = null;
   if (sakdiKradanActive && movingColor === sakdiKradanFleeColor) {
     sakdiKradanCount++;
-    if (sakdiKradanCount >= 64) {
-      turn = window.opposite(turn);
-      syncSharedStateAndRender(); updateClocks(); updateMoveBadge();
-      pushMoveToFirebase(move, promoted, captured, null);
-      pushSakdiKradanEnd();
-      updateSpecialRulesUI();
-      return;
-    }
-    updateSpecialRulesUI();
+    if (sakdiKradanCount >= 64) sakdiKradanLastChance = true;   // ครบ 64 → ฝ่ายไล่ได้เดินอีก 1 ตา
   }
-
-  // ศักดิ์หมาก
   if (sakdiMakActive && movingColor === sakdiMakFleeColor) {
-    if (sakdiMakCount >= sakdiMakLimit) {
-      turn = window.opposite(turn);
-      syncSharedStateAndRender(); updateClocks();
-      pushMoveToFirebase(move, promoted, captured, 'draw-sakdimak');
-      endGame('draw-sakdimak', null);
-      return;
-    }
-    sakdiMakCount++;
-    updateSpecialRulesUI();
+    if (sakdiMakCount >= sakdiMakLimit) forcedEnd = 'draw-sakdimak';
+    else sakdiMakCount++;
   }
 
   turn = window.opposite(turn);
@@ -944,10 +930,22 @@ function doMove(move) {
   updateClocks();
   updateMoveBadge();
 
+  if (forcedEnd) {
+    pushMoveToFirebase(move, promoted, captured, forcedEnd);
+    endGame(forcedEnd, null);
+    return;
+  }
+
   if (checkThreefoldRepetition()) {
     pushMoveToFirebase(move, promoted, captured, 'draw-threefold');
     endGame('draw-threefold', null);
     return;
+  }
+
+  // ระหว่างนับศักดิ์กระดาน ถ้าฝ่ายใดเหลือขุนตัวเดียว → เลิกนับกระดาน สลับไปนับศักดิ์หมากทันที (ไม่รอครบ 64)
+  if (sakdiKradanActive && hasLoneKing()) {
+    sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null; sakdiKradanLastChance = false;
+    clearSakdiKradanNode();
   }
 
   if (!sakdiMakActive && !sakdiKradanActive) {
@@ -960,9 +958,19 @@ function doMove(move) {
   let endReason = null;
   if (lm.length === 0) endReason = check ? 'checkmate' : 'stalemate';
 
+  // ศักดิ์กระดาน: ฝ่ายไล่เพิ่งใช้ตาสุดท้าย (หลังครบ 64) แล้วยังจนไม่ได้ → เสมอทันที
+  if (sakdiKradanActive && sakdiKradanLastChance && endReason !== 'checkmate'
+      && movingColor === window.opposite(sakdiKradanFleeColor)) {
+    endReason = 'draw-sakdikradan';
+  }
+
   pushMoveToFirebase(move, promoted, captured, endReason);
 
+  // ซิงค์ตัวนับศักดิ์กระดานให้คู่ต่อสู้เห็น
+  if (sakdiKradanActive && !endReason) pushSakdiKradanState();
+
   if (endReason) {
+    if (sakdiKradanActive) clearSakdiKradanNode();
     endGame(endReason, endReason==='checkmate' ? window.opposite(turn) : null);
   } else {
     updateStatus();
@@ -970,9 +978,52 @@ function doMove(move) {
   }
 }
 
-async function pushSakdiKradanEnd() {
-  if (!gameRef) return;
-  try { await update(gameRef, { sakdiKradanEnd: true }); } catch(e) {}
+// เหลือขุนตัวเดียวฝ่ายใดฝ่ายหนึ่งไหม
+function hasLoneKing() {
+  let w = [], b = [];
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const p = boardState[r][c];
+    if (!p) continue;
+    (window.colorOf(p) === 'w' ? w : b).push(p);
+  }
+  const wKingOnly = w.length === 1 && window.typeOf(w[0]) === 'K';
+  const bKingOnly = b.length === 1 && window.typeOf(b[0]) === 'K';
+  return wKingOnly || bKingOnly;
+}
+
+// ── ศักดิ์กระดาน: ขอ/ซิงค์/ล้าง/ปุ่ม ──
+function boardHasFaceDownPawn() {
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const p = boardState[r][c];
+    if (p && window.typeOf(p) === 'P') return true;
+  }
+  return false;
+}
+function updateCountButtonVisibility() {
+  const btn = document.getElementById('btn-count-board');
+  if (!btn) return;
+  const canRequest = !gameOver && !!gameRef && !!myColor
+    && !sakdiKradanActive && !sakdiMakActive && !boardHasFaceDownPawn();
+  btn.style.display = canRequest ? '' : 'none';
+  btn.disabled = !canRequest;
+}
+async function requestSakdiKradan() {
+  if (gameOver || sakdiKradanActive || sakdiMakActive) return;
+  if (!gameRef || !myColor || boardHasFaceDownPawn()) return;
+  sakdiKradanActive = true;
+  sakdiKradanFleeColor = myColor;          // ผู้ขอ = ฝ่ายหนี (อีกฝ่ายต้องไล่ให้จนใน 64 ตา)
+  sakdiKradanCount = 0;
+  sakdiKradanLastChance = false;
+  try { await update(gameRef, { sakdiKradan: { flee: myColor, count: 0, lastChance: false } }); } catch (e) {}
+  updateSpecialRulesUI();
+  updateCountButtonVisibility();
+}
+function pushSakdiKradanState() {
+  if (!gameRef || !sakdiKradanActive) return;
+  update(gameRef, { sakdiKradan: { flee: sakdiKradanFleeColor, count: sakdiKradanCount, lastChance: !!sakdiKradanLastChance } }).catch(() => {});
+}
+function clearSakdiKradanNode() {
+  if (gameRef) update(gameRef, { sakdiKradan: null }).catch(() => {});
 }
 
 function boardToFB(board) {
@@ -1086,13 +1137,18 @@ function updateSpecialRulesUI() {
       infoEl.textContent = `ศักดิ์หมาก: ฝ่าย${chaseText}ต้องรุกจนใน ${sakdiMakLimit} ตา (ตาปัจจุบัน: ${sakdiMakCount})`;
       infoEl.style.display = '';
     } else if (sakdiKradanActive) {
-      const fleeText = sakdiKradanFleeColor === 'w' ? 'ขาว' : 'ดำ';
-      infoEl.textContent = `ศักดิ์กระดาน: ฝ่าย${fleeText}หนี — ตาที่ ${sakdiKradanCount}/64`;
+      const chaseText = sakdiKradanFleeColor === 'w' ? 'ดำ' : 'ขาว';
+      if (sakdiKradanLastChance) {
+        infoEl.textContent = `ศักดิ์กระดาน: ครบ 64 ตาแล้ว — ฝ่าย${chaseText}เหลือเดินตาสุดท้าย ไล่จนได้ชนะ ไม่ได้เสมอ`;
+      } else {
+        infoEl.textContent = `ศักดิ์กระดาน: ฝ่าย${chaseText}ต้องรุกจนใน 64 ตา (ตาที่ ${sakdiKradanCount}/64) — เหลือขุนเปล่าจะสลับไปนับศักดิ์หมาก`;
+      }
       infoEl.style.display = '';
     } else {
       infoEl.style.display = 'none';
     }
   }
+  updateCountButtonVisibility();
 }
 
 // ════════════════════════════════════════════════
@@ -1149,13 +1205,15 @@ function listenToGame(gid) {
       document.getElementById('draw-toast').classList.add('hidden');
     }
 
-    if (data.sakdiKradan && !sakdiKradanActive) {
+    if (data.sakdiKradan) {
       sakdiKradanActive = true;
       sakdiKradanFleeColor = data.sakdiKradan.flee;
       sakdiKradanCount = data.sakdiKradan.count || 0;
+      sakdiKradanLastChance = !!data.sakdiKradan.lastChance;
       updateSpecialRulesUI();
-    } else if (!data.sakdiKradan && sakdiKradanActive && sakdiKradanFleeColor !== myColor) {
-      sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
+    } else if (sakdiKradanActive) {
+      sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null; sakdiKradanLastChance = false;
+      if (!sakdiMakActive) checkAndStartSakdiMak();   // อาจเหลือขุนเปล่า → สลับไปนับศักดิ์หมาก
       updateSpecialRulesUI();
     }
 
@@ -1173,6 +1231,8 @@ function listenToGame(gid) {
     }
 
     if (!lm.board) return;
+    // กัน re-render ซ้ำจาก heartbeat/conn (snapshot เด้งแต่ตาเดินยังเป็นตาเดิม) → selection/การลากไม่หาย
+    if (lm.moveCount != null && lm.moveCount <= moveCount) return;
     boardState = fbToBoard(lm.board);
     turn       = lm.turn;
     timeW      = lm.timeW;
@@ -1369,6 +1429,9 @@ async function applyElo(uid, myRating, oppRating, score, games, mode) {
 async function endGame(reason, winner) {
   premove = null;
   if (window.Sound) window.Sound.play('end');
+  try { clearSakdiKradanNode(); } catch (e) {}
+  const cbBtn = document.getElementById('btn-count-board');
+  if (cbBtn) cbBtn.style.display = 'none';
   if (myUid && gameId) {
     try {
       const safeMyUid = String(myUid).replace(/[.#$\[\]]/g, '_');
@@ -1507,6 +1570,7 @@ async function endGame(reason, winner) {
     'draw-threefold': { emoji: '🔁', title: 'เสมอ!', sub: 'รุกล้อซ้ำ 3 ครั้ง' },
     'draw-sakdikradan': { emoji: '📋', title: 'เสมอ!', sub: 'นับศักดิ์กระดานครบ 64 ตา' },
     'draw-sakdimak': { emoji: '♟', title: 'เสมอ!', sub: 'นับศักดิ์หมากครบกำหนด' },
+    'draw-sakdikradan': { emoji: '📿', title: 'เสมอ!', sub: 'นับศักดิ์กระดานครบ 64 ตา ไล่ไม่จน' },
     'opponent-noshow': { emoji: '⏱️', title: 'คุณชนะโดยปริยาย', sub: 'คู่ต่อสู้ไม่เข้าห้องแข่งขันตามเวลาที่กำหนด' }
   };
 
@@ -1957,11 +2021,12 @@ async function startGame(gid) {
   setChatTab('chat');
   renderMoveLog();
   updateMoveNavButtons();
-  sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null;
+  sakdiKradanActive = false; sakdiKradanCount = 0; sakdiKradanFleeColor = null; sakdiKradanLastChance = false;
   sakdiMakActive = false; sakdiMakCount = 0; sakdiMakLimit = 0; sakdiMakFleeColor = null;
   drawOfferPending = false;
   eloApplied = false;
   updateSpecialRulesUI();
+  updateCountButtonVisibility();
 
   flipped = (myColor === 'b');
 
@@ -2093,6 +2158,14 @@ document.getElementById('btn-draw').addEventListener('click', async () => {
   if (gameOver || drawOfferPending || opponentDrawOffer) return;
   drawOfferPending = true;
   if (gameRef) await update(gameRef, { drawOffer: myColor });
+});
+
+document.getElementById('btn-count-board').addEventListener('click', () => {
+  if (gameOver || sakdiKradanActive || sakdiMakActive) return;
+  if (boardHasFaceDownPawn()) return;
+  if (confirm('ขอนับศักดิ์กระดาน?\nฝ่ายตรงข้ามต้องรุกจนให้ได้ภายใน 64 ตา ไม่งั้นเสมอ')) {
+    requestSakdiKradan();
+  }
 });
 
 document.getElementById('btn-draw-accept').addEventListener('click', () => {
