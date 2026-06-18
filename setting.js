@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
   customBackground: "",   // URL ภาพพื้นหลังที่ผู้ใช้ตั้งเอง (ว่าง = ไม่ใช้)
   moveMethod: "both",
   showMoves: "show",
+  boardCellStyle: "standard",   // พื้นช่องกระดาน: standard (สีพื้น) | wood (ลายไม้)
   soundEnabled: true,     // เสียงเอฟเฟกต์ (เดินหมาก/กิน/รุก ฯลฯ)
   premoveEnabled: true    // เดินล่วงหน้า (premove)
 };
@@ -31,6 +32,9 @@ function applyThemeAndBackground() {
   
   // Apply background mode
   html.setAttribute("data-background-mode", settings.backgroundMode);
+
+  // พื้นช่องกระดาน (standard / wood / …)
+  html.setAttribute("data-cell-style", settings.boardCellStyle || "standard");
 
   // ภาพพื้นหลังที่ผู้ใช้ตั้งเอง (ใช้ร่วมกับ theme-refresh.css)
   const bg = (settings.customBackground || "").trim();
@@ -66,6 +70,8 @@ function populateSettingsForm() {
   const premoveSelect = form.querySelector("#set-premove");
   if (soundSelect) soundSelect.value = settings.soundEnabled === false ? "off" : "on";
   if (premoveSelect) premoveSelect.value = settings.premoveEnabled === false ? "off" : "on";
+  const cellStyleSelect = form.querySelector("#set-cell-style");
+  if (cellStyleSelect) cellStyleSelect.value = settings.boardCellStyle || "standard";
 }
 
 function showSettingsMessage(message) {
@@ -90,12 +96,14 @@ function handleSettingsSubmit(event) {
   // บันทึกเฉพาะข้อมูลที่มีอยู่จริง (ตัดตัวแปรกดรับแจ้งเตือนออกแล้ว)
   const soundSelect = form.querySelector("#set-sound");
   const premoveSelect = form.querySelector("#set-premove");
+  const cellStyleSelect = form.querySelector("#set-cell-style");
   const settings = {
     backgroundMode: form.elements.backgroundMode.value,
     boardBackground: form.elements.boardBackground?.value || "Board9.png",
     customBackground: (form.elements.customBackground?.value || "").trim(),
     moveMethod: moveSelect ? moveSelect.value : "both",
     showMoves: showSelect ? showSelect.value : "show",
+    boardCellStyle: cellStyleSelect ? cellStyleSelect.value : "standard",
     soundEnabled: soundSelect ? soundSelect.value === "on" : true,
     premoveEnabled: premoveSelect ? premoveSelect.value === "on" : true,
   };
@@ -179,6 +187,14 @@ export function createSettingsModal() {
             <select id="set-show-moves" class="auth-input" style="width: 100%;">
               <option value="show">แสดงจุดตาเดิน</option>
               <option value="hide">ไม่แสดงตาเดิน</option>
+            </select>
+          </div>
+
+          <div class="settings-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 12px;">
+            <span class="settings-row-label" style="font-weight: 600;">พื้นช่องกระดาน</span>
+            <select id="set-cell-style" class="auth-input" style="width: 100%;">
+              <option value="standard">Standard (สีพื้น)</option>
+              <option value="wood">ลายไม้ (Wood)</option>
             </select>
           </div>
 
