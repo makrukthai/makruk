@@ -10,19 +10,24 @@
   };
   // หาที่อยู่โฟลเดอร์ Sounds ให้ถูกไม่ว่าจะอยู่หน้า /pages/ หรือราก
   const base = location.pathname.includes('/pages/') ? '../Sounds/' : 'Sounds/';
-  const KEY = 'rukthai_sound_enabled';
+  const SETTINGS_KEY = 'rukthai_settings';
 
   const buffers = {};   // ชื่อ -> AudioBuffer
   let ctx = null, ready = false, loading = false;
 
+  function readSettings() {
+    try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { return {}; }
+  }
   function isEnabled() {
-    const v = localStorage.getItem(KEY);
-    return v === null ? true : v === '1';   // ค่าเริ่มต้น = เปิด
+    const s = readSettings();
+    return s.soundEnabled !== false;   // ค่าเริ่มต้น = เปิด
   }
   function setEnabled(on) {
-    localStorage.setItem(KEY, on ? '1' : '0');
+    const s = readSettings();
+    s.soundEnabled = !!on;
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch (e) {}
     if (on) ensureLoaded();
-    window.dispatchEvent(new CustomEvent('rukthai-sound-changed', { detail: { enabled: on } }));
+    window.dispatchEvent(new CustomEvent('rukthai-sound-changed', { detail: { enabled: !!on } }));
   }
 
   function getCtx() {

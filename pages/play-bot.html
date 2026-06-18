@@ -519,7 +519,7 @@ function renderStatusText() {
 // ════════════════════════════════════════
 function handleCellClick(row, col) {
   if (gameOver) return;
-  if (turn !== 'w') { premoveClick(row, col); return; }
+  if (turn !== 'w') { if (premoveEnabled()) premoveClick(row, col); return; }
   const piece = boardState[row][col];
 
   if (selected) {
@@ -536,6 +536,9 @@ function handleCellClick(row, col) {
   syncSharedStateAndRender();
 }
 
+function premoveEnabled() {
+  try { const s = JSON.parse(localStorage.getItem('rukthai_settings')) || {}; return s.premoveEnabled !== false; } catch (e) { return true; }
+}
 // ── พรีมูฟ: คลิก/ลากตอนบอทกำลังคิด ──
 function premoveClick(row, col) {
   const piece = boardState[row][col];
@@ -572,6 +575,7 @@ function tryApplyPremove() {
 function attemptMove(from, to) {
   if (gameOver) return;
   if (turn !== 'w') {
+    if (!premoveEnabled()) return;
     const p = boardState[from.row]?.[from.col];
     if (!p || window.colorOf(p) !== 'w') { clearPremove(); return; }
     const raw = window.getRawMoves(boardState, from.row, from.col);
@@ -745,7 +749,5 @@ if (cbBot) cbBot.addEventListener('contextmenu', e => { e.preventDefault(); if (
 loadPlayer();
 initGame();
 </script>
-<button id="sound-toggle" title="เปิด/ปิดเสียง" style="position:fixed;bottom:18px;right:18px;z-index:9000;width:44px;height:44px;border-radius:50%;border:1px solid rgba(128,128,128,0.3);background:rgba(30,29,27,0.85);color:#e3c479;font-size:1.2rem;cursor:pointer;backdrop-filter:blur(6px);">🔊</button>
-<script>(function(){var b=document.getElementById('sound-toggle');function r(){b.textContent=(window.Sound&&window.Sound.isEnabled())?'🔊':'🔇';}b.addEventListener('click',function(){if(window.Sound){window.Sound.toggle();r();}});window.addEventListener('rukthai-sound-changed',r);r();})();</script>
 </body>
 </html>

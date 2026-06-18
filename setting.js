@@ -6,8 +6,10 @@ const DEFAULT_SETTINGS = {
   backgroundMode: "dark",
   boardBackground: "Board9.png",
   customBackground: "",   // URL ภาพพื้นหลังที่ผู้ใช้ตั้งเอง (ว่าง = ไม่ใช้)
-  moveMethod: "both",  
-  showMoves: "show"    
+  moveMethod: "both",
+  showMoves: "show",
+  soundEnabled: true,     // เสียงเอฟเฟกต์ (เดินหมาก/กิน/รุก ฯลฯ)
+  premoveEnabled: true    // เดินล่วงหน้า (premove)
 };
 
 function loadSettings() {
@@ -60,6 +62,10 @@ function populateSettingsForm() {
   const showSelect = form.querySelector("#set-show-moves");
   if (moveSelect) moveSelect.value = settings.moveMethod;
   if (showSelect) showSelect.value = settings.showMoves;
+  const soundSelect = form.querySelector("#set-sound");
+  const premoveSelect = form.querySelector("#set-premove");
+  if (soundSelect) soundSelect.value = settings.soundEnabled === false ? "off" : "on";
+  if (premoveSelect) premoveSelect.value = settings.premoveEnabled === false ? "off" : "on";
 }
 
 function showSettingsMessage(message) {
@@ -82,12 +88,16 @@ function handleSettingsSubmit(event) {
   const showSelect = form.querySelector("#set-show-moves");
 
   // บันทึกเฉพาะข้อมูลที่มีอยู่จริง (ตัดตัวแปรกดรับแจ้งเตือนออกแล้ว)
+  const soundSelect = form.querySelector("#set-sound");
+  const premoveSelect = form.querySelector("#set-premove");
   const settings = {
     backgroundMode: form.elements.backgroundMode.value,
     boardBackground: form.elements.boardBackground?.value || "Board9.png",
     customBackground: (form.elements.customBackground?.value || "").trim(),
     moveMethod: moveSelect ? moveSelect.value : "both",
     showMoves: showSelect ? showSelect.value : "show",
+    soundEnabled: soundSelect ? soundSelect.value === "on" : true,
+    premoveEnabled: premoveSelect ? premoveSelect.value === "on" : true,
   };
 
   try {
@@ -98,6 +108,10 @@ function handleSettingsSubmit(event) {
     return;
   }
   applyThemeAndBackground();
+  // อัปเดตระบบเสียงทันที (ถ้าหน้านี้มี)
+  if (window.Sound && typeof window.Sound.setEnabled === 'function') {
+    window.Sound.setEnabled(settings.soundEnabled);
+  }
   
   // บังคับอัปเดตหน้ากระดานทันทีที่กดบันทึก
   if (typeof window.syncSharedStateAndRender === 'function') {
@@ -165,6 +179,22 @@ export function createSettingsModal() {
             <select id="set-show-moves" class="auth-input" style="width: 100%;">
               <option value="show">แสดงจุดตาเดิน</option>
               <option value="hide">ไม่แสดงตาเดิน</option>
+            </select>
+          </div>
+
+          <div class="settings-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 12px;">
+            <span class="settings-row-label" style="font-weight: 600;">เสียงเอฟเฟกต์</span>
+            <select id="set-sound" class="auth-input" style="width: 100%;">
+              <option value="on">เปิดเสียง</option>
+              <option value="off">ปิดเสียง</option>
+            </select>
+          </div>
+
+          <div class="settings-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 12px;">
+            <span class="settings-row-label" style="font-weight: 600;">เดินล่วงหน้า (Premove)</span>
+            <select id="set-premove" class="auth-input" style="width: 100%;">
+              <option value="on">เปิด</option>
+              <option value="off">ปิด</option>
             </select>
           </div>
         </div>
