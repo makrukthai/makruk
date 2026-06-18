@@ -71,21 +71,22 @@
 .chess-cell.light { background: #c56c30; }
 .chess-cell.dark  { background: #c56c30; }
 
-/* ───── พื้นช่องแบบไม้ (เลือกได้ในตั้งค่า: data-cell-style="wood") ─────
-   วางรูปไม้ผืนเดียวทั้งกระดาน แล้วให้ช่องโปร่งใส → ดูเป็นไม้ต่อเนื่อง
-   ใส่เส้นขอบช่องจาง ๆ เพื่อให้เห็นช่อง 8x8 */
-html[data-cell-style="wood"] .chess-board {
-  background-image: url("Boards/cell-wood.jpg");
+/* ───── พื้นช่องแบบรูปภาพ (เลือกได้ในตั้งค่า: data-cell-style="image") ─────
+   วางรูปผืนเดียวทั้งกระดาน แล้วให้ช่องโปร่งใส → ดูเป็นพื้นต่อเนื่อง
+   รูป + สีเส้นกำหนดผ่านตัวแปร --cell-bg-image / --cell-line-color (ตั้งจาก setting.js)
+   เพิ่มกระดานใหม่ได้โดยไม่ต้องแก้ CSS นี้ */
+html[data-cell-style="image"] .chess-board {
+  background-image: var(--cell-bg-image);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
-html[data-cell-style="wood"] .chess-cell.light,
-html[data-cell-style="wood"] .chess-cell.dark {
+html[data-cell-style="image"] .chess-cell.light,
+html[data-cell-style="image"] .chess-cell.dark {
   background: transparent;
 }
-html[data-cell-style="wood"] .chess-cell {
-  box-shadow: inset 0 0 0 1px rgba(60,30,10,0.16);
+html[data-cell-style="image"] .chess-cell {
+  box-shadow: inset 0 0 0 1.5px var(--cell-line-color, rgba(74,43,19,0.55));
 }
 .chess-cell.legal::after {
   content: '';

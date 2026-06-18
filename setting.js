@@ -1,6 +1,20 @@
 const STORAGE_SETTINGS_KEY = "rukthai_settings";
 let settingsModal = null;
 
+// ─────────────────────────────────────────────────────────────
+//  รายการ "พื้นช่องกระดาน" — เพิ่มกระดานใหม่ทำ 2 ขั้น:
+//    1) วางรูปไว้ในโฟลเดอร์ Boards/  (เช่น Boards/cell-marble.jpg)
+//    2) เพิ่ม 1 บรรทัดในลิสต์นี้  { id, name, file, line }
+//       • file = path รูป (null = ใช้สีพื้น)
+//       • line = สีเส้นขอบช่อง (ไม่ใส่ก็ได้ ใช้ค่าเริ่มต้นน้ำตาลเข้ม)
+//  dropdown ในหน้าตั้งค่าจะขึ้นตามลิสต์นี้อัตโนมัติ
+// ─────────────────────────────────────────────────────────────
+export const BOARD_CELL_STYLES = [
+  { id: "standard", name: "Standard (สีพื้น)", file: null },
+  { id: "wood",     name: "ลายไม้ (Wood)",     file: "Boards/cell-wood.jpg", line: "rgba(74,43,19,0.55)" },
+  { id: "stone",     name: "หินอ่อน",     file: "Boards/Board8.png", line: "rgba(230, 230, 230, 0.55)" },
+];
+
 // 1. ปรับค่าเริ่มต้น (Default) โดยตัดส่วนการแจ้งเตือนออก
 const DEFAULT_SETTINGS = {
   backgroundMode: "dark",
@@ -8,7 +22,7 @@ const DEFAULT_SETTINGS = {
   customBackground: "",   // URL ภาพพื้นหลังที่ผู้ใช้ตั้งเอง (ว่าง = ไม่ใช้)
   moveMethod: "both",
   showMoves: "show",
-  boardCellStyle: "standard",   // พื้นช่องกระดาน: standard (สีพื้น) | wood (ลายไม้)
+  boardCellStyle: "standard",   // พื้นช่องกระดาน (อ้างอิง id ใน BOARD_CELL_STYLES)
   soundEnabled: true,     // เสียงเอฟเฟกต์ (เดินหมาก/กิน/รุก ฯลฯ)
   premoveEnabled: true    // เดินล่วงหน้า (premove)
 };
@@ -33,8 +47,17 @@ function applyThemeAndBackground() {
   // Apply background mode
   html.setAttribute("data-background-mode", settings.backgroundMode);
 
-  // พื้นช่องกระดาน (standard / wood / …)
-  html.setAttribute("data-cell-style", settings.boardCellStyle || "standard");
+  // พื้นช่องกระดาน — ใช้รูปจาก BOARD_CELL_STYLES (ผ่าน CSS variable รองรับรูปใดก็ได้)
+  const cellStyle = BOARD_CELL_STYLES.find(s => s.id === settings.boardCellStyle) || BOARD_CELL_STYLES[0];
+  if (cellStyle.file) {
+    html.setAttribute("data-cell-style", "image");
+    html.style.setProperty("--cell-bg-image", `url("${cellStyle.file}")`);
+    html.style.setProperty("--cell-line-color", cellStyle.line || "rgba(74,43,19,0.55)");
+  } else {
+    html.setAttribute("data-cell-style", "standard");
+    html.style.removeProperty("--cell-bg-image");
+    html.style.removeProperty("--cell-line-color");
+  }
 
   // ภาพพื้นหลังที่ผู้ใช้ตั้งเอง (ใช้ร่วมกับ theme-refresh.css)
   const bg = (settings.customBackground || "").trim();
@@ -193,8 +216,7 @@ export function createSettingsModal() {
           <div class="settings-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 12px;">
             <span class="settings-row-label" style="font-weight: 600;">พื้นช่องกระดาน</span>
             <select id="set-cell-style" class="auth-input" style="width: 100%;">
-              <option value="standard">Standard (สีพื้น)</option>
-              <option value="wood">ลายไม้ (Wood)</option>
+              ${BOARD_CELL_STYLES.map(s => `<option value="${s.id}">${s.name}</option>`).join("")}
             </select>
           </div>
 
