@@ -9,9 +9,9 @@
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
 <link rel="stylesheet" href="../game.css">
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
-<link rel="stylesheet" href="../theme-refresh.css">
 <script type="module" src="../auth.js"></script>
 <script src="../game.js"></script>
+<script src="../sound.js"></script>
 <style>
 .play-body { overflow-x: hidden; overflow-y: auto; background: var(--bg); }
 
@@ -305,6 +305,7 @@ html[data-background-mode="light"] .captured-card {
 //   STATE
 // ════════════════════════════════════════
 let boardState, turn, selected, legalForSelected, lastMove, flipped, gameOver;
+let premove = null;   // เดินล่วงหน้าตอนบอทกำลังคิด
 let capturedByW, capturedByB;
 let botThinkingTimer = null;
 
@@ -490,6 +491,14 @@ function syncSharedStateAndRender() {
   // เรียกใช้ฟังก์ชันหลักจาก game.js
   window.renderBoard(boardState, selected, legalForSelected, lastMove, turn, flipped, handleCellClick, attemptMove);
   window.renderCaptures(capturedByW, capturedByB, 'w');
+  applyPremoveHighlight();
+}
+function applyPremoveHighlight() {
+  if (!premove) return;
+  [premove.from, premove.to].forEach(sq => {
+    const cell = document.querySelector(`.chess-cell[data-row="${sq.row}"][data-col="${sq.col}"]`);
+    if (cell) cell.classList.add('premove');
+  });
 }
 
 function renderStatusText() {
@@ -509,7 +518,8 @@ function renderStatusText() {
 //   GAME LOGIC
 // ════════════════════════════════════════
 function handleCellClick(row, col) {
-  if (gameOver || turn !== 'w') return;
+  if (gameOver) return;
+  if (turn !== 'w') { premoveClick(row, col); return; }
   const piece = boardState[row][col];
 
   if (selected) {
@@ -526,8 +536,53 @@ function handleCellClick(row, col) {
   syncSharedStateAndRender();
 }
 
+// ── พรีมูฟ: คลิก/ลากตอนบอทกำลังคิด ──
+function premoveClick(row, col) {
+  const piece = boardState[row][col];
+  if (selected && legalForSelected.some(m => m.to.row === row && m.to.col === col)) {
+    premove = { from: { ...selected }, to: { row, col } };
+    selected = null; legalForSelected = [];
+    syncSharedStateAndRender();
+    if (window.Sound) window.Sound.play('premove');
+    return;
+  }
+  if (piece && window.colorOf(piece) === 'w') {
+    selected = { row, col };
+    legalForSelected = window.getRawMoves(boardState, row, col);
+    premove = null;
+    syncSharedStateAndRender();
+    return;
+  }
+  clearPremove();
+}
+function clearPremove() {
+  if (!premove && !selected) return;
+  premove = null; selected = null; legalForSelected = [];
+  syncSharedStateAndRender();
+}
+function tryApplyPremove() {
+  if (!premove || gameOver || turn !== 'w') { premove = null; return; }
+  const pm = premove; premove = null;
+  const moves = window.getLegalMoves(boardState, pm.from.row, pm.from.col);
+  const move = moves.find(m => m.to.row === pm.to.row && m.to.col === pm.to.col);
+  if (move) executeMove(move);
+  else syncSharedStateAndRender();
+}
+
 function attemptMove(from, to) {
-  if (gameOver || turn !== 'w') return;
+  if (gameOver) return;
+  if (turn !== 'w') {
+    const p = boardState[from.row]?.[from.col];
+    if (!p || window.colorOf(p) !== 'w') { clearPremove(); return; }
+    const raw = window.getRawMoves(boardState, from.row, from.col);
+    if (raw.some(m => m.to.row === to.row && m.to.col === to.col)) {
+      premove = { from: { ...from }, to: { ...to } };
+      selected = null; legalForSelected = [];
+      syncSharedStateAndRender();
+      if (window.Sound) window.Sound.play('premove');
+    }
+    return;
+  }
   const piece = boardState[from.row]?.[from.col];
   if (!piece || window.colorOf(piece) !== 'w') return;
   const moves = window.getLegalMoves(boardState, from.row, from.col);
@@ -550,12 +605,16 @@ function executeMove(move) {
   lastMove = move;
   selected = null; legalForSelected = [];
   turn = window.opposite(turn);
+  // 🔊 เสียงตาเดิน (รุก/โปรโมท/กิน/เดิน)
+  if (window.Sound) window.Sound.move({ captured, promoted: window.promoteIfNeeded(piece, move.to.row) !== piece, check: window.isInCheck(boardState, turn) });
   syncSharedStateAndRender();
 
   checkGameOver();
 
   if (!gameOver && turn === 'b') {
     scheduleBot();
+  } else if (!gameOver && turn === 'w') {
+    tryApplyPremove();   // ⚡ บอทเดินจบ → เล่นพรีมูฟที่สั่งไว้
   }
 }
 
@@ -587,6 +646,8 @@ function checkGameOver() {
 function endGame(reason) {
   stopClock();
   gameOver = true;
+  premove = null;
+  if (window.Sound) window.Sound.play('end');
   if (botThinkingTimer) { clearTimeout(botThinkingTimer); botThinkingTimer = null; }
 
   const overlay = document.getElementById('gameover-overlay');
@@ -614,7 +675,7 @@ function endGame(reason) {
 // ════════════════════════════════════════
 function initGame() {
   boardState = window.cloneBoard(window.INITIAL_BOARD);
-  turn = 'w'; selected = null; legalForSelected = []; lastMove = null;
+  turn = 'w'; selected = null; legalForSelected = []; lastMove = null; premove = null;
   flipped = false; gameOver = false;
   capturedByW = []; capturedByB = [];
 
@@ -629,6 +690,7 @@ function initGame() {
   window.setupCoords(flipped);
   syncSharedStateAndRender();
   startClock();
+  if (window.Sound) window.Sound.play('start');
 }
 
 function loadPlayer() {
@@ -675,10 +737,15 @@ window.addEventListener('resize', () => {
   window.setupCoords(flipped);
   syncSharedStateAndRender();
 });
+// คลิกขวาบนกระดาน = ยกเลิกพรีมูฟ
+const cbBot = document.getElementById('chess-board');
+if (cbBot) cbBot.addEventListener('contextmenu', e => { e.preventDefault(); if (premove || (turn !== 'w' && selected)) clearPremove(); });
 
 // Start!
 loadPlayer();
 initGame();
 </script>
+<button id="sound-toggle" title="เปิด/ปิดเสียง" style="position:fixed;bottom:18px;right:18px;z-index:9000;width:44px;height:44px;border-radius:50%;border:1px solid rgba(128,128,128,0.3);background:rgba(30,29,27,0.85);color:#e3c479;font-size:1.2rem;cursor:pointer;backdrop-filter:blur(6px);">🔊</button>
+<script>(function(){var b=document.getElementById('sound-toggle');function r(){b.textContent=(window.Sound&&window.Sound.isEnabled())?'🔊':'🔇';}b.addEventListener('click',function(){if(window.Sound){window.Sound.toggle();r();}});window.addEventListener('rukthai-sound-changed',r);r();})();</script>
 </body>
 </html>

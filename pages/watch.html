@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
-<link rel="stylesheet" href="../theme-refresh.css">
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <script type="module" src="../auth.js"></script>
 <style>
@@ -593,6 +592,11 @@ function specUpdateNav() {
 }
 
 function openSpectate(gameId) {
+  // เปิดดูเกมด้วยหน้า review.html (หน้าตาแบบ play-online) — รองรับทั้งสด/ย้อนหลัง
+  window.location.href = `review.html?game=${encodeURIComponent(gameId)}&from=watch`;
+  return;
+}
+function openSpectate_legacy(gameId) {
   specGameId = gameId;
   specCurrentGame = null;
   specMoveLog = [{ board: INITIAL_FB, moveCount: 0 }];

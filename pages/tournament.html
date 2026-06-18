@@ -163,6 +163,13 @@
   .sp-cell { position: relative; aspect-ratio: 1; min-width: 0; background: #c56c30; display: flex; align-items: center; justify-content: center; }
   .sp-cell img { width: 82%; height: 82%; object-fit: contain; }
   .sp-cell.last { background: rgba(207,126,21,0.79); }
+  .sp-controls { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 0 4px; }
+  .sp-controls button { height: 34px; min-width: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); cursor: pointer; font-weight: 700; font-size: 0.95rem; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .sp-controls button:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+  .sp-controls button:disabled { opacity: 0.35; cursor: default; }
+  .sp-controls #sp-ply { min-width: 90px; text-align: center; font-size: 0.85rem; color: var(--muted); }
+  .sp-live-btn { color: #e0796f !important; font-size: 0.78rem !important; }
+  .sp-live-btn.on { background: var(--gold) !important; color: #1a1305 !important; border-color: var(--gold) !important; }
 
   /* ── create modal ── */
   .tn-modal-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.7); display: none; align-items: flex-start; justify-content: center; padding: 24px; overflow-y: auto; }
@@ -300,25 +307,6 @@
 </div>
 
 <script src="../game.js"></script>
-<!-- spectator ในหน้าทัวร์ -->
-<div class="sp-overlay" id="sp-overlay">
-  <div class="sp-modal">
-    <div class="sp-head"><span class="ti">👁 ดูการแข่งขัน</span><button class="sp-close" id="sp-close">✕</button></div>
-    <div class="sp-player" id="sp-top">
-      <img id="sp-top-av" src=""><span class="nm" id="sp-top-nm"></span><span class="clr">ดำ</span><span class="clock" id="sp-top-clock">--:--</span>
-    </div>
-    <div class="sp-lb-layout">
-      <div class="sp-cl"><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
-      <div class="sp-board" id="sp-board"></div>
-      <div class="sp-cb"><span>ก</span><span>ข</span><span>ค</span><span>ง</span><span>จ</span><span>ฉ</span><span>ช</span><span>ซ</span></div>
-    </div>
-    <div class="sp-player" id="sp-bot">
-      <img id="sp-bot-av" src=""><span class="nm" id="sp-bot-nm"></span><span class="clr">ขาว</span><span class="clock" id="sp-bot-clock">--:--</span>
-    </div>
-    <div class="sp-status" id="sp-status"></div>
-    <div class="sp-viewers" id="sp-viewers"></div>
-  </div>
-</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -529,7 +517,6 @@ function renderDetail(id, t) {
   if (isAdmin) document.querySelectorAll('[data-result]').forEach(btn => btn.addEventListener('click', () => {
     reportResult(id, +btn.dataset.round, btn.dataset.pair, btn.dataset.result);
   }));
-  document.querySelectorAll('.sp-watch').forEach(btn => btn.addEventListener('click', () => openSpec(btn.dataset.room)));
 }
 
 function renderInfoTab(id, t, s, cnt) {
@@ -1031,7 +1018,7 @@ function renderPairingsTab(t) {
         <button data-round="${rd}" data-pair="${k}" data-result="0-1">${esc(pg.blackName)} ชนะ</button>
       </div>` : '';
       let actionRow = '';
-      const watchBtn = pg.room ? `<button class="sp-watch" data-room="${esc(pg.room)}">👁 ดูเกม</button>` : '';
+      const watchBtn = pg.room ? `<button class="sp-watch" onclick="location.href='review.html?game=${esc(pg.room)}&from=tournament&t=${esc(id)}'">👁 ดูเกม</button>` : '';
       if (rd === t.currentRound && !pg.result && pg.room && mySid && (mySid === pg.white || mySid === pg.black)) {
         const myCol = mySid === pg.white ? 'w' : 'b';
         actionRow = `<div class="res-btns"><button class="join-btn" onclick="location.href='play-online.html?room=${esc(pg.room)}&color=${myCol}'">▶ เข้าห้องแข่งขันของคุณ</button>${watchBtn}</div>`;
@@ -1111,91 +1098,6 @@ function renderStandingsTab(t) {
     <div style="color:var(--muted);font-size:0.78rem;margin-top:12px;">Tie-break: Buchholz (คะแนนรวมคู่แข่ง) · SB (Sonneborn-Berger) · เจอกันตรง</div>`;
 }
 
-// ═══════════ Spectator ในหน้าทัวร์ ═══════════
-let specUnsub = null, specViewersUnsub = null, specClockTimer = null, specGame = null, specRoom = null, specViewerRef = null;
-function fbToBoard(fb) { return (fb || []).map(r => String(r).split(',').map(c => c || null)); }
-function liveClocks(g) {
-  const lm = g.lastMove || {};
-  let tw = lm.timeW != null ? lm.timeW : (g.timeW != null ? g.timeW : (g.minutes || 10) * 60);
-  let tb = lm.timeB != null ? lm.timeB : (g.timeB != null ? g.timeB : (g.minutes || 10) * 60);
-  const ended = g.status === 'ended' || (lm && lm.endReason);
-  if (!ended) {
-    const turn = lm.turn || g.turn || 'w';
-    const since = (Date.now() - (lm.ts || g.startedAt || Date.now())) / 1000;
-    if (turn === 'w') tw = Math.max(0, tw - since); else tb = Math.max(0, tb - since);
-  }
-  return { tw, tb, ended };
-}
-function fmtClock(s) { s = Math.max(0, Math.floor(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
-
-function openSpec(room) {
-  specRoom = room;
-  document.getElementById('sp-overlay').classList.add('open');
-  document.getElementById('sp-status').textContent = 'กำลังโหลด…';
-  if (specUnsub) specUnsub();
-  specUnsub = onValue(ref(db, `games/${room}`), s => {
-    const g = s.val();
-    if (!g) { document.getElementById('sp-status').innerHTML = '<span class="ended">เกมนี้ยังไม่เริ่ม หรือถูกปิดแล้ว</span>'; return; }
-    specGame = g; renderSpec(g);
-  });
-  if (specClockTimer) clearInterval(specClockTimer);
-  specClockTimer = setInterval(tickSpecClocks, 1000);
-  const vk = mySid || ('guest_' + Math.random().toString(36).slice(2, 9));
-  specViewerRef = ref(db, `spectators/${room}/${vk}`);
-  set(specViewerRef, true).catch(() => {});
-  try { onDisconnect(specViewerRef).remove(); } catch (e) {}
-  if (specViewersUnsub) specViewersUnsub();
-  specViewersUnsub = onValue(ref(db, `spectators/${room}`), s => {
-    const n = s.val() ? Object.keys(s.val()).length : 0;
-    document.getElementById('sp-viewers').textContent = n > 0 ? `👁 ${n} คนกำลังดู` : '';
-  });
-}
-function closeSpec() {
-  document.getElementById('sp-overlay').classList.remove('open');
-  if (specUnsub) { specUnsub(); specUnsub = null; }
-  if (specViewersUnsub) { specViewersUnsub(); specViewersUnsub = null; }
-  if (specClockTimer) { clearInterval(specClockTimer); specClockTimer = null; }
-  if (specViewerRef) { remove(specViewerRef).catch(() => {}); specViewerRef = null; }
-  specGame = null; specRoom = null;
-}
-function renderSpec(g) {
-  const w = g.w || {}, b = g.b || {};
-  const def = '../Images/default-avatar.png';
-  document.getElementById('sp-top-av').src = b.avatar || def;
-  document.getElementById('sp-top-av').onerror = function () { this.src = def; };
-  document.getElementById('sp-top-nm').textContent = b.name || 'ดำ';
-  document.getElementById('sp-bot-av').src = w.avatar || def;
-  document.getElementById('sp-bot-av').onerror = function () { this.src = def; };
-  document.getElementById('sp-bot-nm').textContent = w.name || 'ขาว';
-  const fb = (g.lastMove && g.lastMove.board) ? g.lastMove.board : (g.board || INITIAL_FB);
-  const board = fbToBoard(fb);
-  const lm = (g.lastMove && g.lastMove.from) ? { from: g.lastMove.from, to: g.lastMove.to } : null;
-  let html = '';
-  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-    const p = board[r][c];
-    const isLast = lm && ((lm.from && lm.from.row === r && lm.from.col === c) || (lm.to && lm.to.row === r && lm.to.col === c));
-    html += `<div class="sp-cell ${isLast ? 'last' : ''}">${p ? `<img src="../Pieces/${p}.png" alt="">` : ''}</div>`;
-  }
-  document.getElementById('sp-board').innerHTML = html;
-  const { ended } = liveClocks(g);
-  const turn = (g.lastMove && g.lastMove.turn) || g.turn || 'w';
-  const mc = (g.lastMove && g.lastMove.moveCount) || 0;
-  document.getElementById('sp-status').innerHTML = ended
-    ? '<span class="ended">🏁 เกมจบแล้ว</span>'
-    : `ตาที่ ${Math.max(1, Math.ceil(mc / 2))} · ถึงตา${turn === 'w' ? 'ขาว' : 'ดำ'}`;
-  tickSpecClocks();
-}
-function tickSpecClocks() {
-  if (!specGame) return;
-  const { tw, tb, ended } = liveClocks(specGame);
-  const turn = (specGame.lastMove && specGame.lastMove.turn) || specGame.turn || 'w';
-  const topC = document.getElementById('sp-top-clock'), botC = document.getElementById('sp-bot-clock');
-  topC.textContent = fmtClock(tb); botC.textContent = fmtClock(tw);
-  topC.classList.toggle('run', !ended && turn === 'b');
-  botC.classList.toggle('run', !ended && turn === 'w');
-}
-document.getElementById('sp-close').addEventListener('click', closeSpec);
-document.getElementById('sp-overlay').addEventListener('click', e => { if (e.target.id === 'sp-overlay') closeSpec(); });
 
 // ═══════════ Routing ═══════════
 function route() {

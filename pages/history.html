@@ -6,7 +6,6 @@
 <title>RUKTHAI - รีเพลย์หมากรุกไทย</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
-<link rel="stylesheet" href="../theme-refresh.css">
 <script type="module" src="../auth.js"></script>
 <style>
   .history-body { background: var(--bg); color: var(--text); font-family: 'Noto Sans Thai', sans-serif; padding-bottom: 40px; min-height: 100vh; }
@@ -156,7 +155,8 @@ function boardToFB(board) {
 async function initReplayPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const roomId = urlParams.get('room');
-
+  // ใช้หน้า review.html (หน้าตาแบบ play-online) แทนรีเพลย์เดิม
+  if (roomId) { window.location.replace(`review.html?game=${encodeURIComponent(roomId)}&from=history`); return; }
   if (!roomId) {
     const loadingBox = document.getElementById('loading-box');
     if (loadingBox) loadingBox.textContent = "❌ ไม่พบรหัสห้องเกมที่ระบุสำหรับเปิดรีเพลย์";

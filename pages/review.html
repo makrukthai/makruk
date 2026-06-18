@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUKTHAI - ดูเกม</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../styles-friend-enhanced.css">
+<link rel="stylesheet" href="../game.css">
+<link rel="stylesheet" href="../theme-refresh.css">
+<link rel="stylesheet" href="../play-online.css">
+<link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
+<script type="module" src="../auth.js"></script>
+<script src="../game.js"></script>
+<style>
+  .rv-topbar { max-width: 1200px; margin: 0 auto; padding: 14px 16px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .rv-back { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-weight: 600; font-size: 0.88rem; text-decoration: none; }
+  .rv-back:hover { border-color: var(--gold); color: var(--gold); }
+  .rv-title { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
+  .rv-live { color: #e0796f; font-weight: 700; }
+  .rv-result-banner { max-width: 1200px; margin: 12px auto 0; padding: 0 16px; }
+  .rv-result-inner { background: var(--gold-soft); border: 1px solid var(--gold); border-radius: 12px; padding: 10px 16px; color: var(--gold); font-weight: 700; text-align: center; }
+  .rv-loading, .rv-missing { text-align: center; color: var(--muted); padding: 80px 0; }
+  /* แชทอ่านอย่างเดียว */
+  #review-body .chat-input-row { display: none; }
+</style>
+</head>
+<body class="play-body">
+<header class="topbar">
+    <div class="left">
+        <a href="play.html" class="logo"><div class="logo-icon">
+            <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+            <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+        </div></a>
+        <nav class="nav">
+            <a href="play.html">เล่น</a>
+            <a href="tournament.html">ทัวร์นาเมนต์</a>
+            <a href="learn.html">เรียนรู้</a>
+            <a href="watch.html">ดูเกม</a>
+            <a href="community.html">ชุมชน</a>
+            <input class="search" placeholder="ค้นหาผู้เล่น...">
+        </nav>
+    </div>
+    <div class="right">
+        <button class="register">ลงทะเบียน</button>
+        <button class="login">เข้าสู่ระบบ</button>
+    </div>
+</header>
+
+<main class="main">
+  <div class="rv-topbar" id="rv-topbar"></div>
+  <div class="rv-result-banner" id="rv-result-banner" style="display:none;"><div class="rv-result-inner" id="rv-result-inner"></div></div>
+
+  <div id="review-loading" class="rv-loading">กำลังโหลดเกม…</div>
+
+  <section class="hero" id="review-body" style="display:none;">
+    <div class="online-main">
+      <div class="online-layout">
+        <div class="profile-layout">
+          <div class="player-card" id="opp-card">
+            <div class="player-avatar" id="opp-avatar">👤</div>
+            <div class="player-info">
+              <div class="player-name"><span id="opp-name">ดำ</span><span class="player-elo" id="opp-elo"></span></div>
+              <div class="player-rank" id="opp-rank">ดำ</div>
+            </div>
+            <div class="captures-row" id="cap-opp"></div>
+            <div class="player-clock-wrap">
+              <div class="clock-dot" id="opp-dot"></div>
+              <div class="player-clock" id="opp-clock">--:--</div>
+            </div>
+          </div>
+
+          <div class="board-column">
+            <div class="board-section">
+              <div class="board-outer">
+                <div class="coords-col" id="coords-left"></div>
+                <div>
+                  <div class="chess-board" id="chess-board"></div>
+                  <div class="coords-row" id="coords-bottom"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="player-card" id="my-card">
+            <div class="player-avatar" id="my-avatar">👤</div>
+            <div class="player-info">
+              <div class="player-name"><span id="my-name">ขาว</span><span class="player-elo" id="my-elo"></span></div>
+              <div class="player-rank" id="my-rank">ขาว</div>
+            </div>
+            <div class="captures-row" id="cap-me"></div>
+            <div class="player-clock-wrap">
+              <div class="clock-dot" id="my-dot"></div>
+              <div class="player-clock" id="my-clock">--:--</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <div class="move-badge" id="move-badge">ดูเกม</div>
+          <div class="status-bar" id="game-status">—</div>
+
+          <div class="chat-panel">
+            <div class="cp-tabs">
+              <button type="button" class="cp-tab active" id="tab-chat">แชท</button>
+              <button type="button" class="cp-tab" id="tab-moves">ตาเดิน</button>
+            </div>
+            <div class="cp-body">
+              <div class="cp-view" id="chat-view">
+                <div class="chat-messages" id="chat-messages"><div class="chat-msg system">— แชทระหว่างเกม —</div></div>
+                <div class="chat-input-row"><input class="chat-input" disabled><button class="chat-send" disabled>➤</button></div>
+              </div>
+              <div class="cp-view hidden" id="moves-view">
+                <div class="move-log-head"><span>#</span><span>ขาว</span><span>ดำ</span></div>
+                <div class="move-log" id="move-log"><div class="move-log-empty">ยังไม่มีตาเดิน</div></div>
+                <div class="move-nav">
+                  <button type="button" id="mv-first" title="ตาแรก">⏮</button>
+                  <button type="button" id="mv-prev"  title="ย้อนกลับ">◀</button>
+                  <button type="button" id="mv-next"  title="เดินหน้า">▶</button>
+                  <button type="button" id="mv-last"  title="ตาล่าสุด">⏭</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJjQsqiJsbJW0pwlI0fqnklRhKFPSJh_w",
+  authDomain: "rukthai-b4971.firebaseapp.com",
+  databaseURL: "https://rukthai-b4971-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rukthai-b4971",
+  storageBucket: "rukthai-b4971.firebasestorage.app",
+  messagingSenderId: "140554271105",
+  appId: "1:140554271105:web:00530dbfb7b8c4aed1d080"
+};
+const db = getDatabase(initializeApp(firebaseConfig));
+const E = window;
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function fbToBoard(fb) { return (fb || []).map(r => String(r).split(',').map(c => c || null)); }
+function fmtClock(s) { s = Math.max(0, Math.floor(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
+// ── คำนวณขนาดช่องกระดาน (เหมือน play-online) เพื่อให้ grid 8x8 ทำงาน ──
+function rvCalcCell() {
+  const overallMargin = 64 + 0 + 200;
+  const ah = window.innerHeight - overallMargin;
+  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 40;
+  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 80));
+}
+function rvApplyCell() {
+  document.documentElement.style.setProperty('--cell', `${rvCalcCell()}px`);
+}
+rvApplyCell();
+window.addEventListener('resize', () => { rvApplyCell(); if (E.setupCoords) E.setupCoords(false); });
+
+const params = new URLSearchParams(location.search);
+const gameId = params.get('game');
+const from = params.get('from') || '';
+const tid = params.get('t') || '';
+
+// ── ปุ่มกลับ ──
+function backButtons() {
+  const bar = document.getElementById('rv-topbar');
+  let html = '';
+  if (from === 'tournament') html += `<a class="rv-back" href="tournament.html${tid ? '#t=' + esc(tid) : ''}">← กลับไป Lobby ทัวร์</a><a class="rv-back" href="play.html">หน้าหลัก</a>`;
+  else if (from === 'history') html += `<a class="rv-back" href="profile.html">← กลับประวัติการเล่น</a>`;
+  else if (from === 'watch') html += `<a class="rv-back" href="watch.html">← กลับไปดูเกม</a>`;
+  else html += `<a class="rv-back" href="play.html">← หน้าหลัก</a>`;
+  bar.innerHTML = html + `<span class="rv-title" id="rv-title"></span>`;
+}
+backButtons();
+
+let game = null, srcPath = null, moveLog = [], ptr = 0, follow = true, liveMode = false, clockTimer = null, chatUnsub = null;
+
+// ── สร้างประวัติกระดานทุกตา (replay) ──
+function buildMoveLog(g) {
+  let rb = E.cloneBoard(E.INITIAL_BOARD);
+  const log = [{ board: rb.map(r => r.slice()), from: null, to: null, mc: 0 }];
+  const moves = g.moves || {};
+  Object.keys(moves).map(Number).filter(n => n >= 1).sort((a, b) => a - b).forEach(mc => {
+    const md = moves[mc]; if (!md || !md.from || !md.to) return;
+    if (md.board) rb = fbToBoard(md.board);
+    else { const pc = rb[md.from.row][md.from.col]; rb[md.to.row][md.to.col] = md.promoted || pc; rb[md.from.row][md.from.col] = null; }
+    log.push({ board: rb.map(r => r.slice()), from: md.from, to: md.to, mc, captured: md.captured || '' });
+  });
+  return log;
+}
+
+// ── เรนเดอร์กระดาน (DOM ตรงกับ game.js → game.css ใช้ได้เป๊ะ) ──
+function renderBoardAt(p) {
+  const entry = moveLog[p] || moveLog[moveLog.length - 1];
+  if (!entry) return;
+  const el = document.getElementById('chess-board');
+  el.replaceChildren();
+  const board = entry.board, lm = entry.from ? { from: entry.from, to: entry.to } : null;
+  for (let row = 0; row < 8; row++) for (let col = 0; col < 8; col++) {
+    const cell = document.createElement('div');
+    cell.className = `chess-cell ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+    if (lm && ((lm.from.row === row && lm.from.col === col) || (lm.to.row === row && lm.to.col === col))) cell.classList.add('last-move');
+    const piece = board[row][col];
+    if (piece) { const img = document.createElement('img'); img.className = 'piece-img'; img.src = `../Pieces/${piece}.png`; img.alt = piece; img.draggable = false; cell.appendChild(img); }
+    el.appendChild(cell);
+  }
+  if (E.setupCoords) E.setupCoords(false);
+  // badge
+  const last = moveLog.length - 1;
+  document.getElementById('move-badge').textContent = p === 0 ? 'เริ่มเกม' : `ตาที่ ${p} / ${last}`;
+  document.getElementById('mv-first').disabled = p === 0;
+  document.getElementById('mv-prev').disabled = p === 0;
+  document.getElementById('mv-next').disabled = p >= last;
+  document.getElementById('mv-last').disabled = p >= last;
+  renderMoveList();
+}
+
+function mlNote(entry) {
+  if (!entry || !entry.from) return '–';
+  return `${E.getPosName(entry.from.row, entry.from.col)}-${E.getPosName(entry.to.row, entry.to.col)}`;
+}
+function renderMoveList() {
+  const body = document.getElementById('move-log');
+  if (moveLog.length <= 1) { body.innerHTML = '<div class="move-log-empty">ยังไม่มีตาเดิน</div>'; return; }
+  const rows = [];
+  for (let i = 1; i < moveLog.length; i += 2) {
+    const w = moveLog[i], b = moveLog[i + 1];
+    const wA = ptr === i ? ' active' : '', bA = (b && ptr === i + 1) ? ' active' : '';
+    rows.push(`<div class="mv-row"><span class="mv-no">${Math.ceil(i / 2)}.</span>
+      <span class="mv-ply${wA}" data-idx="${i}">${esc(mlNote(w))}</span>
+      ${b ? `<span class="mv-ply${bA}" data-idx="${i + 1}">${esc(mlNote(b))}</span>` : '<span class="mv-ply empty">–</span>'}</div>`);
+  }
+  body.innerHTML = rows.join('');
+  body.querySelectorAll('.mv-ply[data-idx]').forEach(el => el.addEventListener('click', () => goto(+el.dataset.idx, false)));
+}
+
+function goto(p, f) {
+  const last = moveLog.length - 1;
+  ptr = Math.max(0, Math.min(last, p));
+  follow = f != null ? f : (ptr === last);
+  renderBoardAt(ptr);
+}
+
+// ── ผู้เล่น + นาฬิกา ──
+function liveClocks(g) {
+  const lm = g.lastMove || {};
+  let tw = lm.timeW != null ? lm.timeW : (g.timeW != null ? g.timeW : (g.minutes || 10) * 60);
+  let tb = lm.timeB != null ? lm.timeB : (g.timeB != null ? g.timeB : (g.minutes || 10) * 60);
+  const ended = !liveMode || g.status === 'ended' || (lm && lm.endReason);
+  if (!ended) {
+    const turn = lm.turn || g.turn || 'w';
+    const since = (Date.now() - (lm.ts || g.startedAt || Date.now())) / 1000;
+    if (turn === 'w') tw = Math.max(0, tw - since); else tb = Math.max(0, tb - since);
+  }
+  return { tw, tb, ended };
+}
+function tickClocks() {
+  if (!game) return;
+  const { tw, tb, ended } = liveClocks(game);
+  document.getElementById('my-clock').textContent = fmtClock(tw);
+  document.getElementById('opp-clock').textContent = fmtClock(tb);
+  const turn = (game.lastMove && game.lastMove.turn) || game.turn || 'w';
+  document.getElementById('my-dot').classList.toggle('active', !ended && turn === 'w');
+  document.getElementById('opp-dot').classList.toggle('active', !ended && turn === 'b');
+}
+
+const REASON_TH = { checkmate: 'รุกจน', timeout: 'หมดเวลา', resign: 'ยอมแพ้', 'draw-agree': 'ตกลงเสมอ', 'draw-sakdimak': 'เสมอ (นับศักดิ์)', stalemate: 'อับ (เสมอ)', 'opponent-noshow': 'คู่ต่อสู้ไม่มา', double: 'ไม่มาทั้งคู่' };
+
+function render(g) {
+  game = g;
+  document.getElementById('review-loading').style.display = 'none';
+  document.getElementById('review-body').style.display = '';
+  const w = g.w || {}, b = g.b || {}, def = '👤';
+  const setAv = (id, p) => { const el = document.getElementById(id); if (p.avatar) el.innerHTML = `<img src="${esc(p.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentNode.textContent='👤'">`; else el.textContent = def; };
+  setAv('opp-avatar', b); setAv('my-avatar', w);
+  document.getElementById('opp-name').textContent = b.name || 'ดำ';
+  document.getElementById('my-name').textContent = w.name || 'ขาว';
+
+  // move log — คงตำแหน่งถ้ากำลังย้อนดู
+  const wasFollow = follow;
+  moveLog = buildMoveLog(g);
+  const last = moveLog.length - 1;
+  if (wasFollow || ptr > last) ptr = last;
+  renderBoardAt(ptr);
+
+  // สถานะ/ผล
+  const ended = !liveMode || g.status === 'ended' || (g.lastMove && g.lastMove.endReason) || g.finalReason;
+  const reason = g.finalReason || (g.lastMove && g.lastMove.endReason);
+  const winner = g.winnerColor !== undefined ? g.winnerColor : (g.lastMove && g.lastMove.winner);
+  if (ended && reason) {
+    const wName = w.name || 'ขาว', bName = b.name || 'ดำ';
+    let txt = REASON_TH[reason] || 'จบเกม';
+    if (winner === 'w') txt = `${wName} ชนะ · ${txt}`;
+    else if (winner === 'b') txt = `${bName} ชนะ · ${txt}`;
+    else txt = `เสมอ · ${txt}`;
+    document.getElementById('rv-result-banner').style.display = 'block';
+    document.getElementById('rv-result-inner').textContent = '🏁 ' + txt;
+    document.getElementById('game-status').textContent = txt;
+  } else {
+    document.getElementById('game-status').textContent = liveMode ? 'กำลังแข่งขัน (สด)' : 'ดูย้อนหลัง';
+    document.getElementById('rv-title').innerHTML = liveMode ? '<span class="rv-live">● LIVE</span>' : '';
+  }
+  tickClocks();
+}
+
+// ── แชท (อ่านอย่างเดียว) ──
+function subscribeChat(path) {
+  if (chatUnsub) chatUnsub();
+  chatUnsub = onValue(ref(db, `${path}/chat`), snap => {
+    const box = document.getElementById('chat-messages');
+    const data = snap.val();
+    if (!data) { box.innerHTML = '<div class="chat-msg system">— ไม่มีข้อความ —</div>'; return; }
+    const msgs = Object.values(data).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    box.innerHTML = msgs.map(m => `<div class="chat-msg"><span class="chat-sender">${esc(m.name || 'ผู้เล่น')}:</span> <span class="chat-text">${esc(m.text)}</span></div>`).join('');
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
+// ── โหลดเกม: ลอง games/ ก่อน (สด/ห้องทัวร์) ถ้าไม่มีค่อย game_history/ ──
+function start() {
+  if (!gameId) { document.getElementById('review-loading').outerHTML = '<div class="rv-missing">ไม่พบรหัสเกม</div>'; return; }
+  // ลองอ่าน games/{id} ก่อน
+  get(ref(db, `games/${gameId}`)).then(snap => {
+    if (snap.exists()) {
+      srcPath = `games/${gameId}`;
+      const g0 = snap.val();
+      liveMode = !(g0.status === 'ended' || (g0.lastMove && g0.lastMove.endReason));
+      onValue(ref(db, srcPath), s => { if (s.exists()) render(s.val()); });
+      subscribeChat(srcPath);
+    } else {
+      srcPath = `game_history/${gameId}`;
+      liveMode = false;
+      onValue(ref(db, srcPath), s => {
+        if (s.exists()) render(s.val());
+        else document.getElementById('review-loading').outerHTML = '<div class="rv-missing">ไม่พบเกมนี้ (อาจถูกลบ)</div>';
+      });
+      subscribeChat(srcPath);
+    }
+    if (clockTimer) clearInterval(clockTimer);
+    clockTimer = setInterval(tickClocks, 1000);
+  }).catch(() => { document.getElementById('review-loading').outerHTML = '<div class="rv-missing">โหลดเกมไม่ได้</div>'; });
+}
+
+// ── controls ──
+document.getElementById('mv-first').addEventListener('click', () => goto(0, false));
+document.getElementById('mv-prev').addEventListener('click', () => goto(ptr - 1, false));
+document.getElementById('mv-next').addEventListener('click', () => goto(ptr + 1));
+document.getElementById('mv-last').addEventListener('click', () => goto(moveLog.length - 1, true));
+document.getElementById('tab-chat').addEventListener('click', () => {
+  document.getElementById('tab-chat').classList.add('active'); document.getElementById('tab-moves').classList.remove('active');
+  document.getElementById('chat-view').classList.remove('hidden'); document.getElementById('moves-view').classList.add('hidden');
+});
+document.getElementById('tab-moves').addEventListener('click', () => {
+  document.getElementById('tab-moves').classList.add('active'); document.getElementById('tab-chat').classList.remove('active');
+  document.getElementById('moves-view').classList.remove('hidden'); document.getElementById('chat-view').classList.add('hidden');
+});
+
+start();
+</script>
+</body>
+</html>

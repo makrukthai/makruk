@@ -1214,7 +1214,7 @@ async function loadGameHistory(ownerSafeId, ownerName, isSelf) {
 
     tableBody.querySelectorAll('.btn-replay-link').forEach(btn => {
       btn.onclick = () => {
-        window.location.href = `history.html?room=${btn.dataset.gameid}`;
+        window.location.href = `review.html?game=${btn.dataset.gameid}&from=history`;
       };
     });
 
