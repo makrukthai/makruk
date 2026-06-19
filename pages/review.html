@@ -14,16 +14,13 @@
 <script type="module" src="../auth.js"></script>
 <script src="../game.js"></script>
 <style>
-  .rv-topbar { max-width: 1200px; margin: 0 auto; padding: 14px 16px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .rv-back { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-weight: 600; font-size: 0.88rem; text-decoration: none; }
+  .rv-topbar { position: absolute; top: 10px; left: 12px; z-index: 6; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; max-width: calc(100% - 24px); }
+  .rv-back { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: rgba(20,19,17,0.7); backdrop-filter: blur(6px); color: var(--text); cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-weight: 600; font-size: 0.85rem; text-decoration: none; }
   .rv-back:hover { border-color: var(--gold); color: var(--gold); }
-  .rv-title { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
-  .rv-live { color: #e0796f; font-weight: 700; }
-  .rv-result-banner { max-width: 1200px; margin: 12px auto 0; padding: 0 16px; }
-  .rv-result-inner { background: var(--gold-soft); border: 1px solid var(--gold); border-radius: 12px; padding: 10px 16px; color: var(--gold); font-weight: 700; text-align: center; }
   .rv-loading, .rv-missing { text-align: center; color: var(--muted); padding: 80px 0; }
   /* แชทอ่านอย่างเดียว */
   #review-body .chat-input-row { display: none; }
+  #review-body .chess-cell { cursor: default; }
 </style>
 </head>
 <body class="play-body">
@@ -50,7 +47,6 @@
 
 <main class="main">
   <div class="rv-topbar" id="rv-topbar"></div>
-  <div class="rv-result-banner" id="rv-result-banner" style="display:none;"><div class="rv-result-inner" id="rv-result-inner"></div></div>
 
   <div id="review-loading" class="rv-loading">กำลังโหลดเกม…</div>
 
@@ -174,7 +170,7 @@ function backButtons() {
   else if (from === 'history') html += `<a class="rv-back" href="profile.html">← กลับประวัติการเล่น</a>`;
   else if (from === 'watch') html += `<a class="rv-back" href="watch.html">← กลับไปดูเกม</a>`;
   else html += `<a class="rv-back" href="play.html">← หน้าหลัก</a>`;
-  bar.innerHTML = html + `<span class="rv-title" id="rv-title"></span>`;
+  bar.innerHTML = html;
 }
 backButtons();
 
@@ -198,17 +194,11 @@ function buildMoveLog(g) {
 function renderBoardAt(p) {
   const entry = moveLog[p] || moveLog[moveLog.length - 1];
   if (!entry) return;
-  const el = document.getElementById('chess-board');
-  el.replaceChildren();
-  const board = entry.board, lm = entry.from ? { from: entry.from, to: entry.to } : null;
-  for (let row = 0; row < 8; row++) for (let col = 0; col < 8; col++) {
-    const cell = document.createElement('div');
-    cell.className = `chess-cell ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
-    if (lm && ((lm.from.row === row && lm.from.col === col) || (lm.to.row === row && lm.to.col === col))) cell.classList.add('last-move');
-    const piece = board[row][col];
-    if (piece) { const img = document.createElement('img'); img.className = 'piece-img'; img.src = `../Pieces/${piece}.png`; img.alt = piece; img.draggable = false; cell.appendChild(img); }
-    el.appendChild(cell);
-  }
+  const board = entry.board;
+  const lm = entry.from ? { from: entry.from, to: entry.to } : null;
+  const turnAt = (p % 2 === 0) ? 'w' : 'b';   // ฝ่ายที่จะเดินหลังจาก p ตา (สำหรับไฮไลต์รุก)
+  // ใช้ renderBoard ตัวเดียวกับ play-online → cell/หมาก/พื้นไม้ เหมือนกันเป๊ะ (อ่านอย่างเดียว)
+  window.renderBoard(board, null, [], lm, turnAt, false, () => {}, () => {});
   if (E.setupCoords) E.setupCoords(false);
   // badge
   const last = moveLog.length - 1;
@@ -298,12 +288,9 @@ function render(g) {
     if (winner === 'w') txt = `${wName} ชนะ · ${txt}`;
     else if (winner === 'b') txt = `${bName} ชนะ · ${txt}`;
     else txt = `เสมอ · ${txt}`;
-    document.getElementById('rv-result-banner').style.display = 'block';
-    document.getElementById('rv-result-inner').textContent = '🏁 ' + txt;
     document.getElementById('game-status').textContent = txt;
   } else {
     document.getElementById('game-status').textContent = liveMode ? 'กำลังแข่งขัน (สด)' : 'ดูย้อนหลัง';
-    document.getElementById('rv-title').innerHTML = liveMode ? '<span class="rv-live">● LIVE</span>' : '';
   }
   tickClocks();
 }

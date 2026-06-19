@@ -704,7 +704,7 @@ function sanitizeQueueKey(value) {
 function calcCell() {
   const overallMargin = 64 + 0 + 200; 
   const ah = window.innerHeight - overallMargin;
-  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 40;
+  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 64;
   return Math.max(34, Math.min(Math.floor(Math.min(ah,aw)/8), 80));
 }
 

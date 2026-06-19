@@ -11,8 +11,7 @@ let settingsModal = null;
 // ─────────────────────────────────────────────────────────────
 export const BOARD_CELL_STYLES = [
   { id: "standard", name: "Standard (สีพื้น)", file: null },
-  { id: "wood",     name: "ลายไม้ (Wood)",     file: "Boards/cell-wood.jpg", line: "rgba(74,43,19,0.55)" },
-  { id: "stone",     name: "หินอ่อน",     file: "Boards/Board8.png", line: "rgba(230, 230, 230, 0.55)" },
+  { id: "wood",     name: "ลายไม้ (Wood)",     file: "/Boards/cell-wood.jpg", line: "rgba(74,43,19,0.55)" },
 ];
 
 // 1. ปรับค่าเริ่มต้น (Default) โดยตัดส่วนการแจ้งเตือนออก

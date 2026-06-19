@@ -7,7 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
+<link rel="stylesheet" href="../theme-refresh.css">
 <link rel="stylesheet" href="../game.css">
+<link rel="stylesheet" href="../play-online.css">
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
 <script type="module" src="../auth.js"></script>
 <script src="../game.js"></script>
@@ -221,66 +223,86 @@ html[data-background-mode="light"] .captured-card {
 
 <main class="main">
   <section class="hero">
-    <div class="bot-main">
-      <div class="bot-layout">
+    <div class="online-main">
+      <div class="online-layout">
 
-        <div class="clock-panel">
-          <div class="clock-card" id="clock-black">
-            <div class="clock-player">
-              <div class="clock-avatar">🤖</div>
-              <div class="clock-name">BOT</div>
+        <div class="profile-layout">
+          <div class="player-card" id="opp-card">
+            <div class="player-avatar" id="opp-avatar">🤖</div>
+            <div class="player-info">
+              <div class="player-name"><span id="opp-name">BOT</span><span class="player-elo" id="opp-elo"></span></div>
+              <div class="player-rank" id="opp-rank">คอมพิวเตอร์</div>
             </div>
-            <div class="clock-indicator"></div>
-            <div class="clock-time" id="time-black">10:00</div>
-            <div class="clock-label">ดำ</div>
+            <div class="captures-row" id="cap-opp"></div>
+            <div class="player-clock-wrap">
+              <div class="clock-dot" id="opp-dot"></div>
+              <div class="player-clock" id="time-black">10:00</div>
+            </div>
           </div>
 
-          <div class="clock-card active" id="clock-white">
-            <div class="clock-player">
-              <div class="clock-avatar" id="player-avatar">👤</div>
-              <div class="clock-name" id="player-name">คุณ</div>
-            </div>
-            <div class="clock-indicator"></div>
-            <div class="clock-time" id="time-white">10:00</div>
-            <div class="clock-label">ขาว</div>
-          </div>
-        </div>
-
-        <div class="board-column">
-          <div class="board-section">
-            <div class="board-outer">
-              <div class="coords-col" id="coords-left"></div>
-              <div>
-                <div class="chess-board" id="chess-board"></div>
-                <div class="coords-row" id="coords-bottom"></div>
+          <div class="board-column">
+            <div class="board-section">
+              <div class="board-outer">
+                <div class="coords-col" id="coords-left"></div>
+                <div>
+                  <div class="chess-board" id="chess-board"></div>
+                  <div class="coords-row" id="coords-bottom"></div>
+                </div>
               </div>
             </div>
           </div>
+
+          <div class="player-card" id="my-card">
+            <div class="player-avatar" id="player-avatar">👤</div>
+            <div class="player-info">
+              <div class="player-name"><span id="player-name">คุณ</span><span class="player-elo" id="my-elo"></span></div>
+              <div class="player-rank" id="my-rank">ขาว</div>
+            </div>
+            <div class="captures-row" id="cap-me"></div>
+            <div class="player-clock-wrap">
+              <div class="clock-dot" id="my-dot"></div>
+              <div class="player-clock" id="time-white">10:00</div>
+            </div>
+          </div>
         </div>
 
-        <div class="info-panel">
-          <div class="status-card">
-            <div class="status-title">สถานะเกม</div>
-            <div class="status-text" id="game-status">ตาขาวเดิน</div>
+        <div class="right-panel">
+          <div class="move-badge" id="move-badge">เริ่มเกม</div>
+          <div class="status-bar" id="game-status">ตาขาวเดิน</div>
+
+          <div class="chat-panel">
+            <div class="cp-tabs">
+              <button type="button" class="cp-tab" id="tab-chat">บันทึก</button>
+              <button type="button" class="cp-tab active" id="tab-moves">ตาเดิน</button>
+            </div>
+
+            <div class="cp-body">
+              <div class="cp-view hidden" id="chat-view">
+                <div class="chat-messages" id="chat-messages">
+                  <div class="chat-msg system">— เล่นกับบอท · RUKTHAI —</div>
+                </div>
+              </div>
+
+              <div class="cp-view" id="moves-view">
+                <div class="move-log-head"><span>#</span><span>ขาว</span><span>ดำ</span></div>
+                <div class="move-log" id="move-log">
+                  <div class="move-log-empty">ยังไม่มีตาเดิน</div>
+                </div>
+                <div class="move-nav">
+                  <button type="button" id="mv-first" title="ตาแรก">⏮</button>
+                  <button type="button" id="mv-prev"  title="ย้อนกลับ">◀</button>
+                  <button type="button" id="mv-next"  title="เดินหน้า">▶</button>
+                  <button type="button" id="mv-last"  title="ตาล่าสุด">⏭</button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="captured-card">
-            <div class="captured-title">หมากที่จับได้</div>
-            <div class="captured-section">
-              <div class="captured-label">หมากที่คุณกินได้</div>
-              <div class="captures-row-box" id="cap-me"></div>
-            </div>
-            <div class="captured-section">
-              <div class="captured-label">หมากที่บอทกินได้</div>
-              <div class="captures-row-box" id="cap-opp"></div>
-            </div>
+          <div class="action-row" style="flex-direction:row; gap:6px;">
+            <button class="btn-action" id="btn-flip">🔄 หมุนกระดาน</button>
+            <button class="btn-action" id="btn-reset">↩ เริ่มใหม่</button>
           </div>
-
-          <div class="action-buttons">
-            <button class="btn-action" id="btn-flip"><span>🔄</span> หมุนกระดาน</button>
-            <button class="btn-action" id="btn-reset"><span>↩</span> เริ่มเกมใหม่</button>
-            <button class="btn-action danger" id="btn-back"><span>‹</span> กลับหน้าหลัก</button>
-          </div>
+          <button class="btn-action danger" id="btn-back" style="width:100%; flex:0 0 auto;">‹ กลับหน้าหลัก</button>
         </div>
 
       </div>
@@ -290,6 +312,7 @@ html[data-background-mode="light"] .captured-card {
 
 <div class="gameover-overlay hidden" id="gameover-overlay">
   <div class="gameover-modal">
+    <button class="go-close" id="go-close" title="ดูกระดาน / ปิด">✕</button>
     <div class="gameover-emoji" id="gameover-emoji">🏆</div>
     <div class="gameover-title" id="gameover-title">คุณชนะ!</div>
     <div class="gameover-sub" id="gameover-sub">รุกจนสำเร็จ</div>
@@ -308,6 +331,11 @@ let boardState, turn, selected, legalForSelected, lastMove, flipped, gameOver;
 let premove = null;   // เดินล่วงหน้าตอนบอทกำลังคิด
 let capturedByW, capturedByB;
 let botThinkingTimer = null;
+
+// Replay / ย้อนตาเดิน (เหมือน play-online)
+let moveLog = [];          // moveLog[0]=กระดานเริ่ม, ต่อไปแต่ละตา {from,to,board,mover,captured}
+let viewPointer = 0;       // ตาที่กำลังแสดงบนกระดาน
+let activeTab = 'moves';   // 'chat' | 'moves'
 
 // Clock
 let timeMinutes = 10, timeWhite, timeBlack, clockInterval = null;
@@ -459,29 +487,23 @@ function stopClock() {
 
 function updateClockDisplay(color) {
   const seconds = color === 'w' ? timeWhite : timeBlack;
-  const fullColor = color === 'w' ? 'white' : 'black';
-  const el = document.getElementById(`time-${fullColor}`);
-  const card = document.getElementById(`clock-${fullColor}`);
+  const el = document.getElementById(color === 'w' ? 'time-white' : 'time-black');
+  const card = document.getElementById(color === 'w' ? 'my-card' : 'opp-card');
   if (!el || !card) return;
   el.textContent = formatTime(seconds);
-  card.classList.toggle('active', turn === color && !gameOver);
-  card.classList.toggle('low-time', seconds <= 30);
+  card.classList.toggle('active-turn', turn === color && !gameOver);
+  card.classList.toggle('low-time-card', seconds <= 30);
 }
 
 // ════════════════════════════════════════
 //   RENDER & LAYOUT
 // ════════════════════════════════════════
 function calcCellSize() {
-  const isMobile = window.innerWidth <= 700;
-  if (isMobile) {
-    const available = window.innerWidth - 24 - 22; 
-    return Math.max(32, Math.min(Math.floor(available / 8), 56));
-  }
-  const topbarH = 64;
-  const availableHeight = window.innerHeight - topbarH - 60;
-  const availableWidth = window.innerWidth - 160 - 200 - 120;
-  const cell = Math.floor(Math.min(availableHeight, availableWidth) / 8);
-  return Math.max(38, Math.min(cell, 90));
+  // ใช้สูตรเดียวกับ play-online ให้ขนาดบอร์ดเท่ากันเป๊ะ
+  const overallMargin = 264;
+  const ah = window.innerHeight - overallMargin;
+  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 64;
+  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 80));
 }
 
 function syncSharedStateAndRender() {
@@ -595,6 +617,111 @@ function attemptMove(from, to) {
   executeMove(move);
 }
 
+// ════════════════════════════════════════
+//   REPLAY / ย้อนตาเดิน (เหมือน play-online)
+// ════════════════════════════════════════
+function isReviewing() {
+  return moveLog.length > 1 && viewPointer < moveLog.length - 1;
+}
+
+function recordPly(move, mover, captured) {
+  moveLog.push({
+    from: move.from, to: move.to,
+    board: window.cloneBoard(boardState),
+    mover, captured: captured || ''
+  });
+  viewPointer = moveLog.length - 1;
+  renderMoveLog();
+  updateMoveNavButtons();
+}
+
+const ML_COLS = ['ก','ข','ค','ง','จ','ฉ','ช','ญ'];
+const ML_ROWS = ['8','7','6','5','4','3','2','1'];
+function mlPos(r, c) { return ML_COLS[c] + ML_ROWS[r]; }
+function mlPieceName(p) {
+  const names = { 'K':'ข','Q':'ม็','B':'ค','N':'ม','R':'ร','P':'บ' };
+  return p ? (names[window.typeOf(p)] || '') : '';
+}
+function mlNotation(entry) {
+  if (!entry || !entry.from || !entry.to) return '';
+  const piece = entry.board?.[entry.to.row]?.[entry.to.col] || null;
+  let s = `${mlPieceName(piece)}${mlPos(entry.from.row, entry.from.col)}-${mlPos(entry.to.row, entry.to.col)}`;
+  try { if (window.isInCheck(entry.board, window.opposite(entry.mover))) s += '+'; } catch (e) {}
+  return s;
+}
+
+function renderMoveLog() {
+  const body = document.getElementById('move-log');
+  if (!body) return;
+  if (moveLog.length <= 1) { body.innerHTML = '<div class="move-log-empty">ยังไม่มีตาเดิน</div>'; return; }
+  const rows = [];
+  for (let i = 1; i < moveLog.length; i += 2) {
+    const w = moveLog[i], b = moveLog[i + 1];
+    const wA = (viewPointer === i) ? ' active' : '';
+    const bA = (b && viewPointer === i + 1) ? ' active' : '';
+    const wCell = w ? `<span class="mv-ply${wA}" data-idx="${i}">${mlNotation(w)}</span>` : `<span class="mv-ply empty">–</span>`;
+    const bCell = b ? `<span class="mv-ply${bA}" data-idx="${i + 1}">${mlNotation(b)}</span>` : `<span class="mv-ply empty">–</span>`;
+    rows.push(`<div class="mv-row"><span class="mv-no">${Math.ceil(i / 2)}.</span>${wCell}${bCell}</div>`);
+  }
+  body.innerHTML = rows.join('');
+  body.querySelectorAll('.mv-ply[data-idx]').forEach(el => {
+    el.addEventListener('click', () => { viewPointer = parseInt(el.dataset.idx, 10); renderByPointer(); });
+  });
+  const a = body.querySelector('.mv-ply.active');
+  if (a) a.scrollIntoView({ block: 'nearest' });
+}
+
+// แสดงกระดานตาม viewPointer (live = ตาล่าสุด, ไม่งั้น = ย้อนหลังแบบดูอย่างเดียว)
+function renderByPointer() {
+  if (!isReviewing()) {
+    syncSharedStateAndRender();
+  } else {
+    const entry = moveLog[viewPointer];
+    if (!entry || !entry.board) { viewPointer = moveLog.length - 1; syncSharedStateAndRender(); updateMoveNavButtons(); return; }
+    const hl = (entry.from && entry.to) ? { from: entry.from, to: entry.to } : null;
+    window.myColor = 'w'; window.gameOver = gameOver;
+    window.renderBoard(entry.board, null, [], hl, turn, flipped, () => {}, () => {});
+  }
+  updateMoveNavButtons();
+  document.querySelectorAll('#move-log .mv-ply[data-idx]').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.idx, 10) === viewPointer);
+  });
+}
+
+function updateMoveNavButtons() {
+  const f = document.getElementById('mv-first'), p = document.getElementById('mv-prev'),
+        n = document.getElementById('mv-next'), l = document.getElementById('mv-last');
+  if (!f) return;
+  const atStart = viewPointer <= 1 || moveLog.length <= 1;
+  const atEnd = viewPointer >= moveLog.length - 1;
+  f.disabled = atStart; p.disabled = atStart; n.disabled = atEnd; l.disabled = atEnd;
+}
+
+function gotoPointer(idx) {
+  const maxIdx = moveLog.length - 1;
+  viewPointer = Math.max(1, Math.min(idx, maxIdx));
+  if (moveLog.length <= 1) viewPointer = 0;
+  renderByPointer();
+}
+
+function setChatTab(tab) {
+  activeTab = tab;
+  const chatView = document.getElementById('chat-view');
+  const movesView = document.getElementById('moves-view');
+  const tabChat = document.getElementById('tab-chat');
+  const tabMoves = document.getElementById('tab-moves');
+  if (!chatView || !movesView) return;
+  if (tab === 'moves') {
+    chatView.classList.add('hidden'); movesView.classList.remove('hidden');
+    tabChat.classList.remove('active'); tabMoves.classList.add('active');
+    renderMoveLog(); updateMoveNavButtons();
+  } else {
+    movesView.classList.add('hidden'); chatView.classList.remove('hidden');
+    tabMoves.classList.remove('active'); tabChat.classList.add('active');
+    if (isReviewing()) { viewPointer = moveLog.length - 1; renderByPointer(); }
+  }
+}
+
 function executeMove(move) {
   const piece = boardState[move.from.row][move.from.col];
   const captured = boardState[move.to.row][move.to.col];
@@ -608,9 +735,11 @@ function executeMove(move) {
 
   lastMove = move;
   selected = null; legalForSelected = [];
+  const mover = window.colorOf(piece);
   turn = window.opposite(turn);
   // 🔊 เสียงตาเดิน (รุก/โปรโมท/กิน/เดิน)
   if (window.Sound) window.Sound.move({ captured, promoted: window.promoteIfNeeded(piece, move.to.row) !== piece, check: window.isInCheck(boardState, turn) });
+  recordPly(move, mover, captured);   // บันทึกตาเดินสำหรับย้อนดู
   syncSharedStateAndRender();
 
   checkGameOver();
@@ -683,6 +812,12 @@ function initGame() {
   flipped = false; gameOver = false;
   capturedByW = []; capturedByB = [];
 
+  // เริ่มบันทึก replay ใหม่ (index 0 = กระดานเริ่มเกม)
+  moveLog = [{ board: window.cloneBoard(boardState), from: null, to: null }];
+  viewPointer = 0;
+  renderMoveLog();
+  updateMoveNavButtons();
+
   const params = new URLSearchParams(window.location.search);
   const minutes = parseInt(params.get('time')) || 10;
   botDepth = parseInt(params.get('depth')) || 2;
@@ -736,10 +871,23 @@ document.getElementById('btn-to-menu').addEventListener('click', () => {
   window.location.href = 'play.html';
 });
 
+// แท็บ บันทึก/ตาเดิน + ปุ่มย้อนตาเดิน
+document.getElementById('tab-chat').addEventListener('click', () => setChatTab('chat'));
+document.getElementById('tab-moves').addEventListener('click', () => setChatTab('moves'));
+document.getElementById('mv-first').addEventListener('click', () => gotoPointer(1));
+document.getElementById('mv-prev').addEventListener('click', () => gotoPointer(viewPointer - 1));
+document.getElementById('mv-next').addEventListener('click', () => gotoPointer(viewPointer + 1));
+document.getElementById('mv-last').addEventListener('click', () => { viewPointer = moveLog.length - 1; renderByPointer(); });
+
+// ✕ ปิดจอจบเกม → ดูกระดาน + ย้อนตาเดินได้ (เกมไม่หาย)
+document.getElementById('go-close').addEventListener('click', () => {
+  document.getElementById('gameover-overlay').classList.add('hidden');
+});
+
 window.addEventListener('resize', () => {
   window.applyCell(calcCellSize());
   window.setupCoords(flipped);
-  syncSharedStateAndRender();
+  renderByPointer();   // คงตาที่กำลังดูไว้ (ถ้ากำลังย้อนดู)
 });
 // คลิกขวาบนกระดาน = ยกเลิกพรีมูฟ
 const cbBot = document.getElementById('chess-board');
