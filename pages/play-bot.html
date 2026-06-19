@@ -499,11 +499,15 @@ function updateClockDisplay(color) {
 //   RENDER & LAYOUT
 // ════════════════════════════════════════
 function calcCellSize() {
-  // ใช้สูตรเดียวกับ play-online ให้ขนาดบอร์ดเท่ากันเป๊ะ
-  const overallMargin = 264;
-  const ah = window.innerHeight - overallMargin;
-  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 64;
-  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 80));
+  const isMobile = window.innerWidth <= 700;
+  if (isMobile) {
+    // มือถือ: เผื่อ coords + ขอบ เหมือน play-online
+    return Math.max(32, Math.min(Math.floor((window.innerWidth - 64) / 8), 56));
+  }
+  // เดสก์ท็อป: เผื่อความสูงสำหรับการ์ดผู้เล่นบน+ล่าง + coords (ไม่ให้การ์ดล่างล้นจอ)
+  const ah = window.innerHeight - 310;
+  const aw = window.innerWidth - 330;
+  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 74));
 }
 
 function syncSharedStateAndRender() {
