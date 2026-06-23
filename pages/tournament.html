@@ -20,9 +20,10 @@
   .btn-create-tn:hover { background: var(--gold-light,#e3c479); }
 
   /* ── filter tabs ── */
-  .tn-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-  .tn-tab { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); cursor: pointer; font-size: 0.88rem; font-weight: 600; }
-  .tn-tab.active { background: var(--gold-soft); color: var(--gold); border-color: var(--gold); }
+  .tn-tabs { display: inline-flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tn-tab { padding: 8px 16px; border-radius: 999px; border: none; background: var(--btn-secondary); color: var(--muted); cursor: pointer; font-size: 0.88rem; font-weight: 600; transition: all 0.18s; }
+  .tn-tab:hover { color: var(--text); background: var(--btn-secondary-hover); }
+  .tn-tab.active { background: var(--btn-primary); color: var(--btn-primary-text); box-shadow: inset 0 1px 0 var(--btn-sheen-top); }
 
   /* ── card grid ── */
   .tn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 18px; }
@@ -81,9 +82,10 @@
   .tn-admin-actions .del:hover { border-color: #c5544a; color: #e0796f; }
 
   /* ── rounds / pairings / standings ── */
-  .tn-subtabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-  .tn-subtab { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg2); color: var(--muted); cursor: pointer; font-size: 0.85rem; font-weight: 600; }
-  .tn-subtab.active { background: var(--gold-soft); color: var(--gold); border-color: var(--gold); }
+  .tn-subtabs { display: inline-flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tn-subtab { padding: 8px 16px; border-radius: 999px; border: none; background: var(--btn-secondary); color: var(--muted); cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.18s; }
+  .tn-subtab:hover { color: var(--text); background: var(--btn-secondary-hover); }
+  .tn-subtab.active { background: var(--btn-primary); color: var(--btn-primary-text); box-shadow: inset 0 1px 0 var(--btn-sheen-top); }
   .tn-admin-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; padding: 14px; background: var(--bg2); border: 1px solid var(--gold); border-radius: 12px; align-items: center; }
   .tn-admin-bar .lbl { font-size: 0.85rem; color: var(--muted); margin-right: auto; }
   .tn-admin-bar button { height: 40px; padding: 0 18px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.88rem; }

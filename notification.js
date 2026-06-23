@@ -1,4 +1,4 @@
-﻿// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //   notification.js — แจ้งเตือน (ผูก Firebase RTDB)
 //   path: notifications/{safeUid}/{pushId}
 //     = { type, title, message, link, ts, read }

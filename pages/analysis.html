@@ -7,9 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../styles-friend-enhanced.css">
+<link rel="stylesheet" href="../theme-refresh.css">
 <link rel="stylesheet" href="../game.css">
 <link rel="stylesheet" href="../mobile.css" media="screen and (max-width: 900px)">
-<link rel="stylesheet" href="../theme-refresh.css">
 <script type="module" src="../auth.js"></script>
 <script src="../game.js"></script>
 <style>
@@ -178,16 +178,16 @@ html[data-background-mode="light"] .palette-card {
 }
 
 .btn-start-custom {
-  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-  color: white !important;
+  background: var(--btn-primary) !important;
+  color: var(--btn-primary-text) !important;
   border: none !important;
   font-weight: 700 !important;
   padding: 12px 8px !important;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  box-shadow: inset 0 1px 0 var(--btn-sheen-top), inset 0 -1px 0 var(--btn-sheen-bottom) !important;
 }
 .btn-start-custom:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+  background: var(--btn-primary-hover) !important;
+  transform: translateY(-1px);
 }
 
 /* 📌 ปรับแต่งสำหรับหน้าจอมือถือโดยเฉพาะ */

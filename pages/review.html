@@ -148,7 +148,7 @@ function fmtClock(s) { s = Math.max(0, Math.floor(s)); return `${Math.floor(s / 
 function rvCalcCell() {
   const overallMargin = 64 + 0 + 200;
   const ah = window.innerHeight - overallMargin;
-  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 40;
+  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 64;
   return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 80));
 }
 function rvApplyCell() {

@@ -25,6 +25,22 @@
   /* ขนาดตัวอักษร */
   --fs-xs: 0.75rem;  --fs-sm: 0.875rem; --fs-base: 0.95rem;
   --fs-md: 1.125rem; --fs-lg: 1.375rem; --fs-xl: 1.75rem; --fs-2xl: 2.25rem;
+
+  /* ═══════════════════════════════════════════════════
+     🎨 สีปุ่มทั้งเว็บ — แก้ที่นี่ที่เดียว มีผลทุกปุ่มทุกหน้า
+     ═══════════════════════════════════════════════════ */
+  --btn-primary: #bf6730;            /* ปุ่มหลัก (Primary) */
+  --btn-primary-hover: #cb7338;
+  --btn-primary-text: #ffffff;
+  --btn-secondary: #2a2521;          /* ปุ่มรอง (Secondary) */
+  --btn-secondary-hover: #332c26;
+  --btn-secondary-text: #e8ddd2;
+  --btn-danger: #34221f;             /* ปุ่มอันตราย (Danger) */
+  --btn-danger-hover: #3f2823;
+  --btn-danger-text: #e9b3a8;
+  --btn-sheen-top: rgba(255,255,255,0.18);   /* ไฮไลต์ขอบบน (ปุ่มหลัก) */
+  --btn-sheen-bottom: rgba(0,0,0,0.18);      /* เงาขอบล่าง (ปุ่มหลัก) */
+  --btn-sheen-soft: rgba(255,255,255,0.06);  /* ไฮไลต์ขอบบน (ปุ่มรอง/อันตราย) */
 }
 
 /* ── Dark Mode: ฐานไม้อุ่น + ทองวัด ── */
@@ -61,6 +77,13 @@ html[data-background-mode="light"] {
   --muted: #6f675b;
   --shadow-1: 0 1px 2px rgba(0,0,0,0.06);
   --shadow-2: 0 8px 24px rgba(0,0,0,0.10);
+  /* ปุ่มรอง/อันตราย โหมดสว่าง = พื้นอุ่นอ่อน (ปุ่มหลักใช้สีเดิมได้ทั้ง 2 โหมด) */
+  --btn-secondary: #ece3d8;
+  --btn-secondary-hover: #e3d8ca;
+  --btn-secondary-text: #4a3a2c;
+  --btn-danger: #f0dcd6;
+  --btn-danger-text: #9a3f2a;
+  --btn-sheen-soft: rgba(255,255,255,0.6);
 }
 
 /* ─────────────────────────────────────────────
@@ -160,8 +183,8 @@ html[data-background-mode="light"] .nav .search {
    4. BUTTONS (ปุ่ม) — ทองคุมเข้ม + ghost
    ───────────────────────────────────────────── */
 .login, .btn-primary, .hero-button {
-  background: var(--gold);
-  color: #1a1305;
+  background: var(--btn-primary);
+  color: var(--btn-primary-text);
   border: none;
   height: 44px;
   padding: 0 var(--sp-5);
@@ -170,29 +193,29 @@ html[data-background-mode="light"] .nav .search {
   font-weight: 600;
   font-size: var(--fs-base);
   cursor: pointer;
-  transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
-  box-shadow: var(--shadow-1);
+  transition: background 0.18s, transform 0.12s;
+  box-shadow: inset 0 1px 0 var(--btn-sheen-top), inset 0 -1px 0 var(--btn-sheen-bottom);
 }
 .login:hover, .btn-primary:hover, .hero-button:hover {
-  background: var(--gold-light);
+  background: var(--btn-primary-hover);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-2);
 }
 .login:active, .btn-primary:active, .hero-button:active { transform: translateY(0); }
 
 .register, .btn-secondary {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border-strong);
+  background: var(--btn-secondary);
+  color: var(--btn-secondary-text);
+  border: none;
   height: 44px;
   padding: 0 var(--sp-5);
   border-radius: var(--r-md);
   font-family: var(--font-ui);
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.18s, background 0.18s;
+  box-shadow: inset 0 1px 0 var(--btn-sheen-soft);
+  transition: background 0.18s, transform 0.12s;
 }
-.register:hover, .btn-secondary:hover { border-color: var(--gold); background: var(--gold-soft); }
+.register:hover, .btn-secondary:hover { background: var(--btn-secondary-hover); color: var(--btn-secondary-text); transform: translateY(-1px); }
 
 /* ปุ่มไอคอน topbar — พื้นที่กดใหญ่ขึ้น */
 .topbar-icon-btn { width: 40px; height: 40px; border-radius: var(--r-md); }
@@ -273,3 +296,163 @@ html[data-user-bg="on"] .hero { background: transparent !important; }
   .login, .register, .btn-primary, .btn-secondary, .hero-button { min-height: 46px; width: 100%; }
   .hero-buttons { flex-direction: column; }
 }
+
+/* ═══════════════════════════════════════════════════
+   SETTINGS / AUTH MODAL — ปรับเข้าธีมอุ่น + ปุ่มระบบใหม่
+   ═══════════════════════════════════════════════════ */
+/* พื้นหลัง modal (อุ่น แทนสีเทา) + ตัดขอบแดงที่หลงเหลือ */
+.auth-modal {
+  background: linear-gradient(165deg, var(--bg2), var(--bg)) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 22px !important;
+}
+html[data-background-mode="light"] .auth-modal { color: #2a2017 !important; }
+.auth-modal::before {
+  background: linear-gradient(90deg, transparent, var(--gold), transparent) !important;
+}
+
+/* หัวข้อหมวด = ทอง */
+.settings-section-title { color: var(--gold) !important; }
+
+/* แต่ละหมวด = การ์ดจาง แยกกลุ่มชัด */
+.settings-modal .settings-section {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+}
+html[data-background-mode="light"] .settings-modal .settings-section {
+  background: rgba(0,0,0,0.02) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+
+/* select / input ในฟอร์ม */
+.auth-input {
+  border-radius: 10px !important;
+  background: rgba(0,0,0,0.2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  transition: border-color .18s, box-shadow .18s, background .18s !important;
+}
+html[data-background-mode="light"] .auth-input {
+  background: rgba(255,255,255,0.7) !important;
+  color: #2a2017 !important;
+}
+.auth-input:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px var(--gold-soft) !important;
+  outline: none !important;
+}
+
+/* ปุ่มเลือกรูป/ลบรูป → ปุ่มรอง (ไม่ให้ดูเหมือนกล่อง input) */
+#set-bg-pick, #set-bg-clear {
+  background: var(--btn-secondary) !important;
+  color: var(--btn-secondary-text) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 9px 14px !important;
+  font-weight: 600 !important;
+  box-shadow: inset 0 1px 0 var(--btn-sheen-soft) !important;
+  transition: background .18s, transform .12s !important;
+}
+#set-bg-pick:hover, #set-bg-clear:hover {
+  background: var(--btn-secondary-hover) !important;
+  transform: translateY(-1px);
+}
+
+/* ปุ่มบันทึก → ปุ่มหลักเทอร์ราคอตต้า soft-inset */
+.auth-button {
+  background: var(--btn-primary) !important;
+  color: var(--btn-primary-text) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: inset 0 1px 0 var(--btn-sheen-top), inset 0 -1px 0 var(--btn-sheen-bottom) !important;
+  transition: background .18s, transform .12s !important;
+}
+.auth-button:hover { background: var(--btn-primary-hover) !important; transform: translateY(-1px); }
+.auth-button:active { transform: translateY(0); }
+
+/* ปุ่มปิด (×) */
+.auth-close {
+  border-radius: 10px !important;
+  transition: background .15s, color .15s !important;
+}
+.auth-close:hover { background: rgba(255,255,255,0.08) !important; color: var(--gold) !important; }
+
+/* ═══════════════════════════════════════════════════
+   ธีมเลือกได้ (data-theme) — override token ทั้งเว็บ
+   ตั้งผ่านหน้า "ตั้งค่า → ธีมเว็บ" (เหมือน Dark/Light)
+   ═══════════════════════════════════════════════════ */
+/* A · ถ่านดำเย็น + เทอร์ราคอตต้า */
+html[data-theme="charcoal"] {
+  --bg:#17191e; --bg2:#1e2128; --surface:#262a32; --border:rgba(255,255,255,0.08);
+  --text:#f1f3f6; --muted:#9aa1ad; --gold:#c56c30; --gold-soft:rgba(197,108,48,0.16);
+  --btn-primary:#c56c30; --btn-primary-hover:#d27a3c; --btn-primary-text:#fff;
+  --btn-secondary:#242830; --btn-secondary-hover:#2c313b; --btn-secondary-text:#e6e9ef;
+}
+/* C · ดำสนิท + ทอง */
+html[data-theme="midnight"] {
+  --bg:#0f0f12; --bg2:#161618; --surface:#1f1f23; --border:rgba(255,255,255,0.07);
+  --text:#f3f3f3; --muted:#9a9a9e; --gold:#d4af55; --gold-soft:rgba(212,175,85,0.16);
+  --btn-primary:#d4af55; --btn-primary-hover:#e0bf6c; --btn-primary-text:#1a1305;
+  --btn-secondary:#1b1b1f; --btn-secondary-hover:#232328; --btn-secondary-text:#e6e6e8;
+}
+/* E · เทาหิน + มรกต */
+html[data-theme="slate"] {
+  --bg:#15191a; --bg2:#1c2422; --surface:#243029; --border:rgba(45,212,150,0.12);
+  --text:#f0f5f3; --muted:#93a39c; --gold:#10b981; --gold-soft:rgba(16,185,129,0.16);
+  --btn-primary:#10b981; --btn-primary-hover:#14c98f; --btn-primary-text:#04241a;
+  --btn-secondary:#1e2826; --btn-secondary-hover:#26302d; --btn-secondary-text:#dfeae6;
+}
+/* F · ม่วงกระจก */
+html[data-theme="glass"] {
+  --bg:#16131f; --bg2:#201b2e; --surface:#292235; --border:rgba(168,85,247,0.2);
+  --text:#f3f0fa; --muted:#a99ec0; --gold:#a855f7; --gold-soft:rgba(168,85,247,0.18);
+  --btn-primary:#8b5cf6; --btn-primary-hover:#9d70f8; --btn-primary-text:#fff;
+  --btn-secondary:#221c30; --btn-secondary-hover:#2a2339; --btn-secondary-text:#e9e2f5;
+}
+/* G · สปอตไลต์ทอง (ดำลึก) */
+html[data-theme="spotlight"] {
+  --bg:#121214; --bg2:#1a1a1e; --surface:#222228; --border:rgba(255,255,255,0.08);
+  --text:#f5f3ee; --muted:#9a948c; --gold:#d4af55; --gold-soft:rgba(212,175,85,0.16);
+  --btn-primary:#d4af55; --btn-primary-hover:#e0bf6c; --btn-primary-text:#1a1305;
+  --btn-secondary:#1c1c20; --btn-secondary-hover:#242429; --btn-secondary-text:#e8e6e0;
+}
+/* H · กรมท่า + ม่วง */
+html[data-theme="indigo"] {
+  --bg:#141826; --bg2:#1b2138; --surface:#232a45; --border:rgba(120,150,255,0.16);
+  --text:#f0f3fa; --muted:#97a0c0; --gold:#7aa2f7; --gold-soft:rgba(99,102,241,0.18);
+  --btn-primary:#6366f1; --btn-primary-hover:#7579f4; --btn-primary-text:#fff;
+  --btn-secondary:#1d2440; --btn-secondary-hover:#252d4d; --btn-secondary-text:#dde2f3;
+}
+/* I · ฟ้าเขียว Cyan */
+html[data-theme="cyan"] {
+  --bg:#0f1a1c; --bg2:#13252a; --surface:#1b3138; --border:rgba(34,211,238,0.16);
+  --text:#eef9fb; --muted:#8fb3ba; --gold:#22d3ee; --gold-soft:rgba(34,211,238,0.16);
+  --btn-primary:#0891b2; --btn-primary-hover:#0aa6cb; --btn-primary-text:#fff;
+  --btn-secondary:#16282d; --btn-secondary-hover:#1d343a; --btn-secondary-text:#d6eef2;
+}
+/* J · ชมพูกุหลาบ */
+html[data-theme="rose"] {
+  --bg:#1c1418; --bg2:#2a1d24; --surface:#35262e; --border:rgba(244,114,182,0.16);
+  --text:#fbeef3; --muted:#c3a3b1; --gold:#fb7185; --gold-soft:rgba(244,114,182,0.18);
+  --btn-primary:#e85585; --btn-primary-hover:#f0688f; --btn-primary-text:#fff;
+  --btn-secondary:#261a20; --btn-secondary-hover:#2f2028; --btn-secondary-text:#f0d8e2;
+}
+/* K · ดำคอนทราสต์ + อำพัน (การ์ดในสว่าง) */
+html[data-theme="contrast"] {
+  --bg:#0e0e10; --bg2:#22232a; --surface:#2e2f38; --border:rgba(255,255,255,0.1);
+  --text:#ffffff; --muted:#b0b0b8; --gold:#e0a458; --gold-soft:rgba(224,164,88,0.18);
+  --btn-primary:#e0a458; --btn-primary-hover:#ecb56a; --btn-primary-text:#1a1305;
+  --btn-secondary:#2a2b33; --btn-secondary-hover:#33343d; --btn-secondary-text:#eaeaef;
+}
+/* L · ออโรร่า (ฟ้า-ม่วง) */
+html[data-theme="aurora"] {
+  --bg:#131318; --bg2:#1d1d26; --surface:#262633; --border:rgba(255,255,255,0.1);
+  --text:#f6f4fa; --muted:#a8a2c0; --gold:#8aa6f0; --gold-soft:rgba(124,140,240,0.18);
+  --btn-primary:#7c5cf0; --btn-primary-hover:#8f72f3; --btn-primary-text:#fff;
+  --btn-secondary:#22222e; --btn-secondary-hover:#2a2a38; --btn-secondary-text:#e8e4f3;
+}
+
+/* topbar + panel ลอย ให้ตามธีม (ใช้สีฐานของแต่ละธีม) */
+html[data-theme] { --topbar-solid: var(--bg); }

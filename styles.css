@@ -149,7 +149,7 @@ html[data-background-mode="light"] .auth-overlay {
 /* ── Modal Shell ── */
 .auth-modal{
     width:min(480px,100%);
-    background:linear-gradient(160deg,#2a2a2a,#1f1f1f);
+    background:linear-gradient(160deg, var(--bg2), var(--bg));
     border:1px solid rgba(255, 0, 0, 0.18);
     border-radius:28px;
     padding:0;
@@ -163,7 +163,7 @@ html[data-background-mode="light"] .auth-overlay {
    ═══════════════════════════════════════ */
 /* Dark Mode - Auth Modal */
 html[data-background-mode="dark"] .auth-modal {
-    background: linear-gradient(160deg, #2a2a2a 0%, #1f1f1f 100%);
+    background: linear-gradient(160deg, var(--bg2), var(--bg));
     border-color: rgba(255,255,255,.1);
 }
 
@@ -856,7 +856,7 @@ html[data-background-mode="light"] .notif-dot {
     right:0;
     top:calc(100% + 10px);
     min-width:240px;
-    background:linear-gradient(160deg,#2a2a2a,#1f1f1f);
+    background:linear-gradient(160deg, var(--bg2), var(--bg));
     border:1px solid rgba(128,128,128,.18);
     border-radius:4px;
     overflow:hidden;
@@ -867,7 +867,7 @@ html[data-background-mode="light"] .notif-dot {
 
 /* Dark Mode - Profile Dropdown */
 html[data-background-mode="dark"] .profile-dropdown {
-    background: linear-gradient(160deg, #2a2a2a 0%, #1f1f1f 100%);
+    background: linear-gradient(160deg, var(--bg2), var(--bg));
     border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -1052,7 +1052,7 @@ html[data-background-mode="light"] .profile-dropdown-email {
    ═══════════════════════════════════════ */
 /* Dark Mode - Profile Modal */
 html[data-background-mode="dark"] .profile-modal {
-    background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+    background: linear-gradient(135deg, var(--bg2), var(--bg));
     border-color: rgba(255,255,255,.1);
 }
 

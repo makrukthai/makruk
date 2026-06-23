@@ -43,8 +43,25 @@ function applyThemeAndBackground() {
   const settings = loadSettings();
   const html = document.documentElement;
   
-  // Apply background mode
-  html.setAttribute("data-background-mode", settings.backgroundMode);
+  // Apply theme: dark/light ใช้กลไกเดิม, ธีมสีใหม่ทั้งหมดเป็นฐาน dark + data-theme
+  const THEME_MAP = {
+    dark:  { mode: "dark",  theme: "" },
+    light: { mode: "light", theme: "" },
+    charcoal:  { mode: "dark", theme: "charcoal" },
+    midnight:  { mode: "dark", theme: "midnight" },
+    slate:     { mode: "dark", theme: "slate" },
+    glass:     { mode: "dark", theme: "glass" },
+    spotlight: { mode: "dark", theme: "spotlight" },
+    indigo:    { mode: "dark", theme: "indigo" },
+    cyan:      { mode: "dark", theme: "cyan" },
+    rose:      { mode: "dark", theme: "rose" },
+    contrast:  { mode: "dark", theme: "contrast" },
+    aurora:    { mode: "dark", theme: "aurora" },
+  };
+  const picked = THEME_MAP[settings.backgroundMode] || THEME_MAP.dark;
+  html.setAttribute("data-background-mode", picked.mode);
+  if (picked.theme) html.setAttribute("data-theme", picked.theme);
+  else html.removeAttribute("data-theme");
 
   // พื้นช่องกระดาน — ใช้รูปจาก BOARD_CELL_STYLES (ผ่าน CSS variable รองรับรูปใดก็ได้)
   const cellStyle = BOARD_CELL_STYLES.find(s => s.id === settings.boardCellStyle) || BOARD_CELL_STYLES[0];
@@ -172,10 +189,20 @@ export function createSettingsModal() {
         <div class="settings-section">
           <div class="settings-section-title">รูปแบบการแสดงผล</div>
           <div class="settings-row">
-            <span class="settings-row-label">พื้นหลัง</span>
+            <span class="settings-row-label">ธีมเว็บ</span>
             <select name="backgroundMode" class="auth-input">
-              <option value="dark">Dark</option>
+              <option value="dark">Dark (เริ่มต้น)</option>
               <option value="light">Light</option>
+              <option value="charcoal">A · ถ่านดำ + ส้มเทอร์ราคอตต้า</option>
+              <option value="midnight">C · ดำสนิท + ทอง</option>
+              <option value="slate">E · เทาหิน + มรกต</option>
+              <option value="glass">F · ม่วงกระจก</option>
+              <option value="spotlight">G · สปอตไลต์ทอง</option>
+              <option value="indigo">H · กรมท่า + ม่วง</option>
+              <option value="cyan">I · ฟ้าเขียว Cyan</option>
+              <option value="rose">J · ชมพูกุหลาบ</option>
+              <option value="contrast">K · ดำคอนทราสต์ + อำพัน</option>
+              <option value="aurora">L · ออโรร่า</option>
             </select>
           </div>
           <div class="settings-row" style="display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin-top:12px;">
