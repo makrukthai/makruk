@@ -383,76 +383,89 @@ html[data-background-mode="light"] .auth-input {
    ธีมเลือกได้ (data-theme) — override token ทั้งเว็บ
    ตั้งผ่านหน้า "ตั้งค่า → ธีมเว็บ" (เหมือน Dark/Light)
    ═══════════════════════════════════════════════════ */
-/* A · ถ่านดำเย็น + เทอร์ราคอตต้า */
+/* ทุกธีม: พื้นเข้มแต่ "อมสีของธีม" ชัด (bg/bg2/surface/topbar/border) */
+/* A · ถ่านดำ + เทอร์ราคอตต้า (อมส้มอุ่น) */
 html[data-theme="charcoal"] {
-  --bg:#17191e; --bg2:#1e2128; --surface:#262a32; --border:rgba(255,255,255,0.08);
-  --text:#f1f3f6; --muted:#9aa1ad; --gold:#c56c30; --gold-soft:rgba(197,108,48,0.16);
+  --bg:#1b130d; --bg2:#271a11; --surface:#332417; --border:rgba(197,108,48,0.22);
+  --topbar-solid: linear-gradient(100deg, #d27a3c, #a8501c);
+  --text:#f6ede2; --muted:#bda286; --gold:#e07b1a; --gold-soft:rgba(224,123,26,0.18);
   --btn-primary:#c56c30; --btn-primary-hover:#d27a3c; --btn-primary-text:#fff;
-  --btn-secondary:#242830; --btn-secondary-hover:#2c313b; --btn-secondary-text:#e6e9ef;
+  --btn-secondary:#2c1d12; --btn-secondary-hover:#382617; --btn-secondary-text:#f0dcc8;
 }
-/* C · ดำสนิท + ทอง */
+/* C · ดำ + ทอง (อมทองอุ่น) */
 html[data-theme="midnight"] {
-  --bg:#0f0f12; --bg2:#161618; --surface:#1f1f23; --border:rgba(255,255,255,0.07);
-  --text:#f3f3f3; --muted:#9a9a9e; --gold:#d4af55; --gold-soft:rgba(212,175,85,0.16);
+  --bg:#16130a; --bg2:#211c10; --surface:#2d2616; --border:rgba(212,175,85,0.22);
+  --topbar-solid: linear-gradient(100deg, #e2c068, #c0923a);
+  --text:#f6f1e2; --muted:#bdb088; --gold:#e6c25a; --gold-soft:rgba(212,175,85,0.18);
   --btn-primary:#d4af55; --btn-primary-hover:#e0bf6c; --btn-primary-text:#1a1305;
-  --btn-secondary:#1b1b1f; --btn-secondary-hover:#232328; --btn-secondary-text:#e6e6e8;
+  --btn-secondary:#241f12; --btn-secondary-hover:#2f291a; --btn-secondary-text:#efe7cf;
 }
-/* E · เทาหิน + มรกต */
+/* E · เขียวมรกต (อมเขียวชัด) */
 html[data-theme="slate"] {
-  --bg:#15191a; --bg2:#1c2422; --surface:#243029; --border:rgba(45,212,150,0.12);
-  --text:#f0f5f3; --muted:#93a39c; --gold:#10b981; --gold-soft:rgba(16,185,129,0.16);
+  --bg:#0d1c17; --bg2:#142a22; --surface:#1c382e; --border:rgba(16,185,129,0.26);
+  --topbar-solid: linear-gradient(100deg, #14c98f, #0a8f6a);
+  --text:#e8f6f0; --muted:#8fbcaa; --gold:#1fd494; --gold-soft:rgba(16,185,129,0.18);
   --btn-primary:#10b981; --btn-primary-hover:#14c98f; --btn-primary-text:#04241a;
-  --btn-secondary:#1e2826; --btn-secondary-hover:#26302d; --btn-secondary-text:#dfeae6;
+  --btn-secondary:#143028; --btn-secondary-hover:#1b3d33; --btn-secondary-text:#d6efe4;
 }
-/* F · ม่วงกระจก */
+/* F · ม่วง (อมม่วงชัด) */
 html[data-theme="glass"] {
-  --bg:#16131f; --bg2:#201b2e; --surface:#292235; --border:rgba(168,85,247,0.2);
-  --text:#f3f0fa; --muted:#a99ec0; --gold:#a855f7; --gold-soft:rgba(168,85,247,0.18);
+  --bg:#190f28; --bg2:#251739; --surface:#312249; --border:rgba(168,85,247,0.3);
+  --topbar-solid: linear-gradient(100deg, #9d70f8, #6d3ed8);
+  --text:#f1e9fc; --muted:#b09bd4; --gold:#b06bff; --gold-soft:rgba(168,85,247,0.2);
   --btn-primary:#8b5cf6; --btn-primary-hover:#9d70f8; --btn-primary-text:#fff;
-  --btn-secondary:#221c30; --btn-secondary-hover:#2a2339; --btn-secondary-text:#e9e2f5;
+  --btn-secondary:#271a3d; --btn-secondary-hover:#33234d; --btn-secondary-text:#e6daf7;
 }
-/* G · สปอตไลต์ทอง (ดำลึก) */
+/* G · สปอตไลต์ทอง (อมทองสว่าง) */
 html[data-theme="spotlight"] {
-  --bg:#121214; --bg2:#1a1a1e; --surface:#222228; --border:rgba(255,255,255,0.08);
-  --text:#f5f3ee; --muted:#9a948c; --gold:#d4af55; --gold-soft:rgba(212,175,85,0.16);
-  --btn-primary:#d4af55; --btn-primary-hover:#e0bf6c; --btn-primary-text:#1a1305;
-  --btn-secondary:#1c1c20; --btn-secondary-hover:#242429; --btn-secondary-text:#e8e6e0;
+  --bg:#1a1409; --bg2:#271e0e; --surface:#342813; --border:rgba(224,180,70,0.26);
+  --topbar-solid: linear-gradient(100deg, #e6c45e, #c0993a);
+  --text:#f8f1df; --muted:#c4b285; --gold:#f0c44a; --gold-soft:rgba(240,196,74,0.2);
+  --btn-primary:#d4af55; --btn-primary-hover:#e6c45e; --btn-primary-text:#1a1305;
+  --btn-secondary:#2a2010; --btn-secondary-hover:#362a16; --btn-secondary-text:#f0e3c5;
 }
-/* H · กรมท่า + ม่วง */
+/* H · กรมท่า + ม่วง (อมน้ำเงินชัด) */
 html[data-theme="indigo"] {
-  --bg:#141826; --bg2:#1b2138; --surface:#232a45; --border:rgba(120,150,255,0.16);
-  --text:#f0f3fa; --muted:#97a0c0; --gold:#7aa2f7; --gold-soft:rgba(99,102,241,0.18);
+  --bg:#101535; --bg2:#19214c; --surface:#232e62; --border:rgba(99,102,241,0.3);
+  --topbar-solid: linear-gradient(100deg, #7579f4, #4a4dd6);
+  --text:#eaeefc; --muted:#9aa6d6; --gold:#8aa6ff; --gold-soft:rgba(99,102,241,0.2);
   --btn-primary:#6366f1; --btn-primary-hover:#7579f4; --btn-primary-text:#fff;
-  --btn-secondary:#1d2440; --btn-secondary-hover:#252d4d; --btn-secondary-text:#dde2f3;
+  --btn-secondary:#1b2350; --btn-secondary-hover:#252f60; --btn-secondary-text:#d6def5;
 }
-/* I · ฟ้าเขียว Cyan */
+/* I · ฟ้าเขียว Cyan (อมฟ้าเขียวชัด) */
 html[data-theme="cyan"] {
-  --bg:#0f1a1c; --bg2:#13252a; --surface:#1b3138; --border:rgba(34,211,238,0.16);
-  --text:#eef9fb; --muted:#8fb3ba; --gold:#22d3ee; --gold-soft:rgba(34,211,238,0.16);
-  --btn-primary:#0891b2; --btn-primary-hover:#0aa6cb; --btn-primary-text:#fff;
-  --btn-secondary:#16282d; --btn-secondary-hover:#1d343a; --btn-secondary-text:#d6eef2;
+  --bg:#072730; --bg2:#0c3742; --surface:#114755; --border:rgba(34,211,238,0.3);
+  --topbar-solid: linear-gradient(100deg, #16bcdb, #0883a0);
+  --text:#e6fafd; --muted:#86bdc6; --gold:#3ee0f5; --gold-soft:rgba(34,211,238,0.2);
+  --btn-primary:#0aa3c4; --btn-primary-hover:#0fb8db; --btn-primary-text:#04282e;
+  --btn-secondary:#0d3a45; --btn-secondary-hover:#134a57; --btn-secondary-text:#cdeef4;
 }
-/* J · ชมพูกุหลาบ */
+/* J · ชมพูกุหลาบ (อมชมพูชัด) */
 html[data-theme="rose"] {
-  --bg:#1c1418; --bg2:#2a1d24; --surface:#35262e; --border:rgba(244,114,182,0.16);
-  --text:#fbeef3; --muted:#c3a3b1; --gold:#fb7185; --gold-soft:rgba(244,114,182,0.18);
+  --bg:#24101b; --bg2:#341726; --surface:#421f32; --border:rgba(244,114,182,0.28);
+  --topbar-solid: linear-gradient(100deg, #f0688f, #d63a6e);
+  --text:#fce9f1; --muted:#c99aae; --gold:#ff8aa3; --gold-soft:rgba(244,114,182,0.2);
   --btn-primary:#e85585; --btn-primary-hover:#f0688f; --btn-primary-text:#fff;
-  --btn-secondary:#261a20; --btn-secondary-hover:#2f2028; --btn-secondary-text:#f0d8e2;
+  --btn-secondary:#321826; --btn-secondary-hover:#402033; --btn-secondary-text:#f3d4e0;
 }
-/* K · ดำคอนทราสต์ + อำพัน (การ์ดในสว่าง) */
+/* K · ดำคอนทราสต์ + อำพัน (พื้นดำลึก การ์ดอมอำพัน) */
 html[data-theme="contrast"] {
-  --bg:#0e0e10; --bg2:#22232a; --surface:#2e2f38; --border:rgba(255,255,255,0.1);
-  --text:#ffffff; --muted:#b0b0b8; --gold:#e0a458; --gold-soft:rgba(224,164,88,0.18);
+  --bg:#0c0b07; --bg2:#272118; --surface:#352d20; --border:rgba(224,164,88,0.22);
+  --topbar-solid: linear-gradient(100deg, #ecb56a, #c98a3e);
+  --text:#fbf6ee; --muted:#bdae97; --gold:#f0b462; --gold-soft:rgba(224,164,88,0.2);
   --btn-primary:#e0a458; --btn-primary-hover:#ecb56a; --btn-primary-text:#1a1305;
-  --btn-secondary:#2a2b33; --btn-secondary-hover:#33343d; --btn-secondary-text:#eaeaef;
+  --btn-secondary:#2c251a; --btn-secondary-hover:#383022; --btn-secondary-text:#efe4d2;
 }
-/* L · ออโรร่า (ฟ้า-ม่วง) */
+/* L · ออโรร่า (อมฟ้า-ม่วงชัด) */
 html[data-theme="aurora"] {
-  --bg:#131318; --bg2:#1d1d26; --surface:#262633; --border:rgba(255,255,255,0.1);
-  --text:#f6f4fa; --muted:#a8a2c0; --gold:#8aa6f0; --gold-soft:rgba(124,140,240,0.18);
+  --bg:#15132e; --bg2:#201c42; --surface:#2b2758; --border:rgba(124,140,240,0.3);
+  --topbar-solid: linear-gradient(100deg, #5b8cf0, #7c5cf0 55%, #c45ad6);
+  --text:#f0eefc; --muted:#a8a2d4; --gold:#9aa8ff; --gold-soft:rgba(124,140,240,0.2);
   --btn-primary:#7c5cf0; --btn-primary-hover:#8f72f3; --btn-primary-text:#fff;
-  --btn-secondary:#22222e; --btn-secondary-hover:#2a2a38; --btn-secondary-text:#e8e4f3;
+  --btn-secondary:#231f48; --btn-secondary-hover:#2e2958; --btn-secondary-text:#e3def5;
 }
-
-/* topbar + panel ลอย ให้ตามธีม (ใช้สีฐานของแต่ละธีม) */
-html[data-theme] { --topbar-solid: var(--bg); }
+/* ให้ตัวอักษร/ลิงก์บน topbar สว่างชัดทุกธีมสี */
+html[data-theme] .topbar,
+html[data-theme] .topbar .nav a,
+html[data-theme] .topbar .brand { color: var(--btn-primary-text); }
+html[data-theme] .topbar-icon-btn { color: var(--btn-primary-text); opacity: 0.85; }
