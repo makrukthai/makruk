@@ -873,7 +873,7 @@ function attemptMove(from, to) {
       premove = { from: { ...from }, to: { ...to } };
       selected = null; legalForSelected = [];
       syncSharedStateAndRender();
-      document.getElementById('game-status').textContent = '⚡ ตั้งเดินล่วงหน้าไว้แล้ว'; if (window.Sound) window.Sound.play('premove'); if (window.Sound) window.Sound.play('premove');
+      document.getElementById('game-status').textContent = '⚡ ตั้งเดินล่วงหน้าไว้แล้ว'; if (window.Sound) window.Sound.play('premove');
     }
     return;
   }

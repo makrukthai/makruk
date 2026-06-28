@@ -61,6 +61,20 @@
   }
   .coming-soon .cs-ico { font-size: 2.4rem; margin-bottom: 10px; }
 
+  /* ── คอร์ส ── */
+  .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  .course-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); padding: 18px; cursor: pointer; box-shadow: var(--shadow-1); transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; display: flex; flex-direction: column; gap: 8px; }
+  .course-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--gold); }
+  .course-card .cc-ico { font-size: 1.8rem; }
+  .course-card .cc-title { font-weight: 700; color: var(--text); font-size: 1.05rem; line-height: 1.3; }
+  .course-card .cc-meta { color: var(--muted); font-size: 0.8rem; }
+  .course-card .cc-bar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .course-card .cc-bar > div { height: 100%; background: var(--gold); border-radius: 3px; transition: width 0.3s; }
+  .co-input { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; color: var(--text); font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.95rem; width: 100%; }
+  .co-input:focus { outline: none; border-color: var(--gold); }
+  .btn-add-course { background: var(--gold); color: #1a1305; border: none; height: 42px; padding: 0 18px; border-radius: var(--r-md,12px); font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); display: none; align-items: center; gap: 6px; }
+  .btn-add-course:hover { background: var(--gold-light,#e3c479); }
+
   /* ── ชั้นเชิง (100 ด่าน) ── */
   .tactics-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
   .tactics-progress { color: var(--muted); font-size: 0.9rem; }
@@ -128,12 +142,30 @@
   .lb-coords-left { grid-column: 1; grid-row: 1; display: grid; grid-template-rows: repeat(8,1fr); align-items: center; justify-items: center; }
   .lb-coords-bottom { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(8,1fr); align-items: center; justify-items: center; }
   .lb-coords-left span, .lb-coords-bottom span { font-size: 0.7rem; color: var(--muted); font-family: var(--font-mono, monospace); }
-  .lb-board { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 2px; background: #1e1d1b; border-radius: 6px; overflow: hidden; }
+  .lb-board { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 2px; background: #1e1d1b; border-radius: 6px; overflow: hidden; position: relative; }
   .lb-cell { position: relative; aspect-ratio: 1; min-width: 0; background: #c56c30; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .lb-cell img { width: 82%; height: 82%; object-fit: contain; pointer-events: none; user-select: none; }
   .lb-cell.sel { background: rgba(168,168,168,0.45); }
   .lb-cell.legal::after { content: ''; position: absolute; width: 30%; height: 30%; background: rgba(131,131,131,0.77); border-radius: 50%; pointer-events: none; }
   .lb-cell.cap { outline: 3px solid rgba(239,100,68,0.7); outline-offset: -3px; }
+  .lb-cell.last { background: rgba(207,126,21,0.79); }
+  .lb-arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+  .lb-annot { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 3px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; color: #fff; z-index: 6; box-sizing: border-box; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+  .annot-q { background: #c0392b; }
+  .annot-e { background: #3b82f6; }
+  .annot-qe { background: #14b8a6; font-size: 0.6rem; }
+  .le-step-annot { display: flex; align-items: center; gap: 5px; margin-top: 7px; }
+  .le-step-annot .le-an-label { font-size: 0.72rem; color: var(--muted); margin-right: 2px; }
+  .le-step-annot button { width: 30px; height: 26px; border-radius: 7px; border: 1px solid var(--border-strong, rgba(255,255,255,0.12)); background: transparent; color: var(--text); font-weight: 800; font-size: 0.82rem; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); padding: 0; }
+  .le-step-annot button[data-an="!?"] { width: 34px; }
+  .le-step-annot button[data-an="?"].on  { background: #c0392b; color: #fff; border-color: #c0392b; }
+  .le-step-annot button[data-an="!"].on  { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+  .le-step-annot button[data-an="!?"].on { background: #14b8a6; color: #fff; border-color: #14b8a6; }
+  .le-step { cursor: pointer; }
+  .le-step.active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+  .le-step-arrows { margin-left: auto; font-size: 0.72rem; color: #f0a020; font-weight: 700; }
+  .le-arrow-hint { font-size: 0.78rem; color: var(--muted); text-align: center; margin-top: 2px; }
+  .le-arrow-hint b { color: #f0a020; }
 
   .le-steps { display: flex; flex-direction: column; gap: 10px; max-height: 460px; overflow-y: auto; }
   .le-steps-empty { color: var(--muted); font-style: italic; font-size: 0.88rem; }
@@ -207,12 +239,49 @@
 
     <!-- คอร์ส -->
     <section class="learn-view" id="view-courses">
-      <div class="view-head"><h1>🎓 คอร์ส</h1><p>คอร์สเรียนเป็นชุด จัดลำดับเนื้อหาให้เรียนรู้อย่างเป็นระบบ</p></div>
-      <div class="coming-soon"><div class="cs-ico">🎓</div>ระบบคอร์สกำลังพัฒนา — เร็ว ๆ นี้</div>
+      <!-- รายการคอร์สทั้งหมด -->
+      <div id="courses-list-view">
+        <div class="view-head"><h1>🎓 คอร์ส</h1><p>คอร์สเรียนเป็นชุด จัดลำดับเนื้อหาให้เรียนรู้อย่างเป็นระบบ</p></div>
+        <div class="lessons-toolbar">
+          <div style="color:var(--muted); font-size:0.88rem;" id="courses-summary"></div>
+          <button class="btn-add-course" id="btn-add-course">＋ สร้างคอร์ส</button>
+        </div>
+        <div class="course-grid" id="courses-container"><div class="lesson-empty">กำลังโหลด…</div></div>
+      </div>
+      <!-- รายละเอียดคอร์ส (บทเรียนในคอร์ส) -->
+      <div id="course-detail-view" style="display:none;">
+        <div class="lesson-back" id="course-back">← กลับไปคอร์สทั้งหมด</div>
+        <div class="view-head" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+          <div><h1 id="cd-title"></h1><p id="cd-meta"></p></div>
+          <button class="del" id="btn-del-course" style="display:none; height:36px; padding:0 14px; border-radius:8px; border:1px solid var(--border-strong, rgba(255,255,255,0.12)); background:transparent; color:var(--text); cursor:pointer; font-family:var(--font-ui,'Noto Sans Thai',sans-serif); font-weight:600; font-size:0.83rem;">🗑 ลบคอร์ส</button>
+        </div>
+        <div class="lessons-toolbar">
+          <div style="color:var(--muted); font-size:0.88rem;" id="cd-progress"></div>
+          <button class="btn-add-lesson" id="btn-add-course-lesson">＋ เพิ่มบทเรียนในคอร์ส</button>
+        </div>
+        <div class="lesson-grid" id="cd-lessons"></div>
+      </div>
     </section>
 
   </div>
 </main>
+
+<!-- modal สร้างคอร์ส (แอดมิน) -->
+<div class="lesson-editor-overlay" id="course-modal-overlay">
+  <div class="lesson-editor" style="max-width:440px;">
+    <h2>สร้างคอร์ส</h2>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <input id="co-title" class="co-input" maxlength="80" placeholder="ชื่อคอร์ส เช่น พื้นฐานหมากรุกไทย">
+      <input id="co-creator" class="co-input" maxlength="60" placeholder="ชื่อผู้สร้างคอร์ส">
+      <input id="co-count" class="co-input" type="number" min="1" max="100" placeholder="จำนวนบทเรียน (เป้าหมาย)">
+    </div>
+    <div class="le-msg" id="co-msg"></div>
+    <div class="le-actions">
+      <button class="le-cancel" id="co-cancel">ยกเลิก</button>
+      <button class="le-save" id="co-save">สร้างคอร์ส</button>
+    </div>
+  </div>
+</div>
 
 <!-- เครื่องมือสร้างบทเรียน (แอดมิน) -->
 <div class="lesson-editor-overlay" id="lesson-editor-overlay">
@@ -270,6 +339,7 @@
           <button type="button" id="le-reset">เริ่มใหม่</button>
         </div>
         <div style="font-size:0.8rem; color:var(--muted); text-align:center;">คลิกหมากแล้วคลิกช่องที่จะเดิน — แต่ละตาจะถูกบันทึกเป็นขั้น</div>
+        <div class="le-arrow-hint">🖱️ <b>คลิกขวาค้างแล้วลาก</b> เพื่อวาดลูกศรในขั้นที่เลือก (คลิกขวาซ้ำ = ลบ)</div>
       </div>
       <div>
         <div style="font-weight:600; margin-bottom:10px; font-size:0.9rem;">ขั้นตอน + คำอธิบาย</div>
@@ -287,7 +357,7 @@
 <script src="../game.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, set, onValue, serverTimestamp }
+import { getDatabase, ref, push, set, onValue, serverTimestamp, remove }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -332,7 +402,7 @@ const CATS = [
 ];
 
 function renderLessons(lessons) {
-  const all = Object.entries(lessons);
+  const all = Object.entries(lessons).filter(([id, l]) => !l.courseId);   // บทเรียนเดี่ยว (ไม่อยู่ในคอร์ส)
   document.getElementById('lessons-summary').textContent = all.length ? `${all.length} บทเรียน` : '';
   const container = document.getElementById('lessons-container');
   container.innerHTML = CATS.map(cat => {
@@ -362,9 +432,39 @@ let freeTurn = false;         // tactic: กำหนดเฉลยได้อ
 let startBoard = E.cloneBoard(E.INITIAL_BOARD);   // ตำแหน่งเริ่มของบทเรียน
 let startTurn = 'w';
 let authBoard = E.cloneBoard(E.INITIAL_BOARD);
-let authSteps = [];   // { from:[r,c], to:[r,c], text }
+let authSteps = [];   // { from:[r,c], to:[r,c], text, arrows:[{from,to}], annotation }
 let authSel = null;   // {r,c}
 let authLegal = [];
+let activeStep = -1;  // ขั้นที่กำลังโฟกัส (สำหรับใส่ลูกศร/สัญลักษณ์) -1 = ยังไม่มี
+
+function isLiveStep() { return activeStep === authSteps.length - 1; }
+function boardAtStep(n) {
+  let b = E.cloneBoard(startBoard);
+  for (let i = 0; i < n; i++) {
+    const s = authSteps[i];
+    const pc = b[s.from[0]][s.from[1]];
+    b[s.to[0]][s.to[1]] = E.promoteIfNeeded(pc, s.to[0]);
+    b[s.from[0]][s.from[1]] = null;
+  }
+  return b;
+}
+// วาดลูกศร SVG (พิกัดช่อง 0-8: กลางช่อง = col+0.5, row+0.5)
+function arrowsSvg(arrows, sfx) {
+  if (!arrows || !arrows.length) return '';
+  const lines = arrows.map(a => {
+    const x1 = a.from[1] + 0.5, y1 = a.from[0] + 0.5;
+    let x2 = a.to[1] + 0.5, y2 = a.to[0] + 0.5;
+    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+    x2 = x1 + dx * (len - 0.34) / len; y2 = y1 + dy * (len - 0.34) / len;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#f0a020" stroke-width="0.17" stroke-linecap="round" marker-end="url(#ah-${sfx})" opacity="0.92"/>`;
+  }).join('');
+  return `<svg class="lb-arrows" viewBox="0 0 8 8" preserveAspectRatio="none"><defs><marker id="ah-${sfx}" markerWidth="3.4" markerHeight="3.4" refX="1.2" refY="1.7" orient="auto"><path d="M0,0 L3.4,1.7 L0,3.4 z" fill="#f0a020"/></marker></defs>${lines}</svg>`;
+}
+// ป้ายสัญลักษณ์ ?/!/!? (มุมบนขวาช่องปลายทาง)
+function annotBadge(an) {
+  const map = { '?': ['annot-q', '?'], '!': ['annot-e', '!'], '!?': ['annot-qe', '!?'] };
+  const m = map[an]; return m ? `<span class="lb-annot ${m[0]}">${m[1]}</span>` : '';
+}
 
 function turnColor() { return authSteps.length % 2 === 0 ? startTurn : E.opposite(startTurn); }
 
@@ -373,15 +473,23 @@ function renderAuthBoard() {
   const turnEl = document.getElementById('le-turn');
   if (editMode === 'setup') turnEl.textContent = 'โหมดตั้งกระดาน — เลือกหมากแล้วคลิกวางบนกระดาน';
   else if (freeTurn) turnEl.textContent = 'กำหนดเฉลย — คลิกหมากแล้วเดินตาที่ถูกต้อง (เดินได้หลายตา)';
-  else turnEl.textContent = 'ตาเดิน: ' + (turnColor() === 'w' ? 'ขาว' : 'ดำ');
+  else turnEl.textContent = isLiveStep()
+      ? 'ตาเดิน: ' + (turnColor() === 'w' ? 'ขาว' : 'ดำ')
+      : `กำลังดู/แก้ขั้น ${activeStep + 1} — คลิกขั้นล่าสุดเพื่อเดินต่อ`;
+  const board = editMode === 'setup' ? authBoard : boardAtStep(activeStep + 1);
+  const live = editMode === 'record' && isLiveStep();
+  const focus = (editMode === 'record' && activeStep >= 0) ? authSteps[activeStep] : null;
   let html = '';
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-    const p = authBoard[r][c];
-    const sel = authSel && authSel.r === r && authSel.c === c ? ' sel' : '';
-    const legal = (editMode === 'record') && authLegal.find(m => m.to.row === r && m.to.col === c);
+    const p = board[r][c];
+    const sel = (live && authSel && authSel.r === r && authSel.c === c) ? ' sel' : '';
+    const last = (focus && ((focus.from[0] === r && focus.from[1] === c) || (focus.to[0] === r && focus.to[1] === c))) ? ' last' : '';
+    const legal = live && authLegal.find(m => m.to.row === r && m.to.col === c);
     const cls = legal ? (p ? ' cap' : ' legal') : '';
-    html += `<div class="lb-cell${sel}${cls}" data-r="${r}" data-c="${c}">${p ? `<img src="../Pieces/${p}.png" alt="">` : ''}</div>`;
+    const badge = (focus && focus.to[0] === r && focus.to[1] === c) ? annotBadge(focus.annotation) : '';
+    html += `<div class="lb-cell${sel}${last}${cls}" data-r="${r}" data-c="${c}">${p ? `<img src="../Pieces/${p}.png" alt="">` : ''}${badge}</div>`;
   }
+  html += focus ? arrowsSvg(focus.arrows, 'ed') : '';
   el.innerHTML = html;
   el.querySelectorAll('.lb-cell').forEach(cell => cell.addEventListener('click', () => onCell(+cell.dataset.r, +cell.dataset.c)));
 }
@@ -394,12 +502,17 @@ function onCell(r, c) {
     renderAuthBoard();
     return;
   }
+  if (!isLiveStep()) {   // กำลังดูขั้นเก่า — ไม่เดินหมาก (คลิกขวาวาดลูกศรได้)
+    document.getElementById('le-msg').textContent = 'กำลังดูขั้นเก่า: คลิกขวาลากเพื่อวาดลูกศร หรือคลิกขั้นล่าสุดเพื่อเดินต่อ';
+    return;
+  }
   const legal = authLegal.find(m => m.to.row === r && m.to.col === c);
   if (authSel && legal) {  // เดินหมาก (บันทึกขั้น)
     const piece = authBoard[authSel.r][authSel.c];
     authBoard[r][c] = E.promoteIfNeeded(piece, r);
     authBoard[authSel.r][authSel.c] = null;
-    authSteps.push({ from: [authSel.r, authSel.c], to: [r, c], text: '' });
+    authSteps.push({ from: [authSel.r, authSel.c], to: [r, c], text: '', arrows: [], annotation: null });
+    activeStep = authSteps.length - 1;
     authSel = null; authLegal = [];
     renderAuthBoard(); renderSteps();
     return;
@@ -426,23 +539,81 @@ function renderSteps() {
   if (!authSteps.length) { wrap.innerHTML = '<div class="le-steps-empty">ยังไม่มีขั้น — เริ่มเดินหมากบนกระดาน</div>'; return; }
   wrap.innerHTML = authSteps.map((s, i) => {
     const mv = `${E.getPosName(s.from[0], s.from[1])} → ${E.getPosName(s.to[0], s.to[1])}`;
-    return `<div class="le-step">
-      <div class="le-step-head"><span class="le-step-num">${i + 1}</span><span class="le-step-move">${esc(mv)}</span></div>
+    const nArrows = (s.arrows || []).length;
+    return `<div class="le-step${i === activeStep ? ' active' : ''}" data-step-card="${i}">
+      <div class="le-step-head"><span class="le-step-num">${i + 1}</span><span class="le-step-move">${esc(mv)}</span>${nArrows ? `<span class="le-step-arrows">↗ ${nArrows}</span>` : ''}</div>
       <textarea data-step="${i}" placeholder="คำอธิบายขั้นนี้ (ไม่บังคับ)">${esc(s.text)}</textarea>
+      <div class="le-step-annot">
+        <span class="le-an-label">สัญลักษณ์:</span>
+        <button data-an="?" data-an-step="${i}" class="${s.annotation === '?' ? 'on' : ''}" title="แต้มที่ไม่ดี">?</button>
+        <button data-an="!" data-an-step="${i}" class="${s.annotation === '!' ? 'on' : ''}" title="แต้มที่ดี">!</button>
+        <button data-an="!?" data-an-step="${i}" class="${s.annotation === '!?' ? 'on' : ''}" title="แต้มที่น่าสนใจ">!?</button>
+      </div>
     </div>`;
   }).join('');
+  wrap.querySelectorAll('[data-step-card]').forEach(card => card.addEventListener('click', e => {
+    if (e.target.tagName === 'TEXTAREA' || e.target.closest('[data-an-step]')) return;   // ปุ่มสัญลักษณ์/ช่องพิมพ์จัดการเอง
+    activeStep = +card.dataset.stepCard;
+    authSel = null; authLegal = [];
+    document.getElementById('le-msg').textContent = '';
+    renderAuthBoard(); renderSteps();
+  }));
+  wrap.querySelectorAll('[data-an-step]').forEach(btn => btn.addEventListener('click', () => {
+    const i = +btn.dataset.anStep, an = btn.dataset.an;
+    activeStep = i;
+    authSteps[i].annotation = (authSteps[i].annotation === an) ? null : an;   // กดซ้ำ = ปลด
+    renderAuthBoard(); renderSteps();
+  }));
   wrap.querySelectorAll('textarea[data-step]').forEach(t => t.addEventListener('input', () => { authSteps[+t.dataset.step].text = t.value; }));
+}
+
+// ── คลิกขวาลากบนกระดานเอดิเตอร์ = วาดลูกศรในขั้นที่เลือก ──
+(function () {
+  const leBoardEl = document.getElementById('le-board');
+  if (!leBoardEl) return;
+  let dragFrom = null;
+  leBoardEl.addEventListener('contextmenu', e => e.preventDefault());
+  leBoardEl.addEventListener('mousedown', e => {
+    if (e.button !== 2) return;
+    const cell = e.target.closest('.lb-cell'); if (!cell) return;
+    dragFrom = { r: +cell.dataset.r, c: +cell.dataset.c }; e.preventDefault();
+  });
+  leBoardEl.addEventListener('mouseup', e => {
+    if (e.button !== 2 || !dragFrom) return;
+    const cell = e.target.closest('.lb-cell');
+    if (cell) {
+      const to = { r: +cell.dataset.r, c: +cell.dataset.c };
+      if (to.r !== dragFrom.r || to.c !== dragFrom.c) toggleArrow(dragFrom, to);
+    }
+    dragFrom = null;
+  });
+})();
+function toggleArrow(from, to) {
+  if (editMode !== 'record' || activeStep < 0) {
+    document.getElementById('le-msg').textContent = 'เลือกขั้น (คลิกขั้นในรายการด้านขวา) ก่อนวาดลูกศร';
+    return;
+  }
+  const s = authSteps[activeStep];
+  s.arrows = s.arrows || [];
+  const idx = s.arrows.findIndex(a => a.from[0] === from.r && a.from[1] === from.c && a.to[0] === to.r && a.to[1] === to.c);
+  if (idx >= 0) s.arrows.splice(idx, 1); else s.arrows.push({ from: [from.r, from.c], to: [to.r, to.c] });
+  document.getElementById('le-msg').textContent = '';
+  renderAuthBoard(); renderSteps();
 }
 
 const leOverlay = document.getElementById('lesson-editor-overlay');
 let editorTarget = 'lesson';   // 'lesson' | 'tactic'
 let editorLevel = 0;
+let editorCourseId = null;      // ถ้าสร้างบทเรียนในคอร์ส
 
-function openLessonEditor() {
+function openLessonEditor(courseId = null) {
   if (!isAdmin) return;
   editorTarget = 'lesson'; editorLevel = 0;
+  editorCourseId = courseId || null;
   freeTurn = false;
-  document.getElementById('le-h2').textContent = 'สร้างบทเรียน';
+  document.getElementById('le-h2').textContent = editorCourseId && courses[editorCourseId]
+    ? 'เพิ่มบทเรียนในคอร์ส: ' + (courses[editorCourseId].title || '')
+    : 'สร้างบทเรียน';
   document.getElementById('le-category').style.display = '';
   document.getElementById('le-title').placeholder = 'ชื่อบทเรียน เช่น การเดินของเรือ';
   document.getElementById('le-title').value = '';
@@ -451,7 +622,7 @@ function openLessonEditor() {
   editMode = 'record'; setupTool = null; startTurn = 'w';
   startBoard = E.cloneBoard(E.INITIAL_BOARD);
   authBoard = E.cloneBoard(E.INITIAL_BOARD);
-  authSteps = []; authSel = null; authLegal = [];
+  authSteps = []; authSel = null; authLegal = []; activeStep = -1;
   document.getElementById('le-startturn').value = 'w';
   document.getElementById('le-palette').style.display = 'none';
   document.getElementById('le-startturn-wrap').style.display = 'none';
@@ -468,14 +639,14 @@ function setMode(mode) {
   if (mode === editMode) return;
   if (mode === 'setup') {
     if (authSteps.length && !confirm('สลับไปโหมดตั้งกระดานจะล้างตาเดินที่บันทึกไว้ ดำเนินการต่อ?')) return;
-    editMode = 'setup'; authSteps = []; authSel = null; authLegal = [];
+    editMode = 'setup'; authSteps = []; authSel = null; authLegal = []; activeStep = -1;
     document.getElementById('le-palette').style.display = 'flex';
     document.getElementById('le-startturn-wrap').style.display = 'inline-flex';
   } else {
     // เริ่มบันทึกตาเดินจากตำแหน่งที่ตั้งไว้
     startBoard = E.cloneBoard(authBoard);
     startTurn = document.getElementById('le-startturn').value;
-    editMode = 'record'; authSteps = []; authSel = null; authLegal = [];
+    editMode = 'record'; authSteps = []; authSel = null; authLegal = []; activeStep = -1;
     authBoard = E.cloneBoard(startBoard);
     setupTool = null;
     document.getElementById('le-palette').style.display = 'none';
@@ -515,11 +686,11 @@ document.getElementById('pal-standard').addEventListener('click', () => {
 
 document.getElementById('le-undo').addEventListener('click', () => {
   if (editMode !== 'record') return;
-  authSteps.pop(); authSel = null; authLegal = []; rebuildFromSteps(); renderAuthBoard(); renderSteps();
+  authSteps.pop(); authSel = null; authLegal = []; activeStep = authSteps.length - 1; rebuildFromSteps(); renderAuthBoard(); renderSteps();
 });
 document.getElementById('le-reset').addEventListener('click', () => {
   if (editMode !== 'record') return;
-  authSteps = []; authSel = null; authLegal = []; rebuildFromSteps(); renderAuthBoard(); renderSteps();
+  authSteps = []; authSel = null; authLegal = []; activeStep = -1; rebuildFromSteps(); renderAuthBoard(); renderSteps();
 });
 
 document.getElementById('le-save').addEventListener('click', async () => {
@@ -543,20 +714,135 @@ document.getElementById('le-save').addEventListener('click', async () => {
       });
     } else {
       if (!title) { msg.textContent = 'กรุณาใส่ชื่อบทเรียน'; return; }
-      await set(push(ref(db, 'lessons')), {
+      const lessonData = {
         title, category: document.getElementById('le-category').value,
         startBoard: startRows, startTurn, steps: authSteps,
         authorUid: mySid, authorName: currentUser.name || currentUser.email || 'ทีมงาน',
         createdAt: serverTimestamp()
-      });
+      };
+      if (editorCourseId) {
+        lessonData.courseId = editorCourseId;
+        lessonData.order = lessonsOfCourse(editorCourseId).length;   // ต่อท้ายคอร์ส
+      }
+      await set(push(ref(db, 'lessons')), lessonData);
     }
     closeLessonEditor();
   } catch (e) { msg.textContent = 'บันทึกไม่สำเร็จ'; }
 });
 
 // ฟังรายการบทเรียน
-onValue(ref(db, 'lessons'), (snap) => renderLessons(snap.val() || {}),
+let allLessons = {};
+onValue(ref(db, 'lessons'), (snap) => { allLessons = snap.val() || {}; renderLessons(allLessons); renderCourses(); if (currentCourseId) renderCourseDetail(currentCourseId); },
   (err) => { document.getElementById('lessons-container').innerHTML = '<div class="lesson-empty">โหลดบทเรียนไม่ได้ (เช็ค Rules: lessons)</div>'; });
+
+// ═══════════════════════════════════════════
+//   คอร์ส — สร้าง/แสดง/เข้าคอร์ส/เพิ่มบทเรียนในคอร์ส (แอดมิน)
+// ═══════════════════════════════════════════
+let courses = {};
+let currentCourseId = null;
+const courseModalOverlay = document.getElementById('course-modal-overlay');
+
+function lessonsOfCourse(cid) {
+  return Object.entries(allLessons).filter(([id, l]) => l.courseId === cid)
+    .sort((a, b) => (a[1].order || 0) - (b[1].order || 0) || (a[1].createdAt || 0) - (b[1].createdAt || 0));
+}
+
+function renderCourses() {
+  const cont = document.getElementById('courses-container');
+  if (!cont) return;
+  const entries = Object.entries(courses).sort((a, b) => (a[1].createdAt || 0) - (b[1].createdAt || 0));
+  document.getElementById('courses-summary').textContent = entries.length ? `${entries.length} คอร์ส` : '';
+  if (!entries.length) { cont.innerHTML = '<div class="lesson-empty">ยังไม่มีคอร์ส' + (isAdmin ? ' — กด "สร้างคอร์ส" เพื่อเริ่ม' : '') + '</div>'; return; }
+  cont.innerHTML = entries.map(([id, c]) => {
+    const have = lessonsOfCourse(id).length;
+    const target = c.lessonCount || have;
+    const pct = target ? Math.min(100, Math.round(have / target * 100)) : 0;
+    return `<div class="course-card" data-course="${esc(id)}">
+      <div class="cc-ico">🎓</div>
+      <div class="cc-title">${esc(c.title || 'คอร์ส')}</div>
+      <div class="cc-meta">โดย ${esc(c.creator || 'ทีมงาน')} · ${have}${target ? '/' + target : ''} บทเรียน</div>
+      <div class="cc-bar"><div style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  cont.querySelectorAll('[data-course]').forEach(el => el.addEventListener('click', () => openCourse(el.dataset.course)));
+}
+
+function openCourse(id) {
+  currentCourseId = id;
+  document.getElementById('courses-list-view').style.display = 'none';
+  document.getElementById('course-detail-view').style.display = 'block';
+  renderCourseDetail(id);
+}
+function backToCourses() {
+  currentCourseId = null;
+  document.getElementById('course-detail-view').style.display = 'none';
+  document.getElementById('courses-list-view').style.display = 'block';
+}
+
+function renderCourseDetail(id) {
+  const c = courses[id];
+  if (!c) { backToCourses(); return; }
+  document.getElementById('cd-title').textContent = '🎓 ' + (c.title || 'คอร์ส');
+  document.getElementById('cd-meta').textContent = 'โดย ' + (c.creator || 'ทีมงาน');
+  const items = lessonsOfCourse(id);
+  const target = c.lessonCount || items.length;
+  document.getElementById('cd-progress').textContent = `${items.length}${target ? '/' + target : ''} บทเรียน`;
+  document.getElementById('btn-add-course-lesson').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('btn-del-course').style.display = isAdmin ? 'inline-flex' : 'none';
+  const wrap = document.getElementById('cd-lessons');
+  wrap.innerHTML = items.length ? items.map(([lid, l], i) => `
+    <div class="lesson-card" data-lesson="${esc(lid)}">
+      <div class="lc-ico">📖</div>
+      <div class="lc-title">${i + 1}. ${esc(l.title || 'บทเรียน')}</div>
+      <div class="lc-meta"><span>${(l.steps || []).length} ขั้น</span><span>·</span><span>${esc(l.authorName || 'ทีมงาน')}</span></div>
+    </div>`).join('') : '<div class="lesson-empty">ยังไม่มีบทเรียนในคอร์สนี้' + (isAdmin ? ' — กด "เพิ่มบทเรียนในคอร์ส"' : '') + '</div>';
+  wrap.querySelectorAll('[data-lesson]').forEach(el => el.addEventListener('click', () => { location.href = `lesson.html?id=${encodeURIComponent(el.dataset.lesson)}`; }));
+}
+
+document.getElementById('course-back').addEventListener('click', backToCourses);
+
+if (isAdmin) document.getElementById('btn-add-course').style.display = 'inline-flex';
+document.getElementById('btn-add-course').addEventListener('click', () => {
+  if (!isAdmin) return;
+  document.getElementById('co-title').value = '';
+  document.getElementById('co-creator').value = (currentUser && (currentUser.name || currentUser.email)) || '';
+  document.getElementById('co-count').value = '';
+  document.getElementById('co-msg').textContent = '';
+  courseModalOverlay.classList.add('open');
+});
+document.getElementById('co-cancel').addEventListener('click', () => courseModalOverlay.classList.remove('open'));
+courseModalOverlay.addEventListener('click', e => { if (e.target === courseModalOverlay) courseModalOverlay.classList.remove('open'); });
+document.getElementById('co-save').addEventListener('click', async () => {
+  if (!isAdmin) return;
+  const title = document.getElementById('co-title').value.trim();
+  const creator = document.getElementById('co-creator').value.trim();
+  const count = parseInt(document.getElementById('co-count').value, 10);
+  const msg = document.getElementById('co-msg');
+  if (!title) { msg.textContent = 'กรุณาใส่ชื่อคอร์ส'; return; }
+  msg.textContent = 'กำลังสร้าง…';
+  try {
+    await set(push(ref(db, 'courses')), {
+      title, creator: creator || (currentUser && (currentUser.name || currentUser.email)) || 'ทีมงาน',
+      lessonCount: (count > 0 ? count : 0), createdBy: mySid, createdAt: serverTimestamp()
+    });
+    courseModalOverlay.classList.remove('open');
+  } catch (e) { msg.textContent = 'สร้างไม่สำเร็จ'; }
+});
+
+document.getElementById('btn-add-course-lesson').addEventListener('click', () => {
+  if (!isAdmin || !currentCourseId) return;
+  openLessonEditor(currentCourseId);
+});
+document.getElementById('btn-del-course').addEventListener('click', async () => {
+  if (!isAdmin || !currentCourseId) return;
+  const n = lessonsOfCourse(currentCourseId).length;
+  if (!confirm(`ลบคอร์สนี้ถาวร?${n ? ' (บทเรียน ' + n + ' บทในคอร์สจะไม่ถูกลบ แต่จะไม่มีคอร์สสังกัด)' : ''}`)) return;
+  try { await remove(ref(db, `courses/${currentCourseId}`)); backToCourses(); }
+  catch (e) { alert('ลบไม่สำเร็จ'); }
+});
+
+onValue(ref(db, 'courses'), (snap) => { courses = snap.val() || {}; renderCourses(); if (currentCourseId) renderCourseDetail(currentCourseId); },
+  () => { const c = document.getElementById('courses-container'); if (c) c.innerHTML = '<div class="lesson-empty">โหลดคอร์สไม่ได้ (เช็ค Rules: courses)</div>'; });
 
 // ═══════════════════════════════════════════
 //   ชั้นเชิง — 100 ด่าน ปลดล็อกทีละด่าน
@@ -580,7 +866,7 @@ function openTacticEditor(level, existing) {
     document.getElementById('le-title').value = existing.title || '';
     startBoard = parseRows(existing.startBoard);
     startTurn = existing.startTurn || 'w';
-    authSteps = Array.isArray(existing.solution) ? existing.solution.map(s => ({ from: s.from, to: s.to, text: s.text || '' })) : [];
+    authSteps = Array.isArray(existing.solution) ? existing.solution.map(s => ({ from: s.from, to: s.to, text: s.text || '', arrows: s.arrows || [], annotation: s.annotation || null })) : []; activeStep = authSteps.length - 1;
     editMode = 'record'; setupTool = null;
     authBoard = E.cloneBoard(startBoard); authSel = null; authLegal = []; rebuildFromSteps();
     document.getElementById('le-startturn').value = startTurn;
@@ -592,7 +878,7 @@ function openTacticEditor(level, existing) {
     // โจทย์ใหม่: เริ่มโหมดตั้งกระดานด้วยกระดานว่าง
     document.getElementById('le-title').value = '';
     startTurn = 'w'; startBoard = EMPTY_BOARD(); authBoard = EMPTY_BOARD();
-    authSteps = []; authSel = null; authLegal = []; setupTool = null;
+    authSteps = []; authSel = null; authLegal = []; setupTool = null; activeStep = -1;
     editMode = 'setup';
     document.getElementById('le-startturn').value = 'w';
     document.getElementById('le-palette').style.display = 'flex';

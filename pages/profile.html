@@ -323,6 +323,24 @@
   .tn-medal-cell.silver { background: rgba(192,200,212,0.16); border-color: rgba(192,200,212,0.6); }
   .tn-medal-cell.bronze { background: rgba(205,127,80,0.16);  border-color: rgba(205,127,80,0.6); }
 
+  /* ── ความสำเร็จ (achievements) ── */
+  .ach-card { padding: 20px 22px 22px; }
+  .ach-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .ach-cell {
+    position: relative; aspect-ratio: 1; border-radius: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; padding: 6px; text-align: center;
+    border: 1px solid var(--border); background: var(--bg2);
+    transition: transform .15s, box-shadow .2s;
+  }
+  .ach-cell.unlocked { border-color: var(--btn-primary); background: var(--gold-soft); }
+  .ach-cell.unlocked:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+  .ach-cell.locked { opacity: 0.5; filter: grayscale(0.7); }
+  .ach-ic { font-size: 1.65rem; line-height: 1; }
+  .ach-nm { font-size: 0.66rem; color: var(--text); font-weight: 600; line-height: 1.2; }
+  .ach-pg { font-size: 0.62rem; color: var(--muted); }
+  .ach-cell.unlocked .ach-pg { color: var(--btn-primary); font-weight: 800; }
+
   /* ปุ่มยืนยัน/ยกเลิกเปลี่ยนรูปโปรไฟล์ (เล็ก ๆ เหมือนแก้ชื่อ) */
   .avatar-confirm { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
   .avatar-confirm.hidden { display: none; }
@@ -831,6 +849,12 @@
       <p class="section-title" style="margin-bottom:12px;">🏆 เหรียญรางวัล</p>
       <div class="tn-medal-grid" id="profile-tn-medals"></div>
     </div>
+
+    <!-- ความสำเร็จ (achievements) -->
+    <div class="profile-card ach-card">
+      <p class="section-title" style="margin-bottom:14px;">🎖️ ความสำเร็จ <span id="ach-count" style="font-weight:600; color:var(--muted); font-size:0.85rem;"></span></p>
+      <div class="ach-grid" id="ach-grid"></div>
+    </div>
     </div>
 
     <div class="profile-right">
@@ -1180,6 +1204,7 @@ async function loadGameHistory(ownerSafeId, ownerName, isSelf) {
       document.getElementById('stat-losses').textContent = 0;
       document.getElementById('stat-draws').textContent = 0;
       document.getElementById('stat-winrate').textContent = '0%';
+      renderAchievements({ totalGames:0, wins:0, draws:0, winRate:0, maxStreak:0 });
       return;
     }
 
@@ -1234,6 +1259,7 @@ async function loadGameHistory(ownerSafeId, ownerName, isSelf) {
     document.getElementById('stat-draws').textContent = draws;
     document.getElementById('stat-winrate').textContent = winRate + "%";
     document.getElementById('history-total-count').textContent = `${totalGames} เกมล่าสุด`;
+    renderAchievements({ totalGames, wins, draws, winRate, maxStreak: computeMaxWinStreak(matches) });
 
     tableBody.querySelectorAll('.btn-replay-link').forEach(btn => {
       btn.onclick = () => {
@@ -1244,6 +1270,50 @@ async function loadGameHistory(ownerSafeId, ownerName, isSelf) {
   } catch (err) {
     console.error("Error loading match history from Firebase:", err);
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+//   ความสำเร็จ (achievements) — คำนวณจากสถิติที่โหลดมาแล้ว
+// ═══════════════════════════════════════════════════════════
+function computeMaxWinStreak(matches) {
+  // matches เรียงใหม่→เก่า, กลับเป็นเรียงตามเวลาเพื่อหาช่วงชนะติดต่อกันยาวสุด
+  const chron = [...matches].reverse();
+  let max = 0, cur = 0;
+  for (const m of chron) {
+    if (m.result === 'win') { cur++; if (cur > max) max = cur; }
+    else cur = 0;
+  }
+  return max;
+}
+
+function renderAchievements({ totalGames, wins, draws, winRate, maxStreak }) {
+  const grid = document.getElementById('ach-grid');
+  if (!grid) return;
+  const defs = [
+    { ic:'🎯', nm:'ชนะเกมแรก',      cur: wins,       tgt: 1   },
+    { ic:'♟️', nm:'เล่นครบ 10 เกม',  cur: totalGames, tgt: 10  },
+    { ic:'🔥', nm:'ชนะ 10 เกม',      cur: wins,       tgt: 10  },
+    { ic:'⚡', nm:'ชนะรวด 3 เกม',    cur: maxStreak,  tgt: 3   },
+    { ic:'🌟', nm:'ชนะรวด 5 เกม',    cur: maxStreak,  tgt: 5   },
+    { ic:'🏟️', nm:'เล่นครบ 50 เกม',  cur: totalGames, tgt: 50  },
+    { ic:'👑', nm:'ชนะ 50 เกม',      cur: wins,       tgt: 50  },
+    { ic:'🎖️', nm:'อัตราชนะ 60%+',   cur: (totalGames >= 10 ? winRate : 0), tgt: 60, suffix:'%', note:'ต้องเล่นอย่างน้อย 10 เกม' },
+    { ic:'💯', nm:'เล่นครบ 100 เกม', cur: totalGames, tgt: 100 },
+  ];
+  let unlocked = 0;
+  grid.innerHTML = defs.map(d => {
+    const done = d.cur >= d.tgt;
+    if (done) unlocked++;
+    const prog = done ? '✓ สำเร็จ' : `${Math.min(d.cur, d.tgt)}/${d.tgt}${d.suffix || ''}`;
+    const title = d.note ? `${d.nm} — ${d.note}` : d.nm;
+    return `<div class="ach-cell ${done ? 'unlocked' : 'locked'}" title="${title}">
+      <span class="ach-ic">${d.ic}</span>
+      <span class="ach-nm">${d.nm}</span>
+      <span class="ach-pg">${prog}</span>
+    </div>`;
+  }).join('');
+  const cEl = document.getElementById('ach-count');
+  if (cEl) cEl.textContent = `(${unlocked}/${defs.length})`;
 }
 
 // ═══════════════════════════════════════════════════════════
