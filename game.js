@@ -28,7 +28,7 @@ function getPieceName(p) {
 }
 
 function getPosName(r, c) {
-  const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ซ'];
+  const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ญ'];
   const rows = ['8','7','6','5','4','3','2','1'];
   return cols[c] + rows[r];
 }
@@ -130,7 +130,7 @@ function applyCell(size) {
 }
 
 function setupCoords(flipped) {
-  const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ซ'];
+  const cols = ['ก','ข','ค','ง','จ','ฉ','ช','ญ'];
   const rows = [8,7,6,5,4,3,2,1];
   const l = document.getElementById('coords-left');
   const b = document.getElementById('coords-bottom');
