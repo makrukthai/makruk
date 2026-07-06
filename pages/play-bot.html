@@ -797,7 +797,7 @@ function executeMove(move) {
 
   if (turn === 'b') {
     scheduleBot();
-  } else if (turn === 'w') {
+  } else if (!gameOver && turn === 'w') {
     tryApplyPremove();   // ⚡ บอทเดินจบ → เล่นพรีมูฟที่สั่งไว้
   }
 }
@@ -916,8 +916,11 @@ function endGame(reason) {
   stopClock();
   gameOver = true;
   premove = null;
+<<<<<<< HEAD
   const sri = document.getElementById('special-rules-info'); if (sri) sri.style.display='none';
   const cbb = document.getElementById('btn-count-board'); if (cbb) cbb.style.display='none';
+=======
+>>>>>>> 3d222dd (new)
   if (window.Sound) window.Sound.play('end');
   if (botThinkingTimer) { clearTimeout(botThinkingTimer); botThinkingTimer = null; }
 
@@ -958,6 +961,12 @@ function initGame() {
   sakdiKradanActive=false; sakdiKradanCount=0; sakdiKradanFleeColor=null; sakdiKradanLastChance=false;
   sakdiMakActive=false; sakdiMakCount=0; sakdiMakLimit=0; sakdiMakFleeColor=null;
   positionHistory = [boardToKey(boardState, turn)];
+
+  // เริ่มบันทึก replay ใหม่ (index 0 = กระดานเริ่มเกม)
+  moveLog = [{ board: window.cloneBoard(boardState), from: null, to: null }];
+  viewPointer = 0;
+  renderMoveLog();
+  updateMoveNavButtons();
 
   // เริ่มบันทึก replay ใหม่ (index 0 = กระดานเริ่มเกม)
   moveLog = [{ board: window.cloneBoard(boardState), from: null, to: null }];

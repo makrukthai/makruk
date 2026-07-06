@@ -469,3 +469,33 @@ html[data-theme] .topbar,
 html[data-theme] .topbar .nav a,
 html[data-theme] .topbar .brand { color: var(--btn-primary-text); }
 html[data-theme] .topbar-icon-btn { color: var(--btn-primary-text); opacity: 0.85; }
+
+/* ════════ ธีมจากดีไซน์ handoff: M Ink & Brass · N Studio (สว่าง) · O Arena ════════ */
+/* M · หมึก + ทองเหลือง (Ink & Brass — เข้ม พรีเมียม) */
+html[data-theme="inkbrass"] {
+  --bg:#17181C; --bg2:#1F2126; --surface:#26282E; --border:rgba(255,255,255,0.09);
+  --topbar-solid: linear-gradient(100deg, #d0ac63, #a37f3e);
+  --text:#ECEAE4; --muted:#98938A; --gold:#C6A15B; --gold-soft:rgba(198,161,91,0.16);
+  --btn-primary:#C6A15B; --btn-primary-hover:#D4B26E; --btn-primary-text:#1A1710;
+  --btn-secondary:#26282E; --btn-secondary-hover:#2E3138; --btn-secondary-text:#ECEAE4;
+}
+/* N · สตูดิโอ ครีมอุ่น + teal (สว่าง เป็นมิตร) */
+html[data-theme="studio"] {
+  --bg:#F7F1E6; --bg2:#FFFFFF; --surface:#FDFAF3; --border:rgba(36,30,22,0.13);
+  --topbar-solid: linear-gradient(100deg, #1a7d6f, #0f5348);
+  --text:#241E16; --muted:#6B5F4E; --gold:#14675B; --gold-soft:rgba(20,103,91,0.12);
+  --btn-primary:#14675B; --btn-primary-hover:#1A7D6F; --btn-primary-text:#ffffff;
+  --btn-secondary:#F1E9DB; --btn-secondary-hover:#EAE0CE; --btn-secondary-text:#241E16;
+  --btn-danger:#F6E0DA; --btn-danger-hover:#F0D2C9; --btn-danger-text:#A8402F;
+  --btn-sheen-top: rgba(255,255,255,0.28); --btn-sheen-bottom: rgba(0,0,0,0.08);
+  --topbar-bg:#ffffff;
+  --shadow-1: 0 2px 8px rgba(36,30,22,0.08); --shadow-2: 0 8px 24px rgba(36,30,22,0.13);
+}
+/* O · อารีน่า ดำ + เขียวมะนาว (อีสปอร์ต) */
+html[data-theme="arena"] {
+  --bg:#0E1013; --bg2:#171A1F; --surface:#1E2228; --border:rgba(255,255,255,0.09);
+  --topbar-solid: linear-gradient(100deg, #d3f75c, #9fd41f);
+  --text:#EDF0F4; --muted:#8A9099; --gold:#C7F23C; --gold-soft:rgba(199,242,60,0.14);
+  --btn-primary:#C7F23C; --btn-primary-hover:#D6FA55; --btn-primary-text:#12140F;
+  --btn-secondary:#22262C; --btn-secondary-hover:#2A2F36; --btn-secondary-text:#E6EAF0;
+}

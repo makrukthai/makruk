@@ -57,6 +57,9 @@ function applyThemeAndBackground() {
     rose:      { mode: "dark", theme: "rose" },
     contrast:  { mode: "dark", theme: "contrast" },
     aurora:    { mode: "dark", theme: "aurora" },
+    inkbrass:  { mode: "dark", theme: "inkbrass" },
+    studio:    { mode: "light", theme: "studio" },
+    arena:     { mode: "dark", theme: "arena" },
   };
   const picked = THEME_MAP[settings.backgroundMode] || THEME_MAP.dark;
   html.setAttribute("data-background-mode", picked.mode);
@@ -203,6 +206,9 @@ export function createSettingsModal() {
               <option value="rose">J · ชมพูกุหลาบ</option>
               <option value="contrast">K · ดำคอนทราสต์ + อำพัน</option>
               <option value="aurora">L · ออโรร่า</option>
+              <option value="inkbrass">M · หมึก + ทองเหลือง (Ink & Brass)</option>
+              <option value="studio">N · สตูดิโอ ครีมอุ่น + เขียว (สว่าง)</option>
+              <option value="arena">O · อารีน่า ดำ + เขียวมะนาว</option>
             </select>
           </div>
           <div class="settings-row" style="display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin-top:12px;">
