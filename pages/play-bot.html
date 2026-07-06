@@ -916,11 +916,8 @@ function endGame(reason) {
   stopClock();
   gameOver = true;
   premove = null;
-<<<<<<< HEAD
   const sri = document.getElementById('special-rules-info'); if (sri) sri.style.display='none';
   const cbb = document.getElementById('btn-count-board'); if (cbb) cbb.style.display='none';
-=======
->>>>>>> 3d222dd (new)
   if (window.Sound) window.Sound.play('end');
   if (botThinkingTimer) { clearTimeout(botThinkingTimer); botThinkingTimer = null; }
 
