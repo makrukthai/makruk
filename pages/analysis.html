@@ -24,21 +24,22 @@
 }
 
 .analysis-main {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 64px);   /* เต็มจอแบบ HERO ของ play.html */
   display: flex;
-  align-items: flex-start; /* เปลี่ยนจาก center เป็น flex-start เพื่อให้บอร์ดอยู่ด้านบนเสมอในมือถือ */
+  align-items: center;
   justify-content: center;
-  padding: 20px 0;
+  padding: 12px 0;
 }
 
 .analysis-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  align-items: start;
-  gap: 24px;
+  grid-template-columns: auto 300px;
+  align-items: center;
+  gap: 48px;
   width: 100%;
-  max-width: 1200px;
-  padding: 0 20px;
+  max-width: 1320px;
+  padding: 0 48px;
+  justify-content: center;
 }
 
 .board-container-col {
@@ -49,11 +50,21 @@
   width: 100%;
 }
 
+/* การ์ดกระดาน (เหมือน HERO play.html) */
+.board-section { position: relative; }
+.board-outer {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 24px 54px rgba(0,0,0,0.35);
+}
+
 .right-panel {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 280px;
+  width: 300px;
   background: transparent;
 }
 
@@ -62,15 +73,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg2);
   padding: 4px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-html[data-background-mode="light"] .mode-selector {
-  background: rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid var(--border);
 }
 
 .mode-btn {
@@ -83,25 +89,21 @@ html[data-background-mode="light"] .mode-selector {
   cursor: pointer;
   border-radius: 9px;
   transition: all 0.2s;
-  font-family: 'Noto Sans Thai', sans-serif;
+  font-family: var(--font-ui, 'Noto Sans Thai', sans-serif);
 }
 
 .mode-btn.active {
-  background: var(--bg2);
-  color: var(--text);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  background: var(--btn-primary);
+  color: var(--btn-primary-text);
+  box-shadow: inset 0 1px 0 var(--btn-sheen-top), inset 0 -1px 0 var(--btn-sheen-bottom);
 }
 
 /* ── Piece Palette (กระบะเลือกหมาก) ── */
 .palette-card {
   padding: 14px;
   background: var(--bg2);
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid var(--border);
   border-radius: 14px;
-}
-
-html[data-background-mode="light"] .palette-card {
-  border: 1px solid rgba(0,0,0,0.12);
 }
 
 .palette-title {
@@ -121,8 +123,8 @@ html[data-background-mode="light"] .palette-card {
 }
 
 .palette-btn {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 4px;
   cursor: pointer;
@@ -134,13 +136,13 @@ html[data-background-mode="light"] .palette-card {
 }
 
 .palette-btn:hover {
-  background: rgba(128,128,128,0.12);
+  border-color: var(--gold);
 }
 
 .palette-btn.selected {
-  background: rgba(128,128,128,0.22);
-  border-color: rgba(160,160,160,0.6);
-  box-shadow: 0 0 0 2px rgba(128,128,128,0.15);
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px var(--gold-soft);
 }
 
 .palette-btn img {
@@ -160,9 +162,9 @@ html[data-background-mode="light"] .palette-card {
 }
 
 .palette-btn.eraser.selected {
-  border-color: #ef4444;
-  background: rgba(239,68,68,0.1);
-  color: #ef6464;
+  border-color: transparent;
+  background: var(--btn-danger, rgba(239,68,68,0.12));
+  color: var(--btn-danger-text, #ef6464);
 }
 
 .action-buttons-vertical {
@@ -171,10 +173,39 @@ html[data-background-mode="light"] .palette-card {
   gap: 8px;
 }
 
+/* ปุ่ม action ให้เข้าธีมแบบปุ่มหน้า play */
+.action-buttons-vertical .btn-action {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--btn-secondary);
+  color: var(--btn-secondary-text);
+  font-weight: 600;
+  font-size: 13.5px;
+  font-family: var(--font-ui, 'Noto Sans Thai', sans-serif);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.action-buttons-vertical .btn-action:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: translateY(-1px);
+}
+.action-buttons-vertical .btn-action.danger {
+  background: var(--btn-danger);
+  color: var(--btn-danger-text);
+  border: none;
+}
+.action-buttons-vertical .btn-action.danger:hover {
+  background: var(--btn-danger-hover);
+  color: var(--btn-danger-text);
+  transform: translateY(-1px);
+}
+
 .btn-toggle-turn {
-  background: rgba(128,128,128,0.1);
-  color: var(--text);
-  border-color: rgba(128,128,128,0.2);
+  background: var(--btn-secondary);
+  color: var(--btn-secondary-text);
+  border-color: var(--border);
 }
 
 .btn-start-custom {
@@ -344,11 +375,10 @@ function calcCell() {
     const availableWidth = window.innerWidth - 32; 
     return Math.max(30, Math.floor(availableWidth / 8));
   } else {
-    // บน PC คำนวณแบบเดิม
-    const overallMargin = 64 + 80 + 100; 
-    const ah = window.innerHeight - overallMargin;
-    const aw = window.innerWidth - 340;
-    return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 76));
+    // บน PC — สเกลเดียวกับกระดาน HERO ของ play.html
+    const ah = window.innerHeight - 64 - 70;
+    const aw = window.innerWidth - 520;
+    return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 80));
   }
 }
 
