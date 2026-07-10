@@ -94,8 +94,10 @@
         </div>
 
         <div class="right-panel">
-          <div class="move-badge" id="move-badge">ดูเกม</div>
-          <div class="status-bar" id="game-status">—</div>
+          <div class="panel-head">
+            <div class="panel-meta"><span id="room-meta">ดูเกมย้อนหลัง</span><span class="move-badge" id="move-badge">ดูเกม</span></div>
+            <div class="status-bar" id="game-status">—</div>
+          </div>
 
           <div class="chat-panel">
             <div class="cp-tabs">
@@ -144,12 +146,12 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '
 function fbToBoard(fb) { return (fb || []).map(r => String(r).split(',').map(c => c || null)); }
 function fmtClock(s) { s = Math.max(0, Math.floor(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
 
-// ── คำนวณขนาดช่องกระดาน (เหมือน play-online) เพื่อให้ grid 8x8 ทำงาน ──
+// ── คำนวณขนาดช่องกระดาน (สูตรเดียวกับ play-online ปัจจุบัน) ──
 function rvCalcCell() {
-  const overallMargin = 64 + 0 + 200;
+  const overallMargin = 64 + 298;
   const ah = window.innerHeight - overallMargin;
-  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 64;
-  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 80));
+  const aw = window.innerWidth > 700 ? window.innerWidth - 450 : window.innerWidth - 64;
+  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 76));
 }
 function rvApplyCell() {
   document.documentElement.style.setProperty('--cell', `${rvCalcCell()}px`);
@@ -265,6 +267,8 @@ function render(g) {
   game = g;
   document.getElementById('review-loading').style.display = 'none';
   document.getElementById('review-body').style.display = '';
+  const metaEl = document.getElementById('room-meta');
+  if (metaEl) metaEl.textContent = `${g.ranked !== false ? 'เกมจัดอันดับ' : 'เกมไม่จัดอันดับ'}${g.minutes ? ' · ' + g.minutes + ' นาที' : ''} · ดูย้อนหลัง`;
   const w = g.w || {}, b = g.b || {}, def = '👤';
   const setAv = (id, p) => { const el = document.getElementById(id); if (p.avatar) el.innerHTML = `<img src="${esc(p.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentNode.textContent='👤'">`; else el.textContent = def; };
   setAv('opp-avatar', b); setAv('my-avatar', w);

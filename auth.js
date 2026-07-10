@@ -217,6 +217,44 @@ function saveCurrentUser(user) {
   }
 }
 
+// ─── Dropdown เมนู เรียนรู้/ชุมชน บน topbar (hover เปิดได้เลย ไม่ต้องคลิกเข้าไปก่อน) ───
+function enhanceNavDropdowns() {
+  const nav = document.querySelector(".topbar .nav");
+  if (!nav || nav.querySelector(".nav-drop")) return;
+  const MENUS = {
+    "learn.html": [
+      { href: "learn.html#lessons", label: "📖 บทเรียน" },
+      { href: "learn.html#tactics", label: "🧩 ชั้นเชิง" },
+      { href: "learn.html#courses", label: "🎓 คอร์ส" },
+    ],
+    "community.html": [
+      { href: "community.html#clubs", label: "🏛 ซุ้ม" },
+      { href: "community.html#chat",  label: "💬 แชทรวม" },
+      { href: "community.html#blog",  label: "📰 ข่าวสาร" },
+    ],
+  };
+  Object.keys(MENUS).forEach((page) => {
+    const link = nav.querySelector(`a[href$="${page}"]`);
+    if (!link) return;
+    const wrap = document.createElement("span");
+    wrap.className = "nav-drop";
+    link.parentNode.insertBefore(wrap, link);
+    wrap.appendChild(link);
+    const menu = document.createElement("div");
+    menu.className = "nav-drop-menu";
+    menu.innerHTML = `<div class="ndm-box">` + MENUS[page].map(m =>
+      `<a href="${m.href}">${m.label}</a>`).join("") + `</div>`;
+    wrap.appendChild(menu);
+    // ถ้าอยู่หน้าเดียวกันอยู่แล้ว ให้เปลี่ยนแท็บทันที (hashchange จัดการ)
+    menu.querySelectorAll("a").forEach(a => a.addEventListener("click", (e) => {
+      if (location.pathname.endsWith("/" + page) || location.pathname.endsWith(page)) {
+        e.preventDefault();
+        location.hash = a.getAttribute("href").split("#")[1] || "";
+      }
+    }));
+  });
+}
+
 function createMobileNav() {
   if (document.getElementById("hamburger-btn")) return;
 
@@ -821,6 +859,7 @@ function initAuth() {
   createAuthModal();
   createProfileModal();
   createMobileNav();
+  enhanceNavDropdowns();
   setProfileSubmitHandler(handleProfileForm);
   updateAuthUI();
   attachTopbarButtons();

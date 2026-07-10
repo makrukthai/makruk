@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="th" data-background-mode="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUKTHAI - ตั้งค่า</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../theme-refresh.css">
+<link rel="stylesheet" href="../mobile.css">
+<script type="module" src="../auth.js"></script>
+<style>
+  .setting-body { overflow-x: hidden !important; overflow-y: auto !important; }
+  .setting-body .main { height: auto; min-height: calc(100vh - 64px); display: block; }
+
+  .set-wrap { max-width: 900px; margin: 0 auto; padding: 30px 20px 60px; }
+  .set-head h1 { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 4px; }
+  .set-head p { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+
+  .set-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .set-card h2 { font-size: 16px; font-weight: 700; color: var(--text); margin: 0 0 3px; }
+  .set-card .sub { font-size: 12.5px; color: var(--muted); margin: 0 0 16px; }
+
+  /* ── ธีม: การ์ดตัวอย่างสี ── */
+  .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+  .theme-card {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    background: none; padding: 0; text-align: left;
+    font-family: var(--font-ui, 'Noto Sans Thai', sans-serif);
+    transition: transform .15s, border-color .15s, box-shadow .15s;
+  }
+  .theme-card:hover { transform: translateY(-2px); border-color: var(--gold); }
+  .theme-card.on { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .tc-preview { height: 58px; position: relative; display: flex; align-items: flex-end; padding: 8px; gap: 5px; }
+  .tc-preview .acc { width: 34px; height: 13px; border-radius: 4px; }
+  .tc-preview .ln { flex: 1; height: 7px; border-radius: 4px; opacity: .5; }
+  .tc-name {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; font-size: 12px; font-weight: 600;
+    color: var(--text); background: var(--bg);
+  }
+  .tc-name .chk { color: var(--gold); font-weight: 800; display: none; }
+  .theme-card.on .tc-name .chk { display: inline; }
+
+  /* ── แถวตั้งค่า + toggle ── */
+  .set-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 13px 0; border-top: 1px solid var(--border);
+  }
+  .set-row:first-of-type { border-top: none; padding-top: 2px; }
+  .set-row .info { min-width: 0; }
+  .set-row .t { font-size: 14px; font-weight: 600; color: var(--text); }
+  .set-row .d { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .switch { position: relative; width: 46px; height: 26px; flex: none; cursor: pointer; }
+  .switch input { display: none; }
+  .switch .tr {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: var(--btn-secondary); border: 1px solid var(--border);
+    transition: background .18s, border-color .18s;
+  }
+  .switch .tr::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--muted); transition: transform .18s, background .18s;
+  }
+  .switch input:checked + .tr { background: var(--btn-primary); border-color: var(--btn-primary); }
+  .switch input:checked + .tr::after { transform: translateX(20px); background: var(--btn-primary-text); }
+
+  .seg { display: inline-flex; gap: 5px; background: var(--bg); border: 1px solid var(--border); border-radius: 11px; padding: 4px; flex: none; }
+  .seg button {
+    border: none; background: transparent; color: var(--muted);
+    font-size: 12.5px; font-weight: 600; padding: 7px 13px; border-radius: 8px; cursor: pointer;
+    font-family: var(--font-ui, 'Noto Sans Thai', sans-serif); transition: all .15s;
+  }
+  .seg button.on { background: var(--btn-primary); color: var(--btn-primary-text); box-shadow: inset 0 1px 0 var(--btn-sheen-top); }
+
+  .mini-btn {
+    background: var(--btn-secondary); color: var(--btn-secondary-text);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: var(--font-ui, 'Noto Sans Thai', sans-serif); transition: all .15s; flex: none;
+  }
+  .mini-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .mini-btn.danger { background: var(--btn-danger); color: var(--btn-danger-text); border-color: transparent; }
+  .mini-btn.danger:hover { background: var(--btn-danger-hover); color: var(--btn-danger-text); }
+
+  .bg-input {
+    flex: 1; min-width: 0;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 13px; color: var(--text); font-size: 13px;
+    font-family: var(--font-ui, 'Noto Sans Thai', sans-serif);
+  }
+  .bg-input:focus { outline: none; border-color: var(--gold); }
+  .bg-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+
+  /* บัญชี */
+  .acc-row { display: flex; align-items: center; gap: 13px; }
+  .acc-avatar {
+    width: 52px; height: 52px; border-radius: 14px; overflow: hidden; flex: none;
+    background: var(--btn-secondary); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold); font-weight: 700; font-size: 22px;
+  }
+  .acc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .acc-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .acc-mail { font-size: 12.5px; color: var(--muted); }
+  .acc-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .save-hint {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(60px);
+    background: var(--btn-primary); color: var(--btn-primary-text);
+    font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 999px;
+    box-shadow: 0 10px 26px rgba(0,0,0,.35); opacity: 0; pointer-events: none;
+    transition: all .25s ease; z-index: 9000;
+  }
+  .save-hint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 700px) {
+    .set-wrap { padding: 20px 14px 50px; }
+    .set-row { flex-wrap: wrap; }
+    .seg { width: 100%; }
+    .seg button { flex: 1; }
+    .acc-actions { margin-left: 0; width: 100%; }
+    .acc-actions .mini-btn { flex: 1; }
+  }
+</style>
+</head>
+<body class="setting-body">
+
+<header class="topbar">
+  <div class="left">
+    <a href="play.html" class="logo">
+      <div class="logo-icon">
+        <img class="logo-dark" src="/Images/DarkLOGO.png" alt="RUKTHAI logo dark">
+        <img class="logo-light" src="/Images/LightLOGO.png" alt="RUKTHAI logo light">
+      </div>
+    </a>
+    <nav class="nav">
+      <a href="play.html">เล่น</a>
+      <a href="tournament.html">ทัวร์นาเมนต์</a>
+      <a href="learn.html">เรียนรู้</a>
+      <a href="watch.html">ดูเกม</a>
+      <a href="community.html">ชุมชน</a>
+      <input class="search" placeholder="ค้นหาผู้เล่น...">
+    </nav>
+  </div>
+  <div class="right">
+        <button class="register">ลงทะเบียน</button>
+        <button class="login">เข้าสู่ระบบ</button>
+    </div>
+</header>
+
+<main class="main">
+  <div class="set-wrap">
+    <div class="set-head">
+      <h1>⚙️ ตั้งค่า</h1>
+      <p>ทุกการเปลี่ยนแปลงถูกบันทึกและมีผลทันที</p>
+    </div>
+
+    <!-- ธีม -->
+    <section class="set-card">
+      <h2>🎨 ธีมของเว็บ</h2>
+      <p class="sub">เลือกโทนสีทั้งเว็บ — แตะการ์ดเพื่อเปลี่ยนทันที</p>
+      <div class="theme-grid" id="theme-grid"></div>
+    </section>
+
+    <!-- กระดาน + พื้นหลัง -->
+    <section class="set-card">
+      <h2>♟️ กระดานและพื้นหลัง</h2>
+      <p class="sub">ปรับหน้าตากระดานและภาพพื้นหลังของเว็บ</p>
+      <div class="set-row">
+        <div class="info"><div class="t">พื้นช่องกระดาน</div><div class="d">เลือกผิวช่องบนกระดานเล่นจริง</div></div>
+        <div class="seg" id="seg-cell">
+          <button data-v="standard">สีพื้น</button>
+          <button data-v="wood">ลายไม้</button>
+        </div>
+      </div>
+      <div class="set-row" style="flex-direction:column; align-items:stretch;">
+        <div class="info"><div class="t">ภาพพื้นหลังเว็บ (กำหนดเอง)</div><div class="d">วางลิงก์รูป หรือเลือกไฟล์จากเครื่อง (ไฟล์เล็กกว่า ~1MB)</div></div>
+        <div class="bg-row">
+          <input class="bg-input" id="bg-url" placeholder="https://... ลิงก์รูปภาพ">
+          <button class="mini-btn" id="bg-apply">ใช้ลิงก์นี้</button>
+          <button class="mini-btn" id="bg-pick">เลือกไฟล์…</button>
+          <button class="mini-btn danger" id="bg-clear">ล้างพื้นหลัง</button>
+          <input type="file" id="bg-file" accept="image/*" style="display:none;">
+        </div>
+      </div>
+    </section>
+
+    <!-- การเล่น -->
+    <section class="set-card">
+      <h2>🎮 การเล่น</h2>
+      <p class="sub">ตัวเลือกระหว่างเล่นเกม</p>
+      <div class="set-row">
+        <div class="info"><div class="t">เดินล่วงหน้า (Premove)</div><div class="d">สั่งตาเดินไว้ก่อนระหว่างรอคู่ต่อสู้ — เดินให้ทันทีเมื่อถึงตาเรา</div></div>
+        <label class="switch"><input type="checkbox" id="sw-premove"><span class="tr"></span></label>
+      </div>
+      <div class="set-row">
+        <div class="info"><div class="t">แสดงตาเดินที่ไปได้</div><div class="d">จุดบอกช่องที่หมากตัวที่เลือกเดินได้</div></div>
+        <label class="switch"><input type="checkbox" id="sw-showmoves"><span class="tr"></span></label>
+      </div>
+      <div class="set-row">
+        <div class="info"><div class="t">วิธีเดินหมาก</div><div class="d">เลือกวิธีที่ถนัด</div></div>
+        <div class="seg" id="seg-move">
+          <button data-v="click">คลิก</button>
+          <button data-v="drag">ลาก</button>
+          <button data-v="both">ทั้งสองแบบ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- เสียง -->
+    <section class="set-card">
+      <h2>🔊 เสียง</h2>
+      <p class="sub">เสียงเอฟเฟกต์ระหว่างเล่น (เดินหมาก กินหมาก รุก ฯลฯ)</p>
+      <div class="set-row">
+        <div class="info"><div class="t">เปิดเสียงเอฟเฟกต์</div><div class="d">มีผลทุกหน้าเกมทันที</div></div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="mini-btn" id="btn-sound-test">▶ ทดสอบ</button>
+          <label class="switch"><input type="checkbox" id="sw-sound"><span class="tr"></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- บัญชี -->
+    <section class="set-card" id="acc-card">
+      <h2>👤 บัญชี</h2>
+      <p class="sub">ข้อมูลผู้ใช้ปัจจุบัน</p>
+      <div class="acc-row" id="acc-row">
+        <div class="acc-avatar" id="acc-avatar">?</div>
+        <div>
+          <div class="acc-name" id="acc-name">ยังไม่ได้เข้าสู่ระบบ</div>
+          <div class="acc-mail" id="acc-mail">เข้าสู่ระบบเพื่อบันทึกสถิติและเรตติ้ง</div>
+        </div>
+        <div class="acc-actions">
+          <button class="mini-btn" id="btn-profile">ดูโปรไฟล์</button>
+          <button class="mini-btn danger" id="btn-logout">ออกจากระบบ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- รีเซ็ต -->
+    <section class="set-card">
+      <h2>♻️ คืนค่าเริ่มต้น</h2>
+      <p class="sub">ตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น (ไม่กระทบบัญชี/สถิติ)</p>
+      <button class="mini-btn danger" id="btn-reset">คืนค่าเริ่มต้นทั้งหมด</button>
+    </section>
+  </div>
+</main>
+
+<div class="save-hint" id="save-hint">✓ บันทึกแล้ว</div>
+
+<script src="../sound.js"></script>
+<script type="module">
+import "../setting.js";   // ให้ระบบ apply ธีมกลางทำงานตามปกติ
+
+const KEY = "rukthai_settings";
+const DEFAULTS = {
+  backgroundMode: "dark",
+  boardBackground: "Board9.png",
+  customBackground: "",
+  moveMethod: "both",
+  showMoves: "show",
+  boardCellStyle: "standard",
+  soundEnabled: true,
+  premoveEnabled: true
+};
+const CELL_STYLES = { standard: { file: null }, wood: { file: "/Boards/cell-wood.jpg", line: "rgba(74,43,19,0.55)" } };
+const THEME_MAP = {
+  dark:{mode:"dark",theme:""}, light:{mode:"light",theme:""},
+  charcoal:{mode:"dark",theme:"charcoal"}, midnight:{mode:"dark",theme:"midnight"},
+  slate:{mode:"dark",theme:"slate"}, glass:{mode:"dark",theme:"glass"},
+  spotlight:{mode:"dark",theme:"spotlight"}, indigo:{mode:"dark",theme:"indigo"},
+  cyan:{mode:"dark",theme:"cyan"}, rose:{mode:"dark",theme:"rose"},
+  contrast:{mode:"dark",theme:"contrast"}, aurora:{mode:"dark",theme:"aurora"},
+  inkbrass:{mode:"dark",theme:"inkbrass"}, studio:{mode:"light",theme:"studio"}, arena:{mode:"dark",theme:"arena"},
+};
+const THEMES = [
+  { id:"dark",      name:"Dark (มาตรฐาน)",        bg:"#181715", acc:"#bf6730", tx:"#f1ede6" },
+  { id:"light",     name:"Light (สว่าง)",          bg:"#ffffff", acc:"#a9842f", tx:"#1a1a1a" },
+  { id:"charcoal",  name:"A · ถ่านดำ + ส้ม",       bg:"#1b130d", acc:"#c56c30", tx:"#f6ede2" },
+  { id:"midnight",  name:"C · ดำ + ทอง",           bg:"#16130a", acc:"#d4af55", tx:"#f6f1e2" },
+  { id:"slate",     name:"E · เขียวมรกต",          bg:"#0d1c17", acc:"#10b981", tx:"#e8f6f0" },
+  { id:"glass",     name:"F · ม่วง",               bg:"#190f28", acc:"#8b5cf6", tx:"#f1e9fc" },
+  { id:"spotlight", name:"G · สปอตไลต์ทอง",        bg:"#1a1409", acc:"#d4af55", tx:"#f8f1df" },
+  { id:"indigo",    name:"H · กรมท่า",             bg:"#101535", acc:"#6366f1", tx:"#eaeefc" },
+  { id:"cyan",      name:"I · ฟ้าเขียว Cyan",      bg:"#072730", acc:"#0aa3c4", tx:"#e6fafd" },
+  { id:"rose",      name:"J · ชมพูกุหลาบ",         bg:"#24101b", acc:"#e85585", tx:"#fce9f1" },
+  { id:"contrast",  name:"K · คอนทราสต์ + อำพัน",  bg:"#0c0b07", acc:"#e0a458", tx:"#fbf6ee" },
+  { id:"aurora",    name:"L · ออโรร่า",            bg:"#15132e", acc:"#7c5cf0", tx:"#f0eefc" },
+  { id:"inkbrass",  name:"M · หมึก + ทองเหลือง",   bg:"#17181C", acc:"#C6A15B", tx:"#ECEAE4" },
+  { id:"studio",    name:"N · สตูดิโอ (สว่าง)",     bg:"#F7F1E6", acc:"#14675B", tx:"#241E16" },
+  { id:"arena",     name:"O · อารีน่า มะนาว",      bg:"#0E1013", acc:"#C7F23C", tx:"#EDF0F4" },
+];
+
+function load() { try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY)) || {}) }; } catch(e){ return { ...DEFAULTS }; } }
+function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); toast(); }
+let S = load();
+
+// apply ทันที (ตรรกะเดียวกับ setting.js)
+function applyNow() {
+  const html = document.documentElement;
+  const picked = THEME_MAP[S.backgroundMode] || THEME_MAP.dark;
+  html.setAttribute("data-background-mode", picked.mode);
+  if (picked.theme) html.setAttribute("data-theme", picked.theme);
+  else html.removeAttribute("data-theme");
+  const cs = CELL_STYLES[S.boardCellStyle] || CELL_STYLES.standard;
+  if (cs.file) {
+    html.setAttribute("data-cell-style", "image");
+    html.style.setProperty("--cell-bg-image", `url("${cs.file}")`);
+    html.style.setProperty("--cell-line-color", cs.line || "rgba(74,43,19,0.55)");
+  } else {
+    html.setAttribute("data-cell-style", "standard");
+    html.style.removeProperty("--cell-bg-image");
+    html.style.removeProperty("--cell-line-color");
+  }
+  const bg = (S.customBackground || "").trim();
+  if (bg) {
+    html.style.setProperty("--user-bg-image", `url("${bg.replace(/"/g, '%22')}")`);
+    html.setAttribute("data-user-bg", "on");
+  } else {
+    html.style.removeProperty("--user-bg-image");
+    html.removeAttribute("data-user-bg");
+  }
+}
+
+let toastTimer = null;
+function toast() {
+  const el = document.getElementById('save-hint');
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+// ── ธีม ──
+const grid = document.getElementById('theme-grid');
+function renderThemes() {
+  grid.innerHTML = THEMES.map(t => `
+    <button class="theme-card${S.backgroundMode === t.id ? ' on' : ''}" data-theme-id="${t.id}">
+      <span class="tc-preview" style="background:${t.bg};">
+        <span class="acc" style="background:${t.acc};"></span>
+        <span class="ln" style="background:${t.tx};"></span>
+      </span>
+      <span class="tc-name"><span>${t.name}</span><span class="chk">✓</span></span>
+    </button>`).join('');
+  grid.querySelectorAll('[data-theme-id]').forEach(b => b.addEventListener('click', () => {
+    S.backgroundMode = b.dataset.themeId;
+    save(S); applyNow(); renderThemes();
+  }));
+}
+renderThemes();
+
+// ── segmented ──
+function bindSeg(id, field, after) {
+  const seg = document.getElementById(id);
+  const paint = () => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === S[field]));
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    S[field] = b.dataset.v; save(S); paint(); if (after) after();
+  }));
+  paint();
+}
+bindSeg('seg-cell', 'boardCellStyle', applyNow);
+bindSeg('seg-move', 'moveMethod');
+
+// ── toggles ──
+function bindSwitch(id, field, after) {
+  const el = document.getElementById(id);
+  el.checked = S[field] !== false && S[field] !== 'hide';
+  el.addEventListener('change', () => {
+    if (field === 'showMoves') S.showMoves = el.checked ? 'show' : 'hide';
+    else S[field] = el.checked;
+    save(S); if (after) after();
+  });
+}
+bindSwitch('sw-premove', 'premoveEnabled');
+document.getElementById('sw-showmoves').checked = S.showMoves !== 'hide';
+document.getElementById('sw-showmoves').addEventListener('change', (e) => {
+  S.showMoves = e.target.checked ? 'show' : 'hide'; save(S);
+});
+bindSwitch('sw-sound', 'soundEnabled', () => {
+  if (window.Sound && window.Sound.setEnabled) window.Sound.setEnabled(S.soundEnabled);
+});
+document.getElementById('btn-sound-test').addEventListener('click', () => {
+  if (window.Sound && window.Sound.play) window.Sound.play('move');
+});
+
+// ── พื้นหลังกำหนดเอง ──
+document.getElementById('bg-url').value = (S.customBackground || '').startsWith('data:') ? '' : (S.customBackground || '');
+document.getElementById('bg-apply').addEventListener('click', () => {
+  S.customBackground = document.getElementById('bg-url').value.trim();
+  save(S); applyNow();
+});
+document.getElementById('bg-pick').addEventListener('click', () => document.getElementById('bg-file').click());
+document.getElementById('bg-file').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      S.customBackground = r.result;
+      localStorage.setItem(KEY, JSON.stringify(S));
+      applyNow(); toast();
+    } catch (err) { alert('รูปใหญ่เกินไป บันทึกไม่ได้ ลองรูปเล็กลง'); S = load(); }
+  };
+  r.readAsDataURL(f);
+});
+document.getElementById('bg-clear').addEventListener('click', () => {
+  S.customBackground = ''; document.getElementById('bg-url').value = '';
+  save(S); applyNow();
+});
+
+// ── บัญชี ──
+let user = null;
+try { user = JSON.parse(localStorage.getItem('rukthai_current_user')); } catch(e){}
+if (user) {
+  document.getElementById('acc-name').textContent = user.name || user.email || 'ผู้เล่น';
+  document.getElementById('acc-mail').textContent = user.email || '';
+  const av = document.getElementById('acc-avatar');
+  if (user.avatar) av.innerHTML = `<img src="${String(user.avatar).replace(/"/g,'')}" alt="">`;
+  else av.textContent = (user.name || user.email || '?').trim().charAt(0).toUpperCase();
+} else {
+  document.getElementById('btn-logout').style.display = 'none';
+}
+document.getElementById('btn-profile').addEventListener('click', () => location.href = 'profile.html');
+document.getElementById('btn-logout').addEventListener('click', () => {
+  if (!confirm('ออกจากระบบ?')) return;
+  localStorage.removeItem('rukthai_current_user');
+  location.href = 'play.html';
+});
+
+// ── รีเซ็ต ──
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('คืนการตั้งค่าทั้งหมดเป็นค่าเริ่มต้น?')) return;
+  S = { ...DEFAULTS };
+  localStorage.setItem(KEY, JSON.stringify(S));
+  applyNow(); renderThemes();
+  bindSegPaint();
+  location.reload();
+});
+function bindSegPaint(){ /* reload จัดการ UI ให้ */ }
+</script>
+</body>
+</html>

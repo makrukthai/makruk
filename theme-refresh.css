@@ -499,3 +499,45 @@ html[data-theme="arena"] {
   --btn-primary:#C7F23C; --btn-primary-hover:#D6FA55; --btn-primary-text:#12140F;
   --btn-secondary:#22262C; --btn-secondary-hover:#2A2F36; --btn-secondary-text:#E6EAF0;
 }
+
+/* ═══ Dropdown เมนู topbar (เรียนรู้/ชุมชน) — เลื่อนเมาส์เปิดได้เลย ═══ */
+.nav-drop { position: relative; display: inline-flex; align-items: center; }
+.nav-drop > a::after { content: " ▾"; font-size: 0.7em; opacity: 0.7; }
+.nav-drop-menu {
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding-top: 10px;               /* สะพานกัน hover หลุดระหว่างทาง */
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 12000;
+}
+.nav-drop:hover .nav-drop-menu,
+.nav-drop:focus-within .nav-drop-menu {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.ndm-box {
+  min-width: 168px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 38px rgba(0,0,0,0.4);
+  padding: 6px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ndm-box a {
+  display: block;
+  padding: 9px 13px;
+  border-radius: 8px;
+  color: var(--text) !important;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.13s, color 0.13s;
+}
+.ndm-box a:hover { background: var(--gold-soft); color: var(--gold) !important; }
+/* บนธีมสี ตัวลิงก์ topbar เป็นสีตัวอักษรปุ่ม — ในกล่อง dropdown ใช้สีปกติของธีม */
+html[data-theme] .nav-drop-menu .ndm-box a { color: var(--text) !important; }
+html[data-theme] .nav-drop-menu .ndm-box a:hover { color: var(--gold) !important; }

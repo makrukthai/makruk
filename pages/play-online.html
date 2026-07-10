@@ -89,8 +89,10 @@
         </div>
 
         <div class="right-panel">
-          <div class="move-badge" id="move-badge">รอเริ่มเกม</div>
-          <div class="status-bar" id="game-status">รอผู้เล่น…</div>
+          <div class="panel-head">
+            <div class="panel-meta"><span id="room-meta">ห้องแข่งขันออนไลน์</span><span class="move-badge" id="move-badge">รอเริ่มเกม</span></div>
+            <div class="status-bar" id="game-status">รอผู้เล่น…</div>
+          </div>
 
           <div class="chat-panel">
             <div class="cp-tabs">
@@ -139,9 +141,9 @@
             <button id="btn-resign-cancel" class="btn-action">ยกเลิก</button>
           </div>
 
-          <div class="action-row" style="flex-direction:row; gap:6px;">
-            <button class="btn-action danger" id="btn-resign" disabled>🏳 ยอมแพ้</button>
-            <button class="btn-action" id="btn-draw" disabled>🤝 ขอเสมอ</button>
+          <div class="action-row" style="flex-direction:row; gap:10px;">
+            <button class="btn-action" id="btn-draw" disabled>½ ขอเสมอ</button>
+            <button class="btn-action danger" id="btn-resign" disabled>⚑ ยอมแพ้</button>
           </div>
           <button class="btn-action" id="btn-abort" disabled style="display:none; width:100%; flex:0 0 auto;">✖ ยกเลิกเกม</button>
           <button class="btn-action" id="btn-count-board" style="display:none; width:100%; flex:0 0 auto;">📿 ขอนับศักดิ์กระดาน</button>
@@ -703,10 +705,11 @@ function sanitizeQueueKey(value) {
 }
 
 function calcCell() {
-  const overallMargin = 64 + 0 + 200; 
+  // เผื่อ: topbar 64 + การ์ดผู้เล่นบนล่าง ~132 + ขอบกรอบ/ช่องไฟ ~114 + ระยะขอบบนล่าง 52
+  const overallMargin = 64 + 298;
   const ah = window.innerHeight - overallMargin;
-  const aw = window.innerWidth > 700 ? window.innerWidth - 330 : window.innerWidth - 64;
-  return Math.max(34, Math.min(Math.floor(Math.min(ah,aw)/8), 80));
+  const aw = window.innerWidth > 700 ? window.innerWidth - 450 : window.innerWidth - 64;
+  return Math.max(34, Math.min(Math.floor(Math.min(ah,aw)/8), 76));
 }
 
 function updateLayoutSize() {
@@ -1973,6 +1976,8 @@ async function startGame(gid) {
   selectedMinutes = data.minutes;
   gameBonus = data.bonus || 0;
   gameRanked = (data.ranked !== false); // ค่าเริ่มต้น = คิด ELO (เกมจับคู่สุ่มถือว่าจัดอันดับ)
+  const metaEl = document.getElementById('room-meta');
+  if (metaEl) metaEl.textContent = `${gameRanked ? 'เกมจัดอันดับ' : 'เกมไม่จัดอันดับ'} · ${data.minutes} นาที`;
   gameTournament = data.tournament || null; // context ทัวร์นาเมนต์ (ถ้ามี)
   // ── ตรรกะทัวร์: นาฬิกาขาวเดินทันที + เวลาเข้าร่วม (late) ──
   isTournamentGame = !!data.tournament;

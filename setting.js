@@ -57,9 +57,9 @@ function applyThemeAndBackground() {
     rose:      { mode: "dark", theme: "rose" },
     contrast:  { mode: "dark", theme: "contrast" },
     aurora:    { mode: "dark", theme: "aurora" },
-    inkbrass:  { mode: "dark", theme: "inkbrass" },
+    inkbrass:  { mode: "dark",  theme: "inkbrass" },
     studio:    { mode: "light", theme: "studio" },
-    arena:     { mode: "dark", theme: "arena" },
+    arena:     { mode: "dark",  theme: "arena" },
   };
   const picked = THEME_MAP[settings.backgroundMode] || THEME_MAP.dark;
   html.setAttribute("data-background-mode", picked.mode);
@@ -172,7 +172,8 @@ function handleSettingsSubmit(event) {
 }
 
 export function handleSettingsClick() {
-  openSettingsModal();
+  // เปิดหน้าตั้งค่าเต็มรูปแบบ (แทน modal เดิม)
+  window.location.href = "setting.html";
 }
 
 export function createSettingsModal() {
