@@ -1091,3 +1091,10 @@ html[data-background-mode="light"] .chat-panel {
   border-color: var(--border);
   color: var(--muted);
 }
+
+/* ปุ่มเต็มแถวที่เป็นลูกตรงของแผงขวา: กว้างพอดีขอบ ไม่ล้น */
+.right-panel > .btn-action {
+  display: block;
+  width: calc(100% - 28px) !important;
+  box-sizing: border-box;
+}

@@ -159,7 +159,7 @@
 .home-sec:last-of-type { padding-bottom: 48px; }
 .sec-title { font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 4px; }
 .sec-sub { font-size: 14px; color: var(--muted); margin: 0 0 20px; }
-.modes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.modes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 
 .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 34px; }
 .feature-card {
@@ -623,7 +623,17 @@ html[data-background-mode="light"] .time-modal {
           <div class="hero-cta-row">
             <button class="hero-btn-primary" id="hero-online">เริ่มแข่งขัน</button>
             <button class="hero-btn-secondary" id="hero-bot">เล่นกับบอท</button>
+            <button class="hero-btn-secondary" id="hero-friend">เล่นกับเพื่อน</button>
             <button class="hero-btn-secondary" id="hero-create-room">＋ สร้างห้อง</button>
+          </div>
+
+          <!-- ลิงก์ชวนเพื่อน (โชว์หลังสร้างห้องเพื่อน) -->
+          <div id="friend-link-bar" style="display:none; margin-top:12px; background:var(--gold-soft); border:1px solid var(--gold); border-radius:12px; padding:10px 12px;">
+            <div style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:6px;">🔗 ส่งลิงก์นี้ให้เพื่อน — เพื่อนกดแล้วเข้าเกมทันที</div>
+            <div style="display:flex; gap:6px;">
+              <input readonly id="friend-link" style="flex:1; min-width:0; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:12px; font-family:var(--font-ui,'Noto Sans Thai',sans-serif);">
+              <button id="friend-link-copy" class="hero-btn-secondary" style="padding:8px 14px; font-size:12.5px;">คัดลอก</button>
+            </div>
           </div>
 
           <!-- ห้องที่ผู้เล่นสร้าง (กดเข้าเล่นได้) -->
@@ -652,24 +662,6 @@ html[data-background-mode="light"] .time-modal {
     <h2 class="sec-title">โหมดเล่น</h2>
     <p class="sec-sub">เลือกรูปแบบการเล่นที่เหมาะกับคุณ</p>
     <div class="modes-grid">
-      <button class="menu-card c-online" id="btn-online">
-        <div class="menu-card-icon">♞</div>
-        <div>
-          <div class="menu-card-title">เล่นออนไลน์</div>
-          <div class="menu-card-desc">จับคู่ตามเรตติ้ง · จัดอันดับ</div>
-        </div>
-        <span class="menu-card-arrow">›</span>
-      </button>
-
-      <button class="menu-card c-bot" id="btn-bot">
-        <div class="menu-card-icon">♟</div>
-        <div>
-          <div class="menu-card-title">เล่นกับ BOT</div>
-          <div class="menu-card-desc">เลือกระดับได้ · ไม่จัดอันดับ</div>
-        </div>
-        <span class="menu-card-arrow">›</span>
-      </button>
-
       <button class="menu-card c-tourney" id="btn-tourney">
         <div class="menu-card-icon">♛</div>
         <div>
@@ -691,7 +683,7 @@ html[data-background-mode="light"] .time-modal {
 
     <!-- ═══ ฟีเจอร์ (เรียนรู้ / ชั้นเชิง / ชุมชน) ═══ -->
     <div class="features-grid">
-      <a class="feature-card filled" href="learn.html#lessons">
+      <a class="feature-card" href="learn.html#lessons">
         <div class="f-ico">♞</div>
         <div class="f-body">
           <div class="f-title">เรียนรู้</div>
@@ -721,8 +713,8 @@ html[data-background-mode="light"] .time-modal {
   <!-- footer -->
   <footer class="home-footer">
     <div class="fw">
-      <span>♞ RUKTHAI</span>
-      <span>© 2026 RUKTHAI · หมากรุกไทยออนไลน์</span>
+      <span>♞ MAKRUK</span>
+      <span>© 2026 MAKRUK.com · หมากรุกไทยออนไลน์</span>
       <span><a href="community.html">ชุมชน</a></span>
     </div>
   </footer>
@@ -806,8 +798,8 @@ html[data-background-mode="light"] .time-modal {
     <button class="time-modal-close" id="close-room-modal">✕</button>
     <div class="time-modal-header">
       <div class="time-modal-icon">🏠</div>
-      <div class="time-modal-title">สร้างห้องเล่น</div>
-      <div class="time-modal-sub">ตั้งค่าห้อง แล้วรอผู้เล่นเข้าร่วม</div>
+      <div class="time-modal-title" id="room-modal-title">สร้างห้องเล่น</div>
+      <div class="time-modal-sub" id="room-modal-sub">ตั้งค่าห้อง แล้วรอผู้เล่นเข้าร่วม</div>
     </div>
 
     <div class="diff-section">
@@ -879,12 +871,12 @@ let selectedDepth = 2; // default กลาง
 
 const overlay = document.getElementById('time-overlay');
 
-document.getElementById('btn-bot').addEventListener('click', () => {
+function openBotModal() {
   overlay.classList.remove('hidden');
   selectedMinutes = null;
-  document.querySelectorAll('.time-option').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('#time-overlay .time-option').forEach(o => o.classList.remove('selected'));
   document.getElementById('start-bot').disabled = true;
-});
+}
 
 document.getElementById('close-time-modal').addEventListener('click', () => {
   overlay.classList.add('hidden');
@@ -907,10 +899,10 @@ document.querySelectorAll('.diff-option').forEach(btn => {
   });
 });
 
-// เลือกเวลา
-document.querySelectorAll('.time-option').forEach(btn => {
+// เลือกเวลา (เฉพาะ modal บอท)
+document.querySelectorAll('#time-overlay .time-option').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.time-option').forEach(o => o.classList.remove('selected'));
+    document.querySelectorAll('#time-overlay .time-option').forEach(o => o.classList.remove('selected'));
     btn.classList.add('selected');
     selectedMinutes = parseInt(btn.dataset.minutes);
     document.getElementById('start-bot').disabled = false;
@@ -921,9 +913,6 @@ document.getElementById('start-bot').addEventListener('click', () => {
   if (!selectedMinutes) return;
   window.location.href = `play-bot.html?time=${selectedMinutes}&depth=${selectedDepth}`;
 });
-document.getElementById('btn-online').addEventListener('click', () => {
-  window.location.href = 'play-online.html';
-});
 document.getElementById('btn-tourney').addEventListener('click', () => {
   window.location.href = 'tournament.html';
 });
@@ -931,13 +920,14 @@ document.getElementById('btn-analysis').addEventListener('click', () => {
   window.location.href = 'analysis.html';
 });
 
-// ── Hero CTA: เริ่มแข่งขัน → ออนไลน์ · เล่นกับบอท → เปิด modal ตั้งค่าบอทเดิม ──
+// ── Hero CTA: เริ่มแข่งขันพร้อมเวลาที่เลือก · เล่นกับบอทเปิด modal ──
+const TC_MIN = { bullet: 1, blitz: 3, rapid: 10, classic: 30 };
 document.getElementById('hero-online').addEventListener('click', () => {
-  window.location.href = 'play-online.html';
+  let tc = 'rapid';
+  try { tc = localStorage.getItem('rukthai_home_tc') || 'rapid'; } catch (e) {}
+  window.location.href = 'play-online.html?time=' + (TC_MIN[tc] || 10);
 });
-document.getElementById('hero-bot').addEventListener('click', () => {
-  document.getElementById('btn-bot').click();
-});
+document.getElementById('hero-bot').addEventListener('click', openBotModal);
 
 // ── ชิปโหมดเวลา: เลือกได้ตัวเดียว (จำค่าไว้) ──
 (function () {
@@ -1008,12 +998,18 @@ function requireLogin() {
 // ── modal สร้างห้อง ──
 const roomOverlay = document.getElementById('room-overlay');
 let roomMinutes = 10, roomColor = 'random';
+let roomMode = 'public';   // 'public' = โชว์ในล็อบบี้ | 'friend' = ส่งลิงก์ให้เพื่อน
 
-document.getElementById('hero-create-room').addEventListener('click', () => {
+function openRoomModal(mode) {
   if (!requireLogin()) return;
-  if (myRoomId) { document.getElementById('room-msg').textContent = ''; }
+  roomMode = mode;
+  document.getElementById('room-modal-title').textContent = mode === 'friend' ? 'เล่นกับเพื่อน' : 'สร้างห้องเล่น';
+  document.getElementById('room-modal-sub').textContent = mode === 'friend' ? 'เลือกเวลา แล้วส่งลิงก์ให้เพื่อนกดเข้าเกม' : 'ตั้งค่าห้อง แล้วรอผู้เล่นเข้าร่วม';
+  document.getElementById('room-msg').textContent = '';
   roomOverlay.classList.remove('hidden');
-});
+}
+document.getElementById('hero-create-room').addEventListener('click', () => openRoomModal('public'));
+document.getElementById('hero-friend').addEventListener('click', () => openRoomModal('friend'));
 document.getElementById('close-room-modal').addEventListener('click', () => roomOverlay.classList.add('hidden'));
 document.getElementById('cancel-room').addEventListener('click', () => roomOverlay.classList.add('hidden'));
 roomOverlay.addEventListener('click', (e) => { if (e.target === roomOverlay) roomOverlay.classList.add('hidden'); });
@@ -1043,6 +1039,7 @@ document.getElementById('create-room-go').addEventListener('click', async () => 
       hostAvatar: currentUser.avatar || '',
       minutes: roomMinutes,
       hostColor: roomColor,
+      friendOnly: roomMode === 'friend',
       status: 'waiting',
       createdAt: Date.now()
     });
@@ -1050,6 +1047,11 @@ document.getElementById('create-room-go').addEventListener('click', async () => 
     myRoomDisconnect.remove();          // ปิดแท็บ/หลุด → ห้องหายเอง
     myRoomId = roomId;
     roomOverlay.classList.add('hidden');
+    if (roomMode === 'friend') {
+      const link = new URL('play.html?join=' + roomId, window.location.href).href;
+      document.getElementById('friend-link').value = link;
+      document.getElementById('friend-link-bar').style.display = '';
+    }
     // รอผู้เล่นเข้าร่วม → เข้าเกม
     onValue(roomRef, (snap) => {
       const r = snap.val();
@@ -1067,13 +1069,14 @@ async function cancelMyRoom() {
     await remove(ref(db, `lobby_rooms/${myRoomId}`));
   } catch (e) {}
   myRoomId = null;
+  document.getElementById('friend-link-bar').style.display = 'none';
 }
 
 // ── เข้าร่วมห้อง ──
 async function joinRoom(roomId) {
   if (!requireLogin()) return;
   const room = rooms[roomId];
-  if (!room || room.hostUid === mySid) return;
+  if (room && room.hostUid === mySid) return;   // ห้องตัวเองกดไม่ได้ (ลิงก์เพื่อน: ยังไม่อยู่ใน cache ก็เข้าได้ transaction ตรวจให้)
   // จองห้อง (กันสองคนกดพร้อมกัน)
   const claimRef = ref(db, `lobby_rooms/${roomId}`);
   const tx = await runTransaction(claimRef, (r) => {
@@ -1122,7 +1125,7 @@ function renderRooms() {
   const count = document.getElementById('lobby-count');
   const now = Date.now();
   const entries = Object.entries(rooms)
-    .filter(([id, r]) => r && r.status === 'waiting' && (now - (r.createdAt || 0)) < ROOM_TTL)
+    .filter(([id, r]) => r && r.status === 'waiting' && (now - (r.createdAt || 0)) < ROOM_TTL && (!r.friendOnly || r.hostUid === mySid))
     .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
   count.textContent = entries.length ? `${entries.length} ห้อง` : '';
   if (!entries.length) {
@@ -1173,6 +1176,22 @@ onValue(ref(db, 'lobby_rooms'), (snap) => {
 }, () => {
   document.getElementById('lobby-list').innerHTML = '<div class="lobby-empty">โหลดห้องไม่ได้ (เช็ค Rules: lobby_rooms)</div>';
 });
+
+// ── คัดลอกลิงก์ชวนเพื่อน ──
+document.getElementById('friend-link-copy').addEventListener('click', async () => {
+  const inp = document.getElementById('friend-link');
+  inp.select(); inp.setSelectionRange(0, 999);
+  try { await navigator.clipboard.writeText(inp.value); } catch (e) { document.execCommand('copy'); }
+  const btn = document.getElementById('friend-link-copy');
+  const old = btn.textContent; btn.textContent = '✓ คัดลอกแล้ว';
+  setTimeout(() => { btn.textContent = old; }, 1500);
+});
+
+// ── เข้าห้องจากลิงก์เพื่อน (?join=ID) ──
+const joinParam = new URLSearchParams(location.search).get('join');
+if (joinParam) {
+  setTimeout(() => { if (requireLogin()) joinRoom(joinParam); }, 400);
+}
 </script>
 </body>
 </html>

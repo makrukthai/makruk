@@ -267,22 +267,17 @@ html[data-background-mode="light"] .captured-card {
         </div>
 
         <div class="right-panel">
-          <div class="move-badge" id="move-badge">เริ่มเกม</div>
-          <div class="status-bar" id="game-status">ตาขาวเดิน</div>
+          <div class="panel-head">
+            <div class="panel-meta"><span id="room-meta">เล่นกับบอท</span><span class="move-badge" id="move-badge">เริ่มเกม</span></div>
+            <div class="status-bar" id="game-status">ตาขาวเดิน</div>
+          </div>
 
           <div class="chat-panel">
             <div class="cp-tabs">
-              <button type="button" class="cp-tab" id="tab-chat">บันทึก</button>
               <button type="button" class="cp-tab active" id="tab-moves">ตาเดิน</button>
             </div>
 
             <div class="cp-body">
-              <div class="cp-view hidden" id="chat-view">
-                <div class="chat-messages" id="chat-messages">
-                  <div class="chat-msg system">— เล่นกับบอท · RUKTHAI —</div>
-                </div>
-              </div>
-
               <div class="cp-view" id="moves-view">
                 <div class="move-log-head"><span>#</span><span>ขาว</span><span>ดำ</span></div>
                 <div class="move-log" id="move-log">
@@ -298,13 +293,14 @@ html[data-background-mode="light"] .captured-card {
             </div>
           </div>
 
-          <button class="btn-action" id="btn-count-board" style="display:none; width:100%; flex:0 0 auto;">📿 ขอนับศักดิ์กระดาน</button>
+          <button class="btn-action" id="btn-count-board" style="display:none; flex:0 0 auto;">📿 ขอนับศักดิ์กระดาน</button>
           <div id="special-rules-info" style="display:none; font-size:12px; color:var(--muted); padding:8px 12px; background:rgba(255,200,0,0.08); border:1px solid rgba(255,200,0,0.2); border-radius:10px; line-height:1.5; margin-top:4px;"></div>
           <div class="action-row" style="flex-direction:row; gap:6px;">
+            <button class="btn-action" id="btn-undo">↩ ย้อนหมาก</button>
             <button class="btn-action" id="btn-flip">🔄 หมุนกระดาน</button>
-            <button class="btn-action" id="btn-reset">↩ เริ่มใหม่</button>
+            <button class="btn-action" id="btn-reset">↻ เริ่มใหม่</button>
           </div>
-          <button class="btn-action danger" id="btn-back" style="width:100%; flex:0 0 auto;">‹ กลับหน้าหลัก</button>
+          <button class="btn-action danger" id="btn-back" style="flex:0 0 auto;">‹ กลับหน้าหลัก</button>
         </div>
 
       </div>
@@ -511,10 +507,10 @@ function calcCellSize() {
     // มือถือ: เผื่อ coords + ขอบ เหมือน play-online
     return Math.max(32, Math.min(Math.floor((window.innerWidth - 64) / 8), 56));
   }
-  // เดสก์ท็อป: เผื่อความสูงสำหรับการ์ดผู้เล่นบน+ล่าง + coords (ไม่ให้การ์ดล่างล้นจอ)
-  const ah = window.innerHeight - 310;
-  const aw = window.innerWidth - 330;
-  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 74));
+  // เดสก์ท็อป: สูตรเดียวกับห้องแข่ง play-online (กรอบเดียว ไม่ล้นจอ)
+  const ah = window.innerHeight - 362;
+  const aw = window.innerWidth - 450;
+  return Math.max(34, Math.min(Math.floor(Math.min(ah, aw) / 8), 76));
 }
 
 function syncSharedStateAndRender() {
@@ -797,7 +793,7 @@ function executeMove(move) {
 
   if (turn === 'b') {
     scheduleBot();
-  } else if (!gameOver && turn === 'w') {
+  } else if (turn === 'w') {
     tryApplyPremove();   // ⚡ บอทเดินจบ → เล่นพรีมูฟที่สั่งไว้
   }
 }
@@ -965,15 +961,11 @@ function initGame() {
   renderMoveLog();
   updateMoveNavButtons();
 
-  // เริ่มบันทึก replay ใหม่ (index 0 = กระดานเริ่มเกม)
-  moveLog = [{ board: window.cloneBoard(boardState), from: null, to: null }];
-  viewPointer = 0;
-  renderMoveLog();
-  updateMoveNavButtons();
-
   const params = new URLSearchParams(window.location.search);
   const minutes = parseInt(params.get('time')) || 10;
   botDepth = parseInt(params.get('depth')) || 2;
+  const metaEl = document.getElementById('room-meta');
+  if (metaEl) metaEl.textContent = `เล่นกับบอท · ระดับ${botDepth === 1 ? 'ง่าย' : botDepth === 2 ? 'กลาง' : 'ยาก'} · ${minutes} นาที · ไม่จัดอันดับ`;
   timeMinutes = minutes;
   timeWhite = minutes * 60;
   timeBlack = minutes * 60;
@@ -1028,8 +1020,47 @@ document.getElementById('btn-to-menu').addEventListener('click', () => {
 });
 
 // แท็บ บันทึก/ตาเดิน + ปุ่มย้อนตาเดิน
-document.getElementById('tab-chat').addEventListener('click', () => setChatTab('chat'));
-document.getElementById('tab-moves').addEventListener('click', () => setChatTab('moves'));
+// ── ย้อนหมาก: ถอยกลับไปก่อนตาที่เราเพิ่งเดิน (ตาบอท+ตาเรา) ──
+document.getElementById('btn-undo').addEventListener('click', () => {
+  if (gameOver) return;
+  if (sakdiKradanActive || sakdiMakActive) {
+    const el = document.getElementById('special-rules-info');
+    if (el) { el.style.display = ''; el.textContent = 'กำลังนับศักดิ์อยู่ — ย้อนหมากไม่ได้'; }
+    return;
+  }
+  let n;
+  if (turn === 'b') {          // บอทกำลังคิด → ย้อนแค่ตาเรา
+    if (botThinkingTimer) { clearTimeout(botThinkingTimer); botThinkingTimer = null; }
+    n = 1;
+  } else {                     // ตาเรา → ย้อนตาบอท + ตาเราก่อนหน้า
+    n = 2;
+  }
+  if (moveLog.length <= n) {   // ตาเดินแรก — ห้ามย้อน (ไม่มีตำแหน่งก่อนหน้าให้ถอย)
+    const el = document.getElementById('special-rules-info');
+    if (el) { el.style.display = ''; el.textContent = 'ยังย้อนไม่ได้ — ต้องเดินไปมากกว่านี้ก่อน'; setTimeout(() => { if (el.textContent.startsWith('ยังย้อนไม่ได้')) el.style.display = 'none'; }, 2500); }
+    return;
+  }
+  for (let i = 0; i < n; i++) {
+    const ply = moveLog.pop();
+    positionHistory.pop();
+    if (ply && ply.captured) {   // คืนหมากที่ถูกกินออกจากถาด
+      const arr = ply.mover === 'w' ? capturedByW : capturedByB;
+      const idx = arr.lastIndexOf(ply.captured);
+      if (idx >= 0) arr.splice(idx, 1);
+    }
+  }
+  const last = moveLog[moveLog.length - 1];
+  boardState = window.cloneBoard(last.board);
+  lastMove = { from: last.from, to: last.to };
+  turn = 'w';
+  premove = null; selected = null; legalForSelected = [];
+  viewPointer = moveLog.length - 1;
+  renderMoveLog();
+  updateMoveNavButtons();
+  syncSharedStateAndRender();
+  renderStatusText();
+  updateSpecialRulesUI();
+});
 document.getElementById('mv-first').addEventListener('click', () => gotoPointer(1));
 document.getElementById('mv-prev').addEventListener('click', () => gotoPointer(viewPointer - 1));
 document.getElementById('mv-next').addEventListener('click', () => gotoPointer(viewPointer + 1));
