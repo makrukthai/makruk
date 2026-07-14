@@ -29,7 +29,7 @@
   .tn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 18px; }
   .tn-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg,16px); overflow: hidden; cursor: pointer; box-shadow: var(--shadow-1); transition: transform 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; }
   .tn-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); border-color: var(--gold); }
-  .tn-cover { height: 130px; background: linear-gradient(135deg, #3a2f1a, #1f1a12); background-size: cover; background-position: center; position: relative; display: flex; align-items: flex-end; }
+  .tn-cover { aspect-ratio: 1920 / 600; height: auto; min-height: 96px; background: linear-gradient(135deg, #3a2f1a, #1f1a12); background-size: cover; background-position: center; position: relative; display: flex; align-items: flex-end; }
   .tn-cover .tn-status { position: absolute; top: 10px; right: 10px; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
   .st-open { background: #2e7d52; color: #fff; }
   .st-closed { background: #b8860b; color: #fff; }
@@ -49,7 +49,7 @@
   /* ── detail ── */
   .tn-back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; cursor: pointer; }
   .tn-back:hover { color: var(--gold); }
-  .tn-detail-cover { height: 200px; border-radius: var(--r-lg,16px); background: linear-gradient(135deg, #3a2f1a, #1f1a12); background-size: cover; background-position: center; margin-bottom: 18px; position: relative; }
+  .tn-detail-cover { aspect-ratio: 1920 / 600; height: auto; max-height: 340px; width: 100%; border-radius: var(--r-lg,16px); background: linear-gradient(135deg, #3a2f1a, #1f1a12); background-size: cover; background-position: center; margin-bottom: 18px; position: relative; }
   .tn-detail-cover .tn-status { position: absolute; top: 14px; right: 14px; padding: 5px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 700; }
   .tn-detail-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
   @media (max-width: 800px) { .tn-detail-layout { grid-template-columns: 1fr; } }
@@ -187,7 +187,7 @@
   .tn-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 560px) { .tn-row2 { grid-template-columns: 1fr; } }
   .tn-cover-pick { border: 2px dashed var(--border); border-radius: 12px; padding: 14px; text-align: center; cursor: pointer; color: var(--muted); font-size: 0.85rem; background: var(--bg2); }
-  .tn-cover-pick.has { padding: 0; border-style: solid; overflow: hidden; height: 120px; background-size: cover; background-position: center; }
+  .tn-cover-pick.has { padding: 0; border-style: solid; overflow: hidden; aspect-ratio: 1920 / 600; height: auto; background-size: cover; background-position: center; }
   .tn-toggles { display: flex; gap: 20px; flex-wrap: wrap; }
   .tn-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
   .tn-actions { display: flex; gap: 12px; margin-top: 22px; }
@@ -251,7 +251,7 @@
     </div>
     <div class="tn-field">
       <label>รูปปก</label>
-      <div class="tn-cover-pick" id="f-cover-pick">คลิกเพื่อเลือกรูปปก (ไม่บังคับ)</div>
+      <div class="tn-cover-pick" id="f-cover-pick">คลิกเพื่อเลือกรูปปก 1920×600 — เลื่อน/ซูมจัดตำแหน่งเองได้ (ไม่บังคับ)</div>
       <input type="file" id="f-cover-input" accept="image/*" style="display:none;">
     </div>
     <div class="tn-field">
@@ -309,6 +309,7 @@
 </div>
 
 <script src="../game.js"></script>
+<script src="../cropper.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -631,21 +632,14 @@ document.getElementById('f-rounds-mode').addEventListener('change', e => {
 
 // รูปปก: ย่อเป็น base64
 document.getElementById('f-cover-pick').addEventListener('click', () => document.getElementById('f-cover-input').click());
-document.getElementById('f-cover-input').addEventListener('change', e => {
+document.getElementById('f-cover-input').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => {
-      const max = 1000, scale = Math.min(1, max / img.width);
-      const cv = document.createElement('canvas'); cv.width = img.width * scale; cv.height = img.height * scale;
-      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      coverData = cv.toDataURL('image/jpeg', 0.82);
-      const cp = document.getElementById('f-cover-pick'); cp.className = 'tn-cover-pick has'; cp.textContent = ''; cp.style.backgroundImage = `url('${coverData}')`;
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
+  if (!window.openCoverCropper) { alert('ไม่พบไฟล์ cropper.js — กรุณาวาง cropper.js ที่โฟลเดอร์หลักของโปรเจกต์ (ระดับเดียวกับ game.js) แล้วกด Ctrl+F5'); return; }
+  const d = await window.openCoverCropper(file, 1920, 600);   // เลื่อน/ซูมจัดตำแหน่งเอง
+  e.target.value = '';
+  if (!d) return;   // กดยกเลิก
+  coverData = d;
+  const cp = document.getElementById('f-cover-pick'); cp.className = 'tn-cover-pick has'; cp.textContent = ''; cp.style.backgroundImage = `url('${coverData}')`;
 });
 
 document.getElementById('tn-save').addEventListener('click', async () => {

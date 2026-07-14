@@ -120,7 +120,8 @@
     box-shadow: var(--shadow-1); overflow: hidden; display: flex; flex-direction: column;
   }
   .club-banner {
-    height: 84px; background: linear-gradient(135deg, #7a5230, #c8a24a); position: relative;
+    aspect-ratio: 1920 / 600; height: auto; min-height: 84px;
+    background: linear-gradient(135deg, #7a5230, #c8a24a); position: relative;
     background-size: cover; background-position: center; display: flex; align-items: flex-end;
   }
   .club-logo {
@@ -311,9 +312,9 @@
       </div>
     </div>
     <div class="club-field">
-      <label>รูปปกซุ้ม (แบนเนอร์ยาว)</label>
+      <label>รูปปกซุ้ม (1920×600 — เลื่อน/ซูมจัดตำแหน่งเองได้)</label>
       <div class="club-img-row">
-        <div class="club-img-preview" id="cm-cover-preview" style="width:96px; height:48px; border-radius:8px;"></div>
+        <div class="club-img-preview" id="cm-cover-preview" style="width:154px; height:48px; border-radius:8px;"></div>
         <input type="file" id="cm-cover-file" accept="image/*" hidden>
         <button type="button" class="club-btn" id="cm-cover-pick" style="flex:0 0 auto; padding:0 14px;">เลือกรูป…</button>
         <button type="button" class="club-btn" id="cm-cover-clear" style="flex:0 0 auto; padding:0 14px;">ลบ</button>
@@ -382,6 +383,7 @@
   </div>
 </div>
 
+<script src="../cropper.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, push, set, update, onValue, query, orderByChild, limitToLast, get, remove, serverTimestamp }
@@ -672,17 +674,45 @@ function fileToScaledDataURL(file, maxW = 400, quality = 0.8) {
     img.onerror = reject; img.src = url;
   });
 }
-function wireImgPicker(pickId, clearId, fileId, previewId, maxW, setter) {
+// ── ครอปรูปเป็นปกมาตรฐาน 1920×600 (cover กลางภาพ · รูปใหญ่กว่า = ครอป/ย่อพอดี · รูปเล็กกว่าไม่ขยายแต่คงสัดส่วน) ──
+function cropToCover(file, W, H) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let outW = W, outH = H;
+      const fit = Math.min(img.width / W, img.height / H);
+      if (fit < 1) { outW = Math.max(320, Math.round(W * fit)); outH = Math.round(outW * H / W); }
+      const cv = document.createElement('canvas');
+      cv.width = outW; cv.height = outH;
+      const ctx = cv.getContext('2d');
+      const s = Math.max(outW / img.width, outH / img.height);
+      const dw = img.width * s, dh = img.height * s;
+      ctx.drawImage(img, (outW - dw) / 2, (outH - dh) / 2, dw, dh);
+      URL.revokeObjectURL(url);
+      resolve(cv.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('read fail')); };
+    img.src = url;
+  });
+}
+
+function wireImgPicker(pickId, clearId, fileId, previewId, maxW, setter, cropWH) {
   document.getElementById(pickId).addEventListener('click', () => document.getElementById(fileId).click());
   document.getElementById(clearId).addEventListener('click', () => { setter(''); document.getElementById(previewId).style.backgroundImage = ''; });
   document.getElementById(fileId).addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
-    try { const d = await fileToScaledDataURL(f, maxW); setter(d); document.getElementById(previewId).style.backgroundImage = `url("${d}")`; }
+    try {
+      if (cropWH && !window.openCoverCropper) { alert('ไม่พบไฟล์ cropper.js — กรุณาวาง cropper.js ที่โฟลเดอร์หลักของโปรเจกต์ (ระดับเดียวกับ game.js) แล้วกด Ctrl+F5'); return; }
+      const d = cropWH ? await window.openCoverCropper(f, cropWH[0], cropWH[1]) : await fileToScaledDataURL(f, maxW);
+      if (!d) { e.target.value = ''; return; }   // กดยกเลิกครอป
+      setter(d); document.getElementById(previewId).style.backgroundImage = `url("${d}")`;
+    }
     catch (err) { document.getElementById('cm-msg').textContent = 'อ่านรูปไม่สำเร็จ'; }
   });
 }
 wireImgPicker('cm-logo-pick', 'cm-logo-clear', 'cm-logo-file', 'cm-logo-preview', 400, v => cmLogoData = v);
-wireImgPicker('cm-cover-pick', 'cm-cover-clear', 'cm-cover-file', 'cm-cover-preview', 1200, v => cmCoverData = v);
+wireImgPicker('cm-cover-pick', 'cm-cover-clear', 'cm-cover-file', 'cm-cover-preview', 1200, v => cmCoverData = v, [1920, 600]);
 
 document.getElementById('cm-save').addEventListener('click', async () => {
   const name = document.getElementById('cm-name').value.trim();

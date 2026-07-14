@@ -20,7 +20,7 @@
     background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-lg, 16px);
     overflow: hidden; box-shadow: var(--shadow-1); margin-bottom: 20px;
   }
-  .club-hero-banner { height: 150px; background: linear-gradient(135deg,#7a5230,#c8a24a); background-size: cover; background-position: center; }
+  .club-hero-banner { aspect-ratio: 1920 / 600; height: auto; min-height: 150px; max-height: 320px; background: linear-gradient(135deg,#7a5230,#c8a24a); background-size: cover; background-position: center; }
   .club-hero-body { padding: 0 22px 22px; display: flex; gap: 16px; align-items: flex-end; }
   .club-hero-logo {
     width: 88px; height: 88px; border-radius: 16px; border: 4px solid var(--bg2); margin-top: -44px;
@@ -188,9 +188,9 @@
       </div>
     </div>
     <div class="edit-field">
-      <label>รูปปกซุ้ม (แบนเนอร์)</label>
+      <label>รูปปกซุ้ม (1920×600 — เลื่อน/ซูมจัดตำแหน่งเองได้)</label>
       <div class="edit-img-row">
-        <div class="edit-img-preview" id="ed-cover-preview" style="width:110px; height:48px; border-radius:8px;"></div>
+        <div class="edit-img-preview" id="ed-cover-preview" style="width:154px; height:48px; border-radius:8px;"></div>
         <input type="file" id="ed-cover-file" accept="image/*" hidden>
         <button type="button" class="btn-edit-club" id="ed-cover-pick" style="margin:0;">เลือกรูป…</button>
         <button type="button" class="btn-edit-club" id="ed-cover-clear" style="margin:0;">ลบ</button>
@@ -204,6 +204,7 @@
   </div>
 </div>
 
+<script src="../cropper.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, set, update, remove, get, push, query, orderByChild, limitToLast, serverTimestamp }
@@ -464,17 +465,23 @@ function closeEdit() { edOverlay.classList.remove('open'); }
 document.getElementById('ed-cancel').addEventListener('click', closeEdit);
 edOverlay.addEventListener('click', e => { if (e.target === edOverlay) closeEdit(); });
 
-function wireEdPicker(pickId, clearId, fileId, prevId, maxW, getter, setter) {
+function wireEdPicker(pickId, clearId, fileId, prevId, maxW, getter, setter, cropWH) {
   document.getElementById(pickId).addEventListener('click', () => document.getElementById(fileId).click());
   document.getElementById(clearId).addEventListener('click', () => { setter(''); document.getElementById(prevId).style.backgroundImage = ''; });
   document.getElementById(fileId).addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
-    try { const d = await fileToScaledDataURL(f, maxW); setter(d); document.getElementById(prevId).style.backgroundImage = `url("${d}")`; }
+    try {
+      if (cropWH && !window.openCoverCropper) { alert('ไม่พบไฟล์ cropper.js — กรุณาวาง cropper.js ที่โฟลเดอร์หลักของโปรเจกต์ (ระดับเดียวกับ game.js) แล้วกด Ctrl+F5'); e.target.value = ''; return; }
+      const d = cropWH ? await window.openCoverCropper(f, cropWH[0], cropWH[1]) : await fileToScaledDataURL(f, maxW);
+      e.target.value = '';
+      if (!d) return;   // กดยกเลิกครอป
+      setter(d); document.getElementById(prevId).style.backgroundImage = `url("${d}")`;
+    }
     catch (err) { document.getElementById('ed-msg').textContent = 'อ่านรูปไม่สำเร็จ'; }
   });
 }
 wireEdPicker('ed-logo-pick', 'ed-logo-clear', 'ed-logo-file', 'ed-logo-preview', 400, () => edLogo, v => edLogo = v);
-wireEdPicker('ed-cover-pick', 'ed-cover-clear', 'ed-cover-file', 'ed-cover-preview', 1200, () => edCover, v => edCover = v);
+wireEdPicker('ed-cover-pick', 'ed-cover-clear', 'ed-cover-file', 'ed-cover-preview', 1200, () => edCover, v => edCover = v, [1920, 600]);
 
 document.getElementById('ed-save').addEventListener('click', async () => {
   const name = document.getElementById('ed-name').value.trim();
