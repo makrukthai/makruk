@@ -1222,7 +1222,10 @@ function listenToGame(gid) {
     }
 
     const lm = data.lastMove;
-    if (!lm || lm.by === myUid) return;
+    if (!lm) return;
+    // ตาเดินล่าสุดเป็นของเราเอง: ข้ามตามปกติ (เราเดินไว้แล้ว)
+    // ยกเว้นเพิ่งกลับเข้าห้อง (state ท้องถิ่นยังตามไม่ทัน) → ต้องกู้กระดานจาก snapshot ก่อน
+    if (lm.by === myUid && moveCount >= (lm.moveCount || 0)) return;
 
     if (lm.endReason && !lm.board) {
       if (lm.endReason === 'resign') endGame('resign', myColor);

@@ -86,6 +86,16 @@
   .tn-subtab { padding: 8px 16px; border-radius: 999px; border: none; background: var(--btn-secondary); color: var(--muted); cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.18s; }
   .tn-subtab:hover { color: var(--text); background: var(--btn-secondary-hover); }
   .tn-subtab.active { background: var(--btn-primary); color: var(--btn-primary-text); box-shadow: inset 0 1px 0 var(--btn-sheen-top); }
+  /* สถานะสดของคู่แข่ง */
+  .pg-live { font-size: 11px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 5px; justify-content: center; }
+  .pg-live.on { color: #5BA97C; font-weight: 700; }
+  .lv-dot { width: 7px; height: 7px; border-radius: 50%; background: #5BA97C; display: inline-block; animation: tnBlink 1.4s infinite; }
+  @keyframes tnBlink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  /* ผู้เล่นถูกถอน */
+  .tn-player.wd .pn { opacity: 0.5; text-decoration: line-through; }
+  .tag-wd { font-size: 10px; color: var(--btn-danger-text, #e9b3a8); background: var(--btn-danger, rgba(180,60,50,0.2)); border-radius: 6px; padding: 2px 7px; margin-left: 6px; text-decoration: none; display: inline-block; }
+  .pl-wd-btn { margin-left: auto; flex: none; background: var(--btn-secondary); color: var(--btn-secondary-text); border: 1px solid var(--border); border-radius: 8px; padding: 5px 11px; font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); }
+  .pl-wd-btn:hover { border-color: #e05548; color: #e07168; }
   .tn-admin-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; padding: 14px; background: var(--bg2); border: 1px solid var(--gold); border-radius: 12px; align-items: center; }
   .tn-admin-bar .lbl { font-size: 0.85rem; color: var(--muted); margin-right: auto; }
   .tn-admin-bar button { height: 40px; padding: 0 18px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; font-family: var(--font-ui,'Noto Sans Thai',sans-serif); font-size: 0.88rem; }
@@ -297,6 +307,7 @@
     <div class="tn-field">
       <div class="tn-toggles">
         <label class="tn-toggle"><input type="checkbox" id="f-rated" checked> Rated (คิดเรต)</label>
+        <label class="tn-toggle"><input type="checkbox" id="f-auto" checked> เดินรอบอัตโนมัติเมื่อครบผล</label>
         <label class="tn-toggle"><input type="checkbox" id="f-private"> Private (ส่วนตัว)</label>
       </div>
     </div>
@@ -313,7 +324,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, set, remove, onValue, get, update, onDisconnect, serverTimestamp }
+import { getDatabase, ref, push, set, remove, onValue, get, update, onDisconnect, serverTimestamp, runTransaction }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -520,6 +531,45 @@ function renderDetail(id, t) {
   if (isAdmin) document.querySelectorAll('[data-result]').forEach(btn => btn.addEventListener('click', () => {
     reportResult(id, +btn.dataset.round, btn.dataset.pair, btn.dataset.result);
   }));
+  // ถอน/คืนสิทธิ์ผู้เล่น (admin)
+  if (isAdmin) document.querySelectorAll('[data-wd]').forEach(b => b.addEventListener('click', async () => {
+    const uid = b.dataset.wd, isWdNow = b.dataset.wdstate === '1';
+    if (!isWdNow && !confirm('ถอนผู้เล่นนี้ออกจากการแข่ง?\n• รอบถัดไปจะไม่ถูกจับคู่\n• คู่ที่ค้างอยู่ในรอบนี้จะถือว่าแพ้ทันที')) return;
+    try {
+      await set(ref(db, `tournaments/${id}/players/${uid}/withdrawn`), isWdNow ? null : true);
+      if (!isWdNow) await forfeitPendingOf(id, t, uid);
+    } catch (e) { alert('ไม่สำเร็จ'); }
+  }));
+  // สถานะสดของคู่ในรอบปัจจุบัน
+  enrichLiveStatus();
+}
+
+// ตัดสินคู่ค้างของผู้เล่นที่ถูกถอน (รอบปัจจุบัน) = แพ้ทันที
+async function forfeitPendingOf(id, t, uid) {
+  const pr = t.rounds && t.rounds[t.currentRound] && t.rounds[t.currentRound].pairings;
+  if (!pr) return;
+  for (const k of Object.keys(pr)) {
+    const pg = pr[k];
+    if (pg.result) continue;
+    if (pg.white === uid && pg.black) await set(ref(db, `tournaments/${id}/rounds/${t.currentRound}/pairings/${k}/result`), '0-1');
+    else if (pg.black === uid) await set(ref(db, `tournaments/${id}/rounds/${t.currentRound}/pairings/${k}/result`), '1-0');
+    else if (pg.white === uid && !pg.black) await set(ref(db, `tournaments/${id}/rounds/${t.currentRound}/pairings/${k}/result`), 'double');
+  }
+}
+
+// ── (8) สถานะสดของแต่ละคู่ (อ่านจากเกมจริง) ──
+async function enrichLiveStatus() {
+  const els = document.querySelectorAll('[data-live-room]');
+  for (const el of els) {
+    try {
+      const g = (await get(ref(db, `games/${el.dataset.liveRoom}`))).val();
+      if (!g) { el.textContent = ''; continue; }
+      if (g.lastMove && g.lastMove.endReason) { el.textContent = '⏳ จบแล้ว รอบันทึกผล'; el.className = 'pg-live'; }
+      else if ((g.moveCount || 0) > 0) { el.innerHTML = '<span class="lv-dot"></span>กำลังแข่ง · เดินแล้ว ' + g.moveCount + ' ตา'; el.className = 'pg-live on'; }
+      else if (g.arrived_w || g.arrived_b) { el.textContent = '🚪 รอผู้เล่นอีกฝ่ายเข้าห้อง'; el.className = 'pg-live'; }
+      else { el.textContent = '🕐 รอผู้เล่นเข้าห้อง'; el.className = 'pg-live'; }
+    } catch (e) {}
+  }
 }
 
 function renderInfoTab(id, t, s, cnt) {
@@ -555,9 +605,10 @@ function renderInfoTab(id, t, s, cnt) {
       </div>
       <div class="tn-players-list">
         <h3>👥 ผู้สมัคร (${cnt})</h3>
-        ${players.length ? players.map(([uid, p]) => `<div class="tn-player">
+        ${players.length ? players.map(([uid, p]) => `<div class="tn-player${p.withdrawn ? ' wd' : ''}">
           <img src="${esc(p.avatar || '../Images/default-avatar.png')}" onerror="this.src='../Images/default-avatar.png'">
-          <span class="pn">${esc(p.name)}</span>${t.rated ? `<span class="pr">เรต ${p.rating || '-'}</span>` : ''}
+          <span class="pn">${esc(p.name)}${p.withdrawn ? ' <span class="tag-wd">ถอนตัว</span>' : ''}</span>${t.rated ? `<span class="pr">เรต ${p.rating || '-'}</span>` : ''}
+          ${isAdmin && t.started && !t.finished ? `<button class="pl-wd-btn" data-wd="${esc(uid)}" data-wdstate="${p.withdrawn ? 1 : 0}">${p.withdrawn ? 'คืนสิทธิ์' : 'ถอน'}</button>` : ''}
         </div>`).join('') : '<div class="tn-empty" style="padding:20px 0;">ยังไม่มีผู้สมัคร</div>'}
       </div>
     </div>
@@ -575,17 +626,31 @@ function renderInfoTab(id, t, s, cnt) {
 async function toggleRegister(id, t, joined, full) {
   const msg = document.getElementById('tn-reg-msg');
   if (!currentUser) { location.href = 'play.html'; return; }
+  const s = tnStatus(t);
   try {
     if (joined) {
+      if (t.started) { msg.textContent = 'ทัวร์เริ่มแล้ว ถอนตัวเองไม่ได้ — แจ้งแอดมิน'; return; }
       await remove(ref(db, `tournaments/${id}/players/${mySid}`));
     } else {
+      // กันสมัครหลังปิดรับ/เริ่มแข่ง/จบแล้ว
+      if (s !== 'open') {
+        msg.textContent = s === 'finished' ? 'ทัวร์นาเมนต์จบแล้ว' : (t.started || s === 'ongoing') ? 'ทัวร์เริ่มไปแล้ว สมัครไม่ทัน' : 'ปิดรับสมัครแล้ว';
+        return;
+      }
       if (full) { msg.textContent = 'ทัวร์เต็มแล้ว'; return; }
       // ดึงเรตผู้เล่น
       let rating = 0;
       try { const us = await get(ref(db, `users/${mySid}/elo`)); const e = us.val() || {}; rating = e.standard || e.rapid || e.blitz || 0; } catch (e) {}
-      await set(ref(db, `tournaments/${id}/players/${mySid}`), {
-        name: currentUser.name || currentUser.email, avatar: currentUser.avatar || '', rating, joinedAt: Date.now()
+      const me = { name: currentUser.name || currentUser.email, avatar: currentUser.avatar || '', rating, joinedAt: Date.now() };
+      // transaction กันสมัครพร้อมกันทะลุจำนวนสูงสุด
+      const tx = await runTransaction(ref(db, `tournaments/${id}/players`), (pl) => {
+        pl = pl || {};
+        if (pl[mySid]) return pl;
+        if (Object.keys(pl).length >= (t.maxPlayers || 999)) return;   // เต็ม → ยกเลิก
+        pl[mySid] = me;
+        return pl;
       });
+      if (!tx.committed) { msg.textContent = 'ทัวร์เต็มแล้ว'; return; }
     }
   } catch (e) { msg.textContent = 'ดำเนินการไม่สำเร็จ'; }
 }
@@ -675,6 +740,7 @@ document.getElementById('tn-save').addEventListener('click', async () => {
       swissRounds: (type === 'swiss' && roundsMode === 'manual') ? roundsNum : null,
       minPlayers: minP, maxPlayers: maxP,
       rated: document.getElementById('f-rated').checked, private: document.getElementById('f-private').checked,
+      autoAdvance: document.getElementById('f-auto').checked,
       started: false, finished: false,
       createdBy: mySid, createdByName: currentUser.name || currentUser.email, createdAt: serverTimestamp()
     });
@@ -787,8 +853,21 @@ function roundComplete(t, rd) {
 function pgInfo(t, uid) { const p = (t.players && t.players[uid]) || {}; return { name: p.name || 'ผู้เล่น', avatar: p.avatar || '' }; }
 
 // สร้างคู่ Swiss
+function isWithdrawn(t, uid) { return !!(uid && t.players && t.players[uid] && t.players[uid].withdrawn); }
+function applyWithdrawals(t, pairings) {
+  pairings.forEach(pg => {
+    if (pg.result) return;
+    const w = isWithdrawn(t, pg.white), b = isWithdrawn(t, pg.black);
+    if (pg.black == null) { if (w) pg.result = 'double'; return; }
+    if (w && b) pg.result = 'double';
+    else if (w) pg.result = '0-1';
+    else if (b) pg.result = '1-0';
+  });
+  return pairings;
+}
+
 function genSwiss(t, standings) {
-  const pool = standings.slice();
+  const pool = standings.filter(s => !isWithdrawn(t, s.uid));
   const out = [];
   let bye = null;
   if (pool.length % 2 === 1) {
@@ -881,9 +960,10 @@ const INITIAL_FB = (window.INITIAL_BOARD || []).map(row => row.map(c => c || '')
 
 // สร้างห้องเกมจริงให้แต่ละคู่ (ไม่รวม BYE) แล้วผูก roomId กับ pairing
 async function createPairingRooms(tid, round, pairings, t) {
+  applyWithdrawals(t, pairings);   // ผู้เล่นที่ถูกถอน → ตัดสินผลทันที ไม่สร้างห้อง
   for (let i = 0; i < pairings.length; i++) {
     const pg = pairings[i];
-    if (pg.black == null || pg.result === 'bye') continue;
+    if (pg.black == null || pg.result) continue;
     const gref = push(ref(db, 'games'));
     await set(gref, {
       w: { uid: pg.white, name: pg.whiteName, avatar: pg.whiteAvatar || '' },
@@ -940,11 +1020,12 @@ async function reportResult(id, rd, pairId, result) {
   try { await set(ref(db, `tournaments/${id}/rounds/${rd}/pairings/${pairId}/result`), result); } catch (e) { alert('บันทึกผลไม่สำเร็จ'); }
 }
 
-async function nextRound(id, t) {
+async function nextRound(id, t, silent) {
   if (!isAdmin) return;
   await adjudicateLateGames(id, t);
   try { const fresh = (await get(ref(db, `tournaments/${id}`))).val(); if (fresh) t = fresh; } catch (e) {}
-  if (!roundComplete(t, t.currentRound)) { alert('รอบนี้ยังมีคู่ที่ไม่มีผล (ถ้ามีคนไม่มาแข่ง รอจนเลยเวลาเข้าร่วมแล้วลองใหม่)'); return; }
+  if (!t.started || t.finished) return;
+  if (!roundComplete(t, t.currentRound)) { if (!silent) alert('รอบนี้ยังมีคู่ที่ไม่มีผล (ถ้ามีคนไม่มาแข่ง รอจนเลยเวลาเข้าร่วมแล้วลองใหม่)'); return; }
   const nextNum = t.currentRound + 1;
   if (t.type === 'knockout') {
     const { pairings, winners } = genKnockoutNext(t);
@@ -953,14 +1034,14 @@ async function nextRound(id, t) {
     await update(ref(db, `tournaments/${id}`), { currentRound: nextNum, [`rounds/${nextNum}/pairings`]: arrToObj(pairings),
       announcement: { round: nextNum, text: `รอบที่ ${nextNum} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`, ts: Date.now() } });
   } else if (t.type === 'roundrobin') {
-    if (t.currentRound >= (t.totalRounds || 0)) { alert('ครบทุกรอบแล้ว กด "จบทัวร์นาเมนต์" เพื่อสรุปผล'); return; }
+    if (t.currentRound >= (t.totalRounds || 0)) { if (silent) { await finishTournament(id, t); } else alert('ครบทุกรอบแล้ว กด "จบทัวร์นาเมนต์" เพื่อสรุปผล'); return; }
     const pairs = t.rrSchedule[t.currentRound];   // index = currentRound (0-based ของรอบถัดไป)
     const pairings = rrPairingsFromPairs(t, pairs);
     await createPairingRooms(id, nextNum, pairings, t);
     await update(ref(db, `tournaments/${id}`), { currentRound: nextNum, [`rounds/${nextNum}/pairings`]: arrToObj(pairings),
       announcement: { round: nextNum, text: `รอบที่ ${nextNum} เริ่มแล้ว กรุณาเข้าห้องแข่งขัน`, ts: Date.now() } });
   } else {
-    if (t.currentRound >= (t.totalRounds || 0)) { alert('ครบจำนวนรอบ Swiss แล้ว กด "จบทัวร์นาเมนต์" เพื่อสรุปผล'); return; }
+    if (t.currentRound >= (t.totalRounds || 0)) { if (silent) { await finishTournament(id, t); } else alert('ครบจำนวนรอบ Swiss แล้ว กด "จบทัวร์นาเมนต์" เพื่อสรุปผล'); return; }
     const st = computeStandings(t);
     const pairings = genSwiss(t, st);
     await createPairingRooms(id, nextNum, pairings, t);
@@ -1014,7 +1095,7 @@ function renderPairingsTab(t) {
         <button data-round="${rd}" data-pair="${k}" data-result="0-1">${esc(pg.blackName)} ชนะ</button>
       </div>` : '';
       let actionRow = '';
-      const watchBtn = pg.room ? `<button class="sp-watch" onclick="location.href='review.html?game=${esc(pg.room)}&from=tournament&t=${esc(id)}'">👁 ดูเกม</button>` : '';
+      const watchBtn = pg.room ? `<button class="sp-watch" onclick="location.href='review.html?game=${esc(pg.room)}&from=tournament&t=${esc(currentDetailId)}'">👁 ดูเกม</button>` : '';
       if (rd === t.currentRound && !pg.result && pg.room && mySid && (mySid === pg.white || mySid === pg.black)) {
         const myCol = mySid === pg.white ? 'w' : 'b';
         actionRow = `<div class="res-btns"><button class="join-btn" onclick="location.href='play-online.html?room=${esc(pg.room)}&color=${myCol}'">▶ เข้าห้องแข่งขันของคุณ</button>${watchBtn}</div>`;
@@ -1023,7 +1104,7 @@ function renderPairingsTab(t) {
       }
       html += `<div class="pairing">
         <div class="side ${wWin ? 'win' : ''}"><img src="${esc(pg.whiteAvatar || '../Images/default-avatar.png')}" onerror="this.src='../Images/default-avatar.png'"><span class="nm">${esc(pg.whiteName)}</span><span class="clr">ขาว</span></div>
-        <div class="mid"><div class="${pg.result ? 'res' : ''}">${resTxt}</div></div>
+        <div class="mid"><div class="${pg.result ? 'res' : ''}">${resTxt}</div>${(!pg.result && pg.room && rd === t.currentRound) ? `<div class="pg-live" data-live-room="${esc(pg.room)}">…</div>` : ''}</div>
         <div class="side right ${bWin ? 'win' : ''}"><span class="clr">ดำ</span><span class="nm">${esc(pg.blackName)}</span><img src="${esc(pg.blackAvatar || '../Images/default-avatar.png')}" onerror="this.src='../Images/default-avatar.png'"></div>
         ${actionRow}${resBtns}
       </div>`;
@@ -1115,6 +1196,25 @@ setInterval(() => {
   }
 }, 1000);
 setInterval(() => { if (currentDetailId && allTournaments[currentDetailId]) renderDetail(currentDetailId, allTournaments[currentDetailId]); else renderList(); }, 60000);
+
+// (แอดมิน) ตรวจผลค้าง + เดินรอบอัตโนมัติทุก 30 วิ เมื่อเปิดหน้าทัวร์ที่กำลังแข่งอยู่
+let autoBusy = false;
+setInterval(async () => {
+  if (!isAdmin || !currentDetailId || autoBusy) return;
+  const t = allTournaments[currentDetailId];
+  if (!t || !t.started || t.finished) return;
+  autoBusy = true;
+  try {
+    await adjudicateLateGames(currentDetailId, t);
+    if (t.autoAdvance) {
+      const fresh = (await get(ref(db, `tournaments/${currentDetailId}`))).val();
+      if (fresh && fresh.started && !fresh.finished && roundComplete(fresh, fresh.currentRound)) {
+        await nextRound(currentDetailId, fresh, true);
+      }
+    }
+  } catch (e) {}
+  autoBusy = false;
+}, 30000);
 </script>
 </body>
 </html>
