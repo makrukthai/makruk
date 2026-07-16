@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ═══ MAKRUK BUILD 2026-07-16-TACTIC : ปลดล็อกด่าน+เดินอัตโนมัติ+นับตา ceil+เสียง ═══ -->
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -565,7 +566,7 @@ async function enrichLiveStatus() {
       const g = (await get(ref(db, `games/${el.dataset.liveRoom}`))).val();
       if (!g) { el.textContent = ''; continue; }
       if (g.lastMove && g.lastMove.endReason) { el.textContent = '⏳ จบแล้ว รอบันทึกผล'; el.className = 'pg-live'; }
-      else if ((g.moveCount || 0) > 0) { el.innerHTML = '<span class="lv-dot"></span>กำลังแข่ง · เดินแล้ว ' + g.moveCount + ' ตา'; el.className = 'pg-live on'; }
+      else if ((g.moveCount || 0) > 0) { el.innerHTML = '<span class="lv-dot"></span>กำลังแข่ง · ตาที่ ' + Math.max(1, Math.ceil(g.moveCount / 2)); el.className = 'pg-live on'; }
       else if (g.arrived_w || g.arrived_b) { el.textContent = '🚪 รอผู้เล่นอีกฝ่ายเข้าห้อง'; el.className = 'pg-live'; }
       else { el.textContent = '🕐 รอผู้เล่นเข้าห้อง'; el.className = 'pg-live'; }
     } catch (e) {}

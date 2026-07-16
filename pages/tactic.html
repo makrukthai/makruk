@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ═══ MAKRUK BUILD 2026-07-16-TACTIC : ปลดล็อกด่าน+เดินอัตโนมัติ+นับตา ceil+เสียง ═══ -->
 <html lang="th">
 <head>
 <meta charset="UTF-8">
@@ -87,6 +88,7 @@
 </main>
 
 <script src="../game.js"></script>
+<script src="../sound.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, set, remove }
@@ -114,6 +116,8 @@ const isAdmin = !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(cur
 
 const level = parseInt(new URLSearchParams(location.search).get('level'), 10);
 let tactic = null, solution = [], startBoard = null, startTurn = 'w';
+let playerSide = 'w';   // ฝ่ายของผู้เล่น (= ฝ่ายที่เดินตาแรกของโจทย์)
+function sfx(n) { try { if (window.Sound && window.Sound.play) window.Sound.play(n); } catch (e) {} }
 let stepIndex = 0, sel = null, selLegal = [], locked = false, solved = false;
 
 function parseRows(fb) {
@@ -162,22 +166,27 @@ function setStatus(text, cls) {
 function updateTurnLabel() {
   const t = document.getElementById('tactic-turn'); if (!t) return;
   if (solved) { t.textContent = 'แก้สำเร็จ! ✓'; return; }
-  t.textContent = `เดินตาที่ ${stepIndex + 1} / ${solution.length} — ฝ่าย${sideToMove() === 'w' ? 'ขาว' : 'ดำ'}`;
+  const cur = Math.min(Math.ceil((stepIndex + 1) / 2), Math.ceil(solution.length / 2));
+  t.textContent = `ตาที่ ${cur} / ${Math.ceil(solution.length / 2)} — ${sideToMove() === playerSide ? '✋ ตาของคุณ' : 'ฝ่ายตรงข้ามเดิน…'}`;
 }
 
 function onCell(r, c) {
   if (locked || solved) return;
+  if (sideToMove() !== playerSide) return;   // ตาฝ่ายตรงข้าม (ระบบเดินเอง)
   const board = boardAt(stepIndex);
   const expected = solution[stepIndex];
   if (sel) {
     const legal = selLegal.find(m => m.to.row === r && m.to.col === c);
     if (legal) {
       if (expected && sel.r === expected.from[0] && sel.c === expected.from[1] && r === expected.to[0] && c === expected.to[1]) {
+        const cap = !!board[r][c];
         stepIndex++; sel = null; selLegal = []; renderBoardEl(); updateTurnLabel();
+        sfx(cap ? 'capture' : 'move');
         if (stepIndex >= solution.length) { onSolved(); return; }
-        setStatus('ถูกต้อง! เดินตาต่อไป', 'ok');
+        autoReply();
       } else {
         sel = null; selLegal = []; renderBoardEl();
+        sfx('illegal');
         setStatus('ยังไม่ใช่ตาที่ถูกต้อง ลองใหม่อีกครั้ง', 'wrong');
       }
       return;
@@ -189,8 +198,27 @@ function onCell(r, c) {
   renderBoardEl();
 }
 
+// ฝ่ายตรงข้ามเดินตามเฉลยอัตโนมัติ
+function autoReply() {
+  if (solved || stepIndex >= solution.length) return;
+  if (sideToMove() === playerSide) { setStatus('ถูกต้อง! ✋ ถึงตาคุณ เดินต่อเลย', 'ok'); return; }
+  locked = true;
+  setStatus('ฝ่ายตรงข้ามกำลังเดิน…', '');
+  setTimeout(() => {
+    const st = solution[stepIndex];
+    const cap = !!(boardAt(stepIndex)[st.to[0]] && boardAt(stepIndex)[st.to[0]][st.to[1]]);
+    stepIndex++;
+    renderBoardEl(); updateTurnLabel();
+    sfx(cap ? 'capture' : 'move');
+    locked = false;
+    if (stepIndex >= solution.length) { onSolved(); return; }
+    autoReply();
+  }, 600);
+}
+
 async function onSolved() {
   solved = true; locked = false; sel = null; selLegal = [];
+  sfx('end');
   updateTurnLabel(); renderBoardEl();
   const box = document.getElementById('tactic-solved-box');
   const hasNext = level < 100;
@@ -219,6 +247,7 @@ function render(t) {
     wrap.innerHTML = `<div class="lesson-missing">ด่าน ${isNaN(level) ? '' : level} ยังไม่มีโจทย์</div>`; return;
   }
   tactic = t; solution = t.solution; startBoard = parseRows(t.startBoard); startTurn = t.startTurn || 'w';
+  playerSide = startTurn;
   stepIndex = 0; sel = null; selLegal = []; locked = false; solved = false;
   const myMoves = solution.length;
   const adminBar = isAdmin ? `<div class="admin-bar"><button class="del" id="t-del">🗑 ลบโจทย์ด่านนี้</button></div>` : '';
